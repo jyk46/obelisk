@@ -1,12 +1,10 @@
 #=========================================================================
-# Survivor.py
+# survivor.py
 #=========================================================================
-# Class for survivor units with varying stats and attributes. One or more
-# survivors are grouped into Expeditions, which are what is actually
-# shown on the map.
+# Class for survivor units with varying stats and attributes.
 
 import random
-import Attribute
+import attribute
 
 #-------------------------------------------------------------------------
 # Utility Tables
@@ -110,15 +108,15 @@ class Survivor():
 
   # Stats
 
-  name        = ''
-  age         = 0
-  max_stamina = 10
-  stamina     = 10
-  physical    = 10
-  mental      = 10
-  heal_rate   = 0.5
-  cure_prob   = 0.5
-  attributes  = []
+#  name        = ''
+#  age         = 0
+#  max_stamina = 10
+#  stamina     = 10
+#  physical    = 10
+#  mental      = 10
+#  heal_rate   = 0.5
+#  cure_prob   = 0.5
+#  attributes  = []
 
   # Chance of rolling attribute
 
@@ -147,44 +145,50 @@ class Survivor():
       # Special case age-based attributes
 
       if ( i == 0 ) and ( self.age < 20 ):
-        self.attributes.append( Attribute.Attribute( self.age, 'Youthful' ) )
+        self.attributes.append( attribute.Attribute( self.age, 'Youthful' ) )
 
       elif ( i == 0 ) and ( self.age >= 50 ):
-        self.attributes.append( Attribute.Attribute( self.age, 'Elderly' ) )
+        self.attributes.append( attribute.Attribute( self.age, 'Elderly' ) )
 
       # Common case
 
       elif random.random() < self.attribute_prob:
 
-        attribute = Attribute.Attribute( self.age )
+        attr = attribute.Attribute( self.age )
 
         # Ensure no duplicate attributes
 
-        while attribute in self.attributes:
-          attribute = Attribute.Attribute( self.age )
+        while attr in self.attributes:
+          attr = attribute.Attribute( self.age )
 
-        self.attributes.append( attribute )
+        self.attributes.append( attr )
+
+  # Overload == operator to return true if names match (assume only
+  # unique names per play-through)
+
+  def __eq__( self, surv ):
+    return ( self.name == surv.name )
 
   # Return combined stats bonuses from all attributes
 
   def get_attributes( self ):
 
-    tot_attribute = Attribute.Attribute( self.age, 'Empty' )
+    tot_attr = attribute.Attribute( self.age, 'Empty' )
 
-    for attribute in self.attributes:
-      tot_attribute += attribute
+    for attr in self.attributes:
+      tot_attr += attr
 
-    return tot_attribute
+    return tot_attr
 
   # Return job type (assume only one job per survivor)
 
   def get_job( self ):
 
-    for attribute in self.attributes:
-      if attribute.job != Attribute.NONE:
-        return attribute.job
+    for attr in self.attributes:
+      if attr.job != attribute.NONE:
+        return attr.job
 
-    return Attribute.NONE
+    return attribute.NONE
 
   # Print debug information
 
@@ -198,5 +202,5 @@ class Survivor():
     print 'CURE: ', self.cure_prob
     print 'ATTRIBUTES:'
 
-    for attribute in self.attributes:
-      attribute.debug()
+    for attr in self.attributes:
+      attr.debug()

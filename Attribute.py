@@ -1,11 +1,10 @@
 #=========================================================================
-# Attribute
+# attribute.py
 #=========================================================================
 # Describes stats or special bonuses that can be assigned to each
 # survivor. Each attribute can positively or negatively affect a stat or
 # action based on the table below.
 
-import numpy
 import random
 
 #-------------------------------------------------------------------------
@@ -69,16 +68,16 @@ class Attribute():
 
   # Stats bonuses
 
-  name           = ''
-  physical_bonus = 0.0
-  mental_bonus   = 0.0
-  heal_bonus     = 0.0
-  cure_bonus     = 0.0
-  explore_bonus  = 0.0
-  scavenge_bonus = 0.0
-  day_bonus      = 0.0
-  night_bonus    = 0.0
-  job            = NONE
+#  name           = ''
+#  physical_bonus = 0.0
+#  mental_bonus   = 0.0
+#  heal_bonus     = 0.0
+#  cure_bonus     = 0.0
+#  explore_bonus  = 0.0
+#  scavenge_bonus = 0.0
+#  day_bonus      = 0.0
+#  night_bonus    = 0.0
+#  job            = NONE
 
   # Constructor
 
@@ -88,20 +87,20 @@ class Attribute():
 
     if name != '':
 
-      for attribute in attr_table:
+      for attr in attr_table:
 
-        if attribute[1] == name:
+        if attr[1] == name:
 
-          self.name           = attribute[1]
-          self.physical_bonus = attribute[2]
-          self.mental_bonus   = attribute[3]
-          self.heal_bonus     = attribute[4]
-          self.cure_bonus     = attribute[5]
-          self.explore_bonus  = attribute[6]
-          self.scavenge_bonus = attribute[7]
-          self.day_bonus      = attribute[8]
-          self.night_bonus    = attribute[9]
-          self.job            = attribute[10]
+          self.name           = attr[1]
+          self.physical_bonus = attr[2]
+          self.mental_bonus   = attr[3]
+          self.heal_bonus     = attr[4]
+          self.cure_bonus     = attr[5]
+          self.explore_bonus  = attr[6]
+          self.scavenge_bonus = attr[7]
+          self.day_bonus      = attr[8]
+          self.night_bonus    = attr[9]
+          self.job            = attr[10]
 
           if name == 'Experienced':
             self.physical_bonus = max( age - 30, 0 ) * 0.02
@@ -118,20 +117,20 @@ class Attribute():
       prob = 0.0
       roll = random.random()
 
-      for attribute in attr_table:
+      for attr in attr_table:
 
-        if roll < ( prob + attribute[0] ):
+        if roll < ( prob + attr[0] ):
 
-          self.name           = attribute[1]
-          self.physical_bonus = attribute[2]
-          self.mental_bonus   = attribute[3]
-          self.heal_bonus     = attribute[4]
-          self.cure_bonus     = attribute[5]
-          self.explore_bonus  = attribute[6]
-          self.scavenge_bonus = attribute[7]
-          self.day_bonus      = attribute[8]
-          self.night_bonus    = attribute[9]
-          self.job            = attribute[10]
+          self.name           = attr[1]
+          self.physical_bonus = attr[2]
+          self.mental_bonus   = attr[3]
+          self.heal_bonus     = attr[4]
+          self.cure_bonus     = attr[5]
+          self.explore_bonus  = attr[6]
+          self.scavenge_bonus = attr[7]
+          self.day_bonus      = attr[8]
+          self.night_bonus    = attr[9]
+          self.job            = attr[10]
 
           if name == 'Experienced':
             self.physical_bonus = max( age - 30, 0 ) * 0.02
@@ -141,36 +140,36 @@ class Attribute():
 
         else:
 
-          prob += attribute[0]
+          prob += attr[0]
 
       print 'Error: incomplete attribute probability range'
 
   # Overload == operator to return true if two attributes have the same
   # name or both are special jobs or attributes are opposites
 
-  def __eq__( self, attribute ):
-    return ( self.name == attribute.name ) \
-        or ( self.job != NONE and attribute.job != NONE ) \
-        or ( self.name in opp_table and attribute.name == opp_table[self.name] )
+  def __eq__( self, attr ):
+    return ( self.name == attr.name ) \
+        or ( self.job != NONE and attr.job != NONE ) \
+        or ( self.name in opp_table and attr.name == opp_table[self.name] )
 
   # Overload + operator to sum up individual bonuses
 
-  def __add__( self, attribute ):
+  def __add__( self, attr ):
 
-    tot_attribute = Attribute( 0 )
+    tot_attr = Attribute( 0 )
 
-    tot_attribute.name           = self.name + '*'
-    tot_attribute.physical_bonus = self.physical_bonus + attribute.physical_bonus
-    tot_attribute.mental_bonus   = self.mental_bonus   + attribute.mental_bonus
-    tot_attribute.heal_bonus     = self.heal_bonus     + attribute.heal_bonus
-    tot_attribute.cure_bonus     = self.cure_bonus     + attribute.cure_bonus
-    tot_attribute.explore_bonus  = self.explore_bonus  + attribute.explore_bonus
-    tot_attribute.scavenge_bonus = self.scavenge_bonus + attribute.scavenge_bonus
-    tot_attribute.day_bonus      = self.day_bonus      + attribute.day_bonus
-    tot_attribute.night_bonus    = self.night_bonus    + attribute.night_bonus
-    tot_attribute.job            = self.job
+    tot_attr.name           = self.name + '*'
+    tot_attr.physical_bonus = self.physical_bonus + attr.physical_bonus
+    tot_attr.mental_bonus   = self.mental_bonus   + attr.mental_bonus
+    tot_attr.heal_bonus     = self.heal_bonus     + attr.heal_bonus
+    tot_attr.cure_bonus     = self.cure_bonus     + attr.cure_bonus
+    tot_attr.explore_bonus  = self.explore_bonus  + attr.explore_bonus
+    tot_attr.scavenge_bonus = self.scavenge_bonus + attr.scavenge_bonus
+    tot_attr.day_bonus      = self.day_bonus      + attr.day_bonus
+    tot_attr.night_bonus    = self.night_bonus    + attr.night_bonus
+    tot_attr.job            = self.job
 
-    return tot_attribute
+    return tot_attr
 
   # Print debug information
 
