@@ -99,19 +99,7 @@ class Expedition( pygame.sprite.Sprite ):
           del self.survivors[i]
           break
 
-    assert( inv.food  <= self.inv.food  )
-    assert( inv.wood  <= self.inv.wood  )
-    assert( inv.metal <= self.inv.metal )
-
-    self.inv.food  -= inv.food
-    self.inv.wood  -= inv.wood
-    self.inv.metal -= inv.metal
-
-    for new_item in inv.items:
-      for i, old_item in enumerate( self.items ):
-        if old_item == new_item:
-          del self.items[i]
-          break
+    self.inv -= inv
 
     # Update label
 
@@ -130,10 +118,7 @@ class Expedition( pygame.sprite.Sprite ):
     # Combine survivors and inventories
 
     self.survivors += expd.survivors
-    self.inv.food  += expd.inv.food
-    self.inv.wood  += expd.inv.wood
-    self.inv.metal += expd.inv.metal
-    self.inv.items += expd.inv.items
+    self.inv       += expd.inv
 
     # Update label
 
