@@ -120,7 +120,7 @@ class Survivor():
 
   # Chance of rolling attribute
 
-  attribute_prob = 0.30
+  attribute_prob = 0.50
 
   # Constructor
 
@@ -147,8 +147,8 @@ class Survivor():
       if ( i == 0 ) and ( self.age < 20 ):
         self.attributes.append( attribute.Attribute( self.age, 'Youthful' ) )
 
-      elif ( i == 0 ) and ( self.age >= 50 ):
-        self.attributes.append( attribute.Attribute( self.age, 'Elderly' ) )
+#      elif ( i == 0 ) and ( self.age >= 50 ):
+#        self.attributes.append( attribute.Attribute( self.age, 'Elderly' ) )
 
       # Common case
 

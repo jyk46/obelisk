@@ -18,6 +18,8 @@ import tile
 
 class Expedition( pygame.sprite.Sprite ):
 
+  containers = []
+
   # Constructor
 
   def __init__( self, start_tile, survivors, inv ):
@@ -129,3 +131,15 @@ class Expedition( pygame.sprite.Sprite ):
     # Remove merged expedition
 
     expd.kill()
+
+  # Print debug information
+
+  def debug( self ):
+
+    print 'Expedition:'
+    self.pos_tile.debug()
+
+    for surv in self.survivors:
+      surv.debug()
+
+    self.inv.debug()

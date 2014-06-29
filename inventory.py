@@ -60,3 +60,13 @@ class Inventory():
           break
 
     return diff_inv
+
+  # Print debug information
+
+  def debug( self ):
+
+    print 'F' + str( self.food ), 'W' + str( self.wood ), \
+          'M' + str( self.metal ), 'A' + str( self.ammo )
+
+    for it in self.items:
+      it.debug()
