@@ -7,14 +7,11 @@
 import pygame, sys, os
 from pygame.locals import *
 
+import properties
+
 #-------------------------------------------------------------------------
 # Utility Tables
 #-------------------------------------------------------------------------
-
-# Tile dimensions
-
-WIDTH  = 32
-HEIGHT = 32
 
 # Possible terrain
 
@@ -349,11 +346,11 @@ class Tile( pygame.sprite.Sprite ):
 
     # Set image
 
-    self.img_path         = 'images/tiles/' + terrain_table[self.terrain][0]
+    self.img_path         = properties.TILE_PATH + terrain_table[self.terrain][0]
     self.surface          = pygame.image.load( self.img_path )
     self.image            = self.surface.convert()
     self.img_rect         = self.image.get_rect()
-    self.img_rect.topleft = self.pos_x * WIDTH, self.pos_y * HEIGHT
+    self.img_rect.topleft = self.pos_x * properties.TILE_WIDTH, self.pos_y * properties.TILE_HEIGHT
 
     # Terrain-specific information
 

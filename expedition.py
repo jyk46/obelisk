@@ -8,6 +8,7 @@
 import pygame, sys, os
 from pygame.locals import *
 
+import properties
 import survivor
 import inventory
 import tile
@@ -29,17 +30,18 @@ class Expedition( pygame.sprite.Sprite ):
     self.pos_tile    = start_tile
     self.survivors   = survivors
     self.inv         = inv
+    self.path_dic    = {}
     self.move_route  = []
 
     # Set image and make background transparent
 
-    self.img_path         = 'images/expedition/icon.png'
+    self.img_path         = properties.EXPD_PATH + 'icon.png'
     self.surface          = pygame.image.load( self.img_path )
     self.surface.set_colorkey( self.surface.get_at( ( 0, 0 ) ), RLEACCEL )
     self.image            = self.surface.convert()
     self.img_rect         = self.image.get_rect()
-    self.img_rect.topleft = self.pos_tile.pos_x * tile.WIDTH, \
-                            self.pos_tile.pos_y * tile.HEIGHT
+    self.img_rect.topleft = self.pos_tile.pos_x * properties.TILE_WIDTH, \
+                            self.pos_tile.pos_y * properties.TILE_HEIGHT
 
     # Set font for labeling icon
 
@@ -58,36 +60,127 @@ class Expedition( pygame.sprite.Sprite ):
 
       # Move right
 
-      if ( self.move_route[0].pos_x * tile.WIDTH ) > self.img_rect.left:
+      if ( self.move_route[0].pos_x * properties.TILE_WIDTH ) > self.img_rect.left:
         self.img_rect.move_ip( 8, 0 )
         self.text_rect.move_ip( 8, 0 )
 
       # Move left
 
-      elif ( self.move_route[0].pos_x * tile.WIDTH ) < self.img_rect.left:
+      elif ( self.move_route[0].pos_x * properties.TILE_WIDTH ) < self.img_rect.left:
         self.img_rect.move_ip( -8, 0 )
         self.text_rect.move_ip( -8, 0 )
 
       # Move down
 
-      elif ( self.move_route[0].pos_y * tile.HEIGHT ) > self.img_rect.top:
+      elif ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) > self.img_rect.top:
         self.img_rect.move_ip( 0, 8 )
         self.text_rect.move_ip( 0, 8 )
 
       # Move up
 
-      elif ( self.move_route[0].pos_y * tile.HEIGHT ) < self.img_rect.top:
+      elif ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) < self.img_rect.top:
         self.img_rect.move_ip( 0, -8 )
         self.text_rect.move_ip( 0, -8 )
 
       # Update position tile and route if at destination
 
-      if ( ( self.move_route[0].pos_x * tile.WIDTH  ) == self.img_rect.left ) \
-      or ( ( self.move_route[0].pos_y * tile.HEIGHT ) == self.img_rect.top  ):
+      if ( ( self.move_route[0].pos_x * properties.TILE_WIDTH  ) == self.img_rect.left ) \
+      or ( ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) == self.img_rect.top  ):
 
         self.pos_tile = self.move_route[0]
 
         del self.move_route[0]
+
+  # Calculate the minimum current stamina across all survivors usable by
+  # expedition for exploration.
+
+  def calc_min_stamina( self ):
+
+    min_stamina = 99
+
+    for surv in survivors:
+      if surv.stamina < min_stamina:
+        min_stamina = surv.stamina
+
+    assert( min_stamina < 99 )
+
+    return min_stamina
+
+  # Path finding, populates a dictionary of all possible tiles reachable
+  # by selected expedition with the specified maximum cost.
+
+  def calc_range( self, map ):
+
+    # Use Dijkstra's algorithm to find the shortest path from source to
+    # destination. A dictionary is used for tracking the shortest path to
+    # a given location (each tile remembers the tile leading to it in the
+    # shortest path as well as the cost to get there). A list of
+    # locations at the current frontier is updated after every super-step
+    # of the algorithm.
+
+    self.path_dic = { self.pos_tile: [self.pos_tile,0] }
+    frontier      = [ self.pos_tile ]
+
+    avail_stamina = self.calc_min_stamina()
+
+    # Iterate over frontiers until maximum cost is reached
+
+    while len( frontier ) > 0:
+
+      next_frontier = []
+
+      # Search all tiles in the current frontier
+
+      for ti in frontier:
+
+        # Determine which neighbors are within map bounds
+
+        neighbors = []
+
+        if ti.pos_y > 0:
+          neighbors.append( map[ti.pos_x][ti.pos_y-1] )
+
+        if ti.pos_x < ( properties.MAP_SIZE - 1 ):
+          neighbors.append( map[ti.pos_x+1][ti.pos_y] )
+
+        if ti.pos_y < ( properties.MAP_SIZE - 1 ):
+          neighbors.append( map[ti.pos_x][ti.pos_y+1] )
+
+        if ti.pos_x > 0:
+          neighbors.append( map[ti.pos_x-1][ti.pos_y] )
+
+        for next_ti in neighbors:
+
+          next_cost = self.path_dic[ti][1] + next_ti.move_cost
+
+          if ( ( next_cost < avail_stamina ) and ( next_ti not in self.path_dic ) ) \
+            or ( next_cost < self.path_dic[next_ti][1] ):
+            self.path_dic[next_ti] = [ ti, next_cost ]
+            next_frontier.append( next_ti )
+
+      # Swap frontiers when all tiles in current frontier are processed
+
+      frontier = next_frontier
+
+  # Calculate shortest path to destination tile. Path dictionary must be
+  # populated before calling this method using the calc_range() method
+  # above. Returns the cost to reach the destination.
+
+  def calc_path( self, dest_tile ):
+
+    assert( dest_tile in self.path_dic )
+
+    self.move_route.append( dest_tile )
+
+    ti = dest_tile
+
+    while ti != self.pos_tile:
+      ti = self.path_dic[ti][0]
+      self.move_route.append( ti )
+
+    self.move_route.reverse()[1:]
+
+    return self.path_dic[dest_tile][1]
 
   # Split expedition
 

@@ -103,6 +103,23 @@ class MapGen():
 
         prob -= rate
 
+  # Spawn random terrain (no spread)
+
+  def gen_random( self, terrain, num ):
+
+    placed = []
+
+    for i in range( num ):
+
+      seed_x = random.randint( 0, self.size - 1 )
+      seed_y = random.randint( 0, self.size - 1 )
+
+      while self.map[seed_x][seed_y] in placed:
+        seed_x = random.randint( 0, self.size - 1 )
+        seed_y = random.randint( 0, self.size - 1 )
+
+      self.map[seed_x][seed_y] = tile.Tile( terrain, seed_x, seed_y )
+
   # Constructor
 
   def __init__( self, size ):
@@ -127,7 +144,7 @@ class MapGen():
     # Add mountains
 
     for i in range( self.num_mountain ):
-      self.gen_terrain( ['Mountain'], [0.1] )
+      self.gen_terrain( ['Cave', 'Mountain'], [0.3, 0.1] )
 
     # Add swamp
 
@@ -143,6 +160,14 @@ class MapGen():
 
     for i in range( self.num_facility ):
       self.gen_terrain( ['Facility'], [0.3] )
+
+    # Add wreckage
+
+    self.gen_random( 'Wreckage', 10 )
+
+    # Add ritual sites
+
+    self.gen_random( 'Ritual Site', 4 )
 
   # Print debug information
 
