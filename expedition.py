@@ -19,13 +19,11 @@ import tile
 
 class Expedition( pygame.sprite.Sprite ):
 
-  containers = []
-
   # Constructor
 
   def __init__( self, start_tile, survivors, inv ):
 
-    pygame.sprite.Sprite.__init__( self, self.containers )
+    pygame.sprite.Sprite.__init__( self, self.groups )
 
     self.pos_tile    = start_tile
     self.survivors   = survivors
@@ -35,20 +33,26 @@ class Expedition( pygame.sprite.Sprite ):
 
     # Set image and make background transparent
 
-    self.img_path         = properties.EXPD_PATH + 'icon.png'
-    self.surface          = pygame.image.load( self.img_path )
+    self.img_path     = properties.EXPD_PATH + 'icon.png'
+    self.surface      = pygame.image.load( self.img_path )
     self.surface.set_colorkey( self.surface.get_at( ( 0, 0 ) ), RLEACCEL )
-    self.image            = self.surface.convert()
-    self.img_rect         = self.image.get_rect()
-    self.img_rect.topleft = self.pos_tile.pos_x * properties.TILE_WIDTH, \
-                            self.pos_tile.pos_y * properties.TILE_HEIGHT
+    self.image        = self.surface.convert()
+    self.rect         = self.image.get_rect()
+    self.rect.topleft = self.pos_tile.pos_x * properties.TILE_WIDTH, \
+                        self.pos_tile.pos_y * properties.TILE_HEIGHT
 
     # Set font for labeling icon
 
     self.font             = pygame.font.Font( 'fonts/default.ttf', 10 )
-    self.text             = self.font.render( str( len( self.survivors ) ), True, (255,255,255) )
-    self.text_rect        = self.text.get_rect()
+    self.text_surface     = self.font.render( str( len( self.survivors ) ), True, (255,255,255) )
+    self.text_image       = self.text_surface.convert()
+    self.text_rect        = self.text_image.get_rect()
     self.text_rect.center = self.img_rect.center
+
+    # Fonts cannot be rendered on existing surfaces, so we need to blit
+    # the newly created font surface onto the image surface.
+
+    self.image.blit( self.text_image, self.text_rect )
 
   # Update graphics
 
@@ -60,32 +64,28 @@ class Expedition( pygame.sprite.Sprite ):
 
       # Move right
 
-      if ( self.move_route[0].pos_x * properties.TILE_WIDTH ) > self.img_rect.left:
-        self.img_rect.move_ip( 8, 0 )
-        self.text_rect.move_ip( 8, 0 )
+      if ( self.move_route[0].pos_x * properties.TILE_WIDTH ) > self.rect.left:
+        self.rect.move_ip( 8, 0 )
 
       # Move left
 
-      elif ( self.move_route[0].pos_x * properties.TILE_WIDTH ) < self.img_rect.left:
-        self.img_rect.move_ip( -8, 0 )
-        self.text_rect.move_ip( -8, 0 )
+      elif ( self.move_route[0].pos_x * properties.TILE_WIDTH ) < self.rect.left:
+        self.rect.move_ip( -8, 0 )
 
       # Move down
 
-      elif ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) > self.img_rect.top:
-        self.img_rect.move_ip( 0, 8 )
-        self.text_rect.move_ip( 0, 8 )
+      elif ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) > self.rect.top:
+        self.rect.move_ip( 0, 8 )
 
       # Move up
 
-      elif ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) < self.img_rect.top:
-        self.img_rect.move_ip( 0, -8 )
-        self.text_rect.move_ip( 0, -8 )
+      elif ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) < self.rect.top:
+        self.rect.move_ip( 0, -8 )
 
       # Update position tile and route if at destination
 
-      if ( ( self.move_route[0].pos_x * properties.TILE_WIDTH  ) == self.img_rect.left ) \
-      or ( ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) == self.img_rect.top  ):
+      if ( ( self.move_route[0].pos_x * properties.TILE_WIDTH  ) == self.rect.left ) \
+      or ( ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) == self.rect.top  ):
 
         self.pos_tile = self.move_route[0]
 
@@ -198,9 +198,12 @@ class Expedition( pygame.sprite.Sprite ):
 
     # Update label
 
-    self.text             = self.font.render( str( len( self.survivors ) ), True, (255,255,255) )
-    self.text_rect        = self.text.get_rect()
+    self.text_surface     = self.font.render( str( len( self.survivors ) ), True, (255,255,255) )
+    self.text_image       = self.text_surface.convert()
+    self.text_rect        = self.text_image.get_rect()
     self.text_rect.center = self.img_rect.center
+
+    self.image.blit( self.text_image, self.text_rect )
 
     # Create and return child expedition
 
@@ -217,9 +220,12 @@ class Expedition( pygame.sprite.Sprite ):
 
     # Update label
 
-    self.text             = self.font.render( str( len( self.survivors ) ), True, (255,255,255) )
-    self.text_rect        = self.text.get_rect()
+    self.text_surface     = self.font.render( str( len( self.survivors ) ), True, (255,255,255) )
+    self.text_image       = self.text_surface.convert()
+    self.text_rect        = self.text_image.get_rect()
     self.text_rect.center = self.img_rect.center
+
+    self.image.blit( self.text_image, self.text_rect )
 
     # Remove merged expedition
 

@@ -329,15 +329,13 @@ terrain_table = {
 
 class Tile( pygame.sprite.Sprite ):
 
-  containers = []
-
   # Constructor
 
   def __init__( self, terrain, pos_x, pos_y ):
 
     assert( terrain in terrain_table )
 
-    pygame.sprite.Sprite.__init__( self, self.containers )
+    pygame.sprite.Sprite.__init__( self, self.groups )
 
     self.terrain  = terrain
     self.pos_x    = pos_x
@@ -346,11 +344,11 @@ class Tile( pygame.sprite.Sprite ):
 
     # Set image
 
-    self.img_path         = properties.TILE_PATH + terrain_table[self.terrain][0]
-    self.surface          = pygame.image.load( self.img_path )
-    self.image            = self.surface.convert()
-    self.img_rect         = self.image.get_rect()
-    self.img_rect.topleft = self.pos_x * properties.TILE_WIDTH, self.pos_y * properties.TILE_HEIGHT
+    self.img_path     = properties.TILE_PATH + terrain_table[self.terrain][0]
+    self.surface      = pygame.image.load( self.img_path )
+    self.image        = self.surface.convert()
+    self.rect         = self.image.get_rect()
+    self.rect.topleft = self.pos_x * properties.TILE_WIDTH, self.pos_y * properties.TILE_HEIGHT
 
     # Terrain-specific information
 
@@ -363,8 +361,8 @@ class Tile( pygame.sprite.Sprite ):
 
   # Overload hash operator to allow Tile objects to be used in dictionaries
 
-  def __hash__( self ):
-    return hash( ( self.pos_x, self.pos_y ) )
+#  def __hash__( self ):
+#    return hash( ( self.pos_x, self.pos_y ) )
 
   # Overload == operator to return true if position matches
 

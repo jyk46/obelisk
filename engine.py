@@ -7,9 +7,12 @@
 import pygame, sys, os
 from pygame.locals import *
 
+import properties
+import window
 import mapgen
 import tile
 import enemy
+import expedition
 import survivor
 import attribute
 import inventory
@@ -29,38 +32,64 @@ class Engine:
 
   # Constructor
 
-  def __init__( self, map ):
+  def __init__( self ):
 
-    self.screen = pygame.display.get_surface()
-    self.map    = map
+    # Initialize sprite groups
+
+    self.win_group  = pygame.sprite.RenderUpdates()
+    self.map_group  = pygame.sprite.RenderUpdates()
+    self.expd_group = pygame.sprite.RenderUpdates()
+
+    # Assign default groups to sprite classes
+
+    window.Window.groups         = self.win_group
+    tile.Tile.groups             = self.map_group
+    expedition.Expedition.groups = self.expd_group
+
+    # Initialize window surfaces
+
+    self.screen        = pygame.display.get_surface()
+
+    self.camera_window = window.Window( properties.CAMERA_WIDTH, properties.CAMERA_HEIGHT, 0, 0 )
+    self.status_window = window.Window( properties.STATUS_WIDTH, properties.STATUS_HEIGHT, properties.CAMERA_WIDTH, 0 )
+
+    # Initialize engine utility variables
+
     self.phase  = PHASE_DAY_PLAN
     self.cam_x  = 0
     self.cam_y  = 0
 
-  # Draw map
+  # Update all sprites
 
-  def draw_map( self ):
+  def update_all( self ):
 
-    self.background = pygame.Surface( ( Properties.CAM_WIDTH, Properties.CAM_HEIGHT ) )
+#    self.win_group.update()
+    self.map_group.update()
+    self.expd_group.update()
 
-    for i in range( properties.MAP_SIZE ):
-      for j in range( properties.MAP_SIZE ):
-        self.background.blit( map[i][j].image, map[i][j].img_rect )
+  # Draw all sprites
 
-    self.screen.blit( self.background, (0,0) )
+  def draw_all( self ):
+
+    rect_updates =  self.map_group.draw( self.camera_window.image )
+    rect_updates += self.expd_group.draw( self.camera_window.image )
+
+    rect_updates += self.win_group.draw( self.screen )
+
+    pygame.display.update( rect_updates )
 
   # Start game engine
 
   def start( self ):
 
-    # Draw map
-
-    self.draw_map()
-    pygame.display.flip()
-
     # Initialize clock
 
     clock = pygame.time.Clock()
+
+    # Generate random map
+
+    self.mg  = mapgen.MapGen( properties.MAP_SIZE )
+    self.map = self.mg.map
 
     # Main game loop
 
@@ -68,11 +97,11 @@ class Engine:
 
       # Update graphics
 
-      self.sprite_group.clear( self.screen, self.background )
-      update_screen = self.sprite_group.draw( self.screen )
-      pygame.display.update( update_screen )
-      self.sprite_group.update()
+      self.update_all()
+      self.draw_all()
+
+      pygame.event.wait()
 
       # Increment clock
 
-      clock.tick(8)
+      clock.tick( properties.FPS )

@@ -8,7 +8,6 @@ import pygame, sys, os
 from pygame.locals import *
 
 import properties
-import mapgen
 import engine
 
 #-------------------------------------------------------------------------
@@ -23,23 +22,19 @@ def main():
 
   # Configure display
 
-  pygame.display.set_mode( ( Properties.WIN_WIDTH, Properties.WIN_HEIGHT ) )
+  pygame.display.set_mode( ( properties.WINDOW_WIDTH, properties.WINDOW_HEIGHT ) )
 
   # Set caption
 
   pygame.display.set_caption( 'Obelisk v.1.0' )
 
-  # Generate random map
-
-  mg = mapgen.MapGen( properties.MAP_SIZE )
-
   # Initialize game engine
 
-  engine = engine.Engine( mg.map )
+  eng = engine.Engine()
 
   # Start game engine
 
-  engine.start()
+  eng.start()
 
 # Execute main function
 
