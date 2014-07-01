@@ -38,25 +38,32 @@ class Expedition( pygame.sprite.Sprite ):
     self.surface.set_colorkey( self.surface.get_at( ( 0, 0 ) ), RLEACCEL )
     self.image        = self.surface.convert()
     self.rect         = self.image.get_rect()
-    self.rect.topleft = self.pos_tile.pos_x * properties.TILE_WIDTH, \
-                        self.pos_tile.pos_y * properties.TILE_HEIGHT
+    self.abs_x        = self.pos_tile.pos_x * properties.TILE_WIDTH
+    self.abs_y        = self.pos_tile.pos_y * properties.TILE_HEIGHT
+    self.rect.topleft = self.abs_x, self.abs_y
 
     # Set font for labeling icon
 
-    self.font             = pygame.font.Font( 'fonts/default.ttf', 10 )
-    self.text_surface     = self.font.render( str( len( self.survivors ) ), True, (255,255,255) )
-    self.text_image       = self.text_surface.convert()
-    self.text_rect        = self.text_image.get_rect()
-    self.text_rect.center = self.img_rect.center
+    self.font = pygame.font.Font( properties.DEFAULT_FONT, 8 )
 
-    # Fonts cannot be rendered on existing surfaces, so we need to blit
-    # the newly created font surface onto the image surface.
+  # Return surface and rect of text overlay for expedition icon
 
-    self.image.blit( self.text_image, self.text_rect )
+  def get_text( self ):
+
+    surface     = self.font.render( str( len( self.survivors ) ), 1, (0,0,0) )
+    rect        = surface.get_rect()
+    rect.center = self.rect.center[0], self.rect.center[1] + 2
+
+    return surface, rect
 
   # Update graphics
 
-  def update( self ):
+  def update( self, cam_x, cam_y ):
+
+    # Adjust position relative to camera
+
+    self.rect.top  = self.abs_y - cam_y
+    self.rect.left = self.abs_x - cam_x
 
     # Handle movement based on calculated shortest path to destination
 
@@ -65,22 +72,22 @@ class Expedition( pygame.sprite.Sprite ):
       # Move right
 
       if ( self.move_route[0].pos_x * properties.TILE_WIDTH ) > self.rect.left:
-        self.rect.move_ip( 8, 0 )
+        self.rect.move_ip( properties.EXPEDITION_SPEED, 0 )
 
       # Move left
 
       elif ( self.move_route[0].pos_x * properties.TILE_WIDTH ) < self.rect.left:
-        self.rect.move_ip( -8, 0 )
+        self.rect.move_ip( -properties.EXPEDITION_SPEED, 0 )
 
       # Move down
 
       elif ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) > self.rect.top:
-        self.rect.move_ip( 0, 8 )
+        self.rect.move_ip( 0, properties.EXPEDITION_SPEED )
 
       # Move up
 
       elif ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) < self.rect.top:
-        self.rect.move_ip( 0, -8 )
+        self.rect.move_ip( 0, -properties.EXPEDITION_SPEED )
 
       # Update position tile and route if at destination
 
@@ -88,6 +95,8 @@ class Expedition( pygame.sprite.Sprite ):
       or ( ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) == self.rect.top  ):
 
         self.pos_tile = self.move_route[0]
+        self.abs_x    = self.pos_tile.pos_x * properties.TILE_WIDTH
+        self.abs_y    = self.pos_tile.pos_y * properties.TILE_HEIGHT
 
         del self.move_route[0]
 
@@ -196,15 +205,6 @@ class Expedition( pygame.sprite.Sprite ):
 
     self.inv -= inv
 
-    # Update label
-
-    self.text_surface     = self.font.render( str( len( self.survivors ) ), True, (255,255,255) )
-    self.text_image       = self.text_surface.convert()
-    self.text_rect        = self.text_image.get_rect()
-    self.text_rect.center = self.img_rect.center
-
-    self.image.blit( self.text_image, self.text_rect )
-
     # Create and return child expedition
 
     return Expedition( self.pos_tile, survivors, inv )
@@ -217,15 +217,6 @@ class Expedition( pygame.sprite.Sprite ):
 
     self.survivors += expd.survivors
     self.inv       += expd.inv
-
-    # Update label
-
-    self.text_surface     = self.font.render( str( len( self.survivors ) ), True, (255,255,255) )
-    self.text_image       = self.text_surface.convert()
-    self.text_rect        = self.text_image.get_rect()
-    self.text_rect.center = self.img_rect.center
-
-    self.image.blit( self.text_image, self.text_rect )
 
     # Remove merged expedition
 

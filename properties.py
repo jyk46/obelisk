@@ -10,6 +10,19 @@
 FPS = 30
 
 #-------------------------------------------------------------------------
+# Survivors
+#-------------------------------------------------------------------------
+
+NUM_START_SURVIVORS = 5
+
+START_FOOD  = 20
+START_WOOD  = 5
+START_METAL = 2
+START_AMMO  = 5
+
+EXPEDITION_SPEED = 16
+
+#-------------------------------------------------------------------------
 # Map
 #-------------------------------------------------------------------------
 
@@ -56,7 +69,8 @@ WINDOW_WIDTH  = CAMERA_WIDTH + STATUS_WIDTH
 # Paths
 #-------------------------------------------------------------------------
 
-FONT_PATH = 'fonts/'
+FONT_PATH    = 'fonts/'
+DEFAULT_FONT = FONT_PATH + 'default.ttf'
 
 TILE_PATH = 'images/tiles/'
 EXPD_PATH = 'images/expedition/'

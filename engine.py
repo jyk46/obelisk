@@ -7,6 +7,7 @@
 import pygame, sys, os
 from pygame.locals import *
 
+import random
 import properties
 import window
 import mapgen
@@ -56,6 +57,8 @@ class Engine:
 
     self.done        = False
     self.phase       = PHASE_DAY_PLAN
+    self.expeditions = []
+
     self.cam_lock    = False
     self.cam_x       = 0
     self.cam_y       = 0
@@ -73,13 +76,55 @@ class Engine:
       for j in range( properties.MAP_SIZE ):
         self.map_group.add( self.map[i][j] )
 
+  # Randomly generate starting expedition
+
+  def init_expedition( self ):
+
+    # Randomly select starting tile (needs to be Field terrain)
+
+    pos_x = random.randint( 0, properties.MAP_SIZE - 1 )
+    pos_y = random.randint( 0, properties.MAP_SIZE - 1 )
+
+    while self.map[pos_x][pos_y].terrain != 'Field':
+      pos_x = random.randint( 0, properties.MAP_SIZE - 1 )
+      pos_y = random.randint( 0, properties.MAP_SIZE - 1 )
+
+    start_tile = self.map[pos_x][pos_y]
+
+    # Generate random set of starting survivors
+
+    survivors = []
+
+    for i in range( properties.NUM_START_SURVIVORS ):
+      survivors.append( survivor.Survivor() )
+
+    # Initialize starting inventory
+
+    inv = inventory.Inventory(
+      properties.START_FOOD,
+      properties.START_WOOD,
+      properties.START_METAL,
+      properties.START_AMMO,
+      [
+        item.Item( 'Camping Kit' ),
+        item.Item( 'First Aid' ),
+        item.Item( 'Antibiotics' ),
+        item.Item( 'Knife' ),
+        item.Item( 'Pistol' ),
+      ],
+    )
+
+    # Create expedition
+
+    self.expeditions.append( expedition.Expedition( start_tile, survivors, inv ) )
+
   # Update all sprites
 
   def update_all( self ):
 
 #    self.win_group.update()
     self.map_group.update( self.cam_x, self.cam_y )
-    self.expd_group.update()
+    self.expd_group.update( self.cam_x, self.cam_y )
 
   # Draw all sprites
 
@@ -87,6 +132,10 @@ class Engine:
 
     rect_updates =  self.map_group.draw( self.camera_window.image )
     rect_updates += self.expd_group.draw( self.camera_window.image )
+
+    for expd in self.expeditions:
+      expd_text = expd.get_text()
+      rect_updates += [ self.camera_window.image.blit( expd_text[0], expd_text[1] ) ]
 
     rect_updates += self.win_group.draw( self.screen )
 
@@ -143,6 +192,10 @@ class Engine:
 
     self.mg = mapgen.MapGen( properties.MAP_SIZE )
     self.init_map( self.mg.map )
+
+    # Add starting expedition
+
+    self.init_expedition()
 
     # Main game loop
 
