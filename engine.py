@@ -43,7 +43,6 @@ class Engine:
     # Assign default groups to sprite classes
 
     window.Window.groups         = self.win_group
-    tile.Tile.groups             = self.map_group
     expedition.Expedition.groups = self.expd_group
 
     # Initialize window surfaces
@@ -55,16 +54,31 @@ class Engine:
 
     # Initialize engine utility variables
 
-    self.phase  = PHASE_DAY_PLAN
-    self.cam_x  = 0
-    self.cam_y  = 0
+    self.done        = False
+    self.phase       = PHASE_DAY_PLAN
+    self.cam_lock    = False
+    self.cam_x       = 0
+    self.cam_y       = 0
+    self.mouse_x     = 0
+    self.mouse_y     = 0
+    self.mouse_click = False
+
+  # Initialize map and add tiles to group
+
+  def init_map( self, map ):
+
+    self.map = map
+
+    for i in range( properties.MAP_SIZE ):
+      for j in range( properties.MAP_SIZE ):
+        self.map_group.add( self.map[i][j] )
 
   # Update all sprites
 
   def update_all( self ):
 
 #    self.win_group.update()
-    self.map_group.update()
+    self.map_group.update( self.cam_x, self.cam_y )
     self.expd_group.update()
 
   # Draw all sprites
@@ -78,6 +92,45 @@ class Engine:
 
     pygame.display.update( rect_updates )
 
+  # Get inputs
+
+  def get_inputs( self ):
+
+    for event in pygame.event.get():
+
+      if event.type == MOUSEMOTION:
+        self.mouse_x = event.pos[0]
+        self.mouse_y = event.pos[1]
+
+      elif event.type == MOUSEBUTTONDOWN:
+        self.mouse_click = True
+
+  # Scroll camera
+
+  def scroll_camera( self ):
+
+    # Scroll x-axis
+
+    if ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.SCROLL_WIDTH ) \
+      and ( self.cam_x > 0 ):
+      self.cam_x -= properties.SCROLL_SPEED
+
+    elif ( self.mouse_x >= ( properties.CAMERA_WIDTH - properties.SCROLL_WIDTH ) ) \
+      and ( self.mouse_x < properties.CAMERA_WIDTH ) \
+      and ( ( self.cam_x + properties.CAMERA_WIDTH ) < properties.MAP_WIDTH ):
+      self.cam_x += properties.SCROLL_SPEED
+
+    # Scroll y-axis
+
+    if ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.SCROLL_WIDTH ) \
+      and ( self.cam_y > 0 ):
+      self.cam_y -= properties.SCROLL_SPEED
+
+    elif ( self.mouse_y >= ( properties.CAMERA_HEIGHT - properties.SCROLL_WIDTH ) ) \
+      and ( self.mouse_y < properties.CAMERA_HEIGHT ) \
+      and ( ( self.cam_y + properties.CAMERA_HEIGHT ) < properties.MAP_HEIGHT ):
+      self.cam_y += properties.SCROLL_SPEED
+
   # Start game engine
 
   def start( self ):
@@ -88,19 +141,26 @@ class Engine:
 
     # Generate random map
 
-    self.mg  = mapgen.MapGen( properties.MAP_SIZE )
-    self.map = self.mg.map
+    self.mg = mapgen.MapGen( properties.MAP_SIZE )
+    self.init_map( self.mg.map )
 
     # Main game loop
 
-    while True:
+    while not self.done:
+
+      # Process inputs
+
+      self.get_inputs()
+
+      # Handle camera scrolling
+
+      if not self.cam_lock:
+        self.scroll_camera()
 
       # Update graphics
 
       self.update_all()
       self.draw_all()
-
-      pygame.event.wait()
 
       # Increment clock
 

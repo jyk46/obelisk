@@ -335,7 +335,7 @@ class Tile( pygame.sprite.Sprite ):
 
     assert( terrain in terrain_table )
 
-    pygame.sprite.Sprite.__init__( self, self.groups )
+    pygame.sprite.Sprite.__init__( self )
 
     self.terrain  = terrain
     self.pos_x    = pos_x
@@ -348,7 +348,9 @@ class Tile( pygame.sprite.Sprite ):
     self.surface      = pygame.image.load( self.img_path )
     self.image        = self.surface.convert()
     self.rect         = self.image.get_rect()
-    self.rect.topleft = self.pos_x * properties.TILE_WIDTH, self.pos_y * properties.TILE_HEIGHT
+    self.abs_x        = self.pos_x * properties.TILE_WIDTH
+    self.abs_y        = self.pos_y * properties.TILE_HEIGHT
+    self.rect.topleft = self.abs_x, self.abs_y
 
     # Terrain-specific information
 
@@ -358,6 +360,13 @@ class Tile( pygame.sprite.Sprite ):
     self.enemy_rates = terrain_table[self.terrain][4]
     self.mat_rates   = terrain_table[self.terrain][5]
     self.item_rates  = terrain_table[self.terrain][6]
+
+  # Update graphics
+
+  def update( self, cam_x, cam_y ):
+
+    self.rect.top  = self.abs_y - cam_y
+    self.rect.left = self.abs_x - cam_x
 
   # Overload hash operator to allow Tile objects to be used in dictionaries
 

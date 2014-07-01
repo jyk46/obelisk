@@ -8,6 +8,7 @@
 # randomly.
 
 import random
+import properties
 import tile
 
 #-------------------------------------------------------------------------
@@ -105,20 +106,24 @@ class MapGen():
 
   # Spawn random terrain (no spread)
 
-  def gen_random( self, terrain, num ):
+  def gen_random( self, terrains, nums ):
 
     placed = []
 
-    for i in range( num ):
+    for terrain, num in zip( terrains, nums ):
 
-      seed_x = random.randint( 0, self.size - 1 )
-      seed_y = random.randint( 0, self.size - 1 )
+      for i in range( num ):
 
-      while self.map[seed_x][seed_y] in placed:
         seed_x = random.randint( 0, self.size - 1 )
         seed_y = random.randint( 0, self.size - 1 )
 
-      self.map[seed_x][seed_y] = tile.Tile( terrain, seed_x, seed_y )
+        while self.map[seed_x][seed_y] in placed:
+          seed_x = random.randint( 0, self.size - 1 )
+          seed_y = random.randint( 0, self.size - 1 )
+
+        self.map[seed_x][seed_y] = tile.Tile( terrain, seed_x, seed_y )
+
+        placed.append( self.map[seed_x][seed_y] )
 
   # Constructor
 
@@ -127,10 +132,19 @@ class MapGen():
     self.size = size
     self.map  = []
 
-    self.num_mountain = 8
-    self.num_swamp    = 4
-    self.num_jungle   = 8
-    self.num_facility = 2
+    self.num_mountain    = properties.NUM_MOUNTAIN
+    self.num_swamp       = properties.NUM_SWAMP
+    self.num_jungle      = properties.NUM_JUNGLE
+    self.num_facility    = properties.NUM_FACILITY
+    self.num_wreckage    = properties.NUM_WRECKAGE
+    self.num_ritual_site = properties.NUM_RITUAL_SITE
+
+    self.mountain_rate    = properties.MOUNTAIN_RATE
+    self.cave_rate        = properties.CAVE_RATE
+    self.swamp_rate       = properties.SWAMP_RATE
+    self.jungle_rate      = properties.JUNGLE_RATE
+    self.deep_jungle_rate = properties.DEEP_JUNGLE_RATE
+    self.facility_rate    = properties.FACILITY_RATE
 
     # Populate map array with default terrain with given dimensions
 
@@ -144,30 +158,29 @@ class MapGen():
     # Add mountains
 
     for i in range( self.num_mountain ):
-      self.gen_terrain( ['Cave', 'Mountain'], [0.3, 0.1] )
+      self.gen_terrain( [ 'Cave', 'Mountain' ], \
+                        [ self.cave_rate, self.mountain_rate ] )
 
     # Add swamp
 
     for i in range( self.num_swamp ):
-      self.gen_terrain( ['Swamp'], [0.15] )
+      self.gen_terrain( [ 'Swamp' ], [ self.swamp_rate ] )
 
     # Add jungle
 
     for i in range( self.num_jungle ):
-      self.gen_terrain( ['Deep Jungle', 'Jungle'], [0.2, 0.1] )
+      self.gen_terrain( [ 'Deep Jungle', 'Jungle' ], \
+                        [ self.deep_jungle_rate, self.jungle_rate ] )
 
     # Add facility
 
     for i in range( self.num_facility ):
-      self.gen_terrain( ['Facility'], [0.3] )
+      self.gen_terrain( [ 'Facility' ], [ self.facility_rate ] )
 
-    # Add wreckage
+    # Add wreckage and ritual sites
 
-    self.gen_random( 'Wreckage', 10 )
-
-    # Add ritual sites
-
-    self.gen_random( 'Ritual Site', 4 )
+    self.gen_random( [ 'Wreckage', 'Ritual Site' ], \
+                     [ self.num_wreckage, self.num_ritual_site ] )
 
   # Print debug information
 
