@@ -52,6 +52,25 @@ DEEP_JUNGLE_RATE = 0.25
 FACILITY_RATE    = 0.25
 
 #-------------------------------------------------------------------------
+# Menu
+#-------------------------------------------------------------------------
+
+MENU_TEXT = [
+ 'EXPLORE',
+ 'SCAVENGE',
+ 'CRAFT',
+ 'REST',
+ 'STATUS',
+]
+
+MENU_OFFSET_X = 16
+MENU_OFFSET_Y = 16
+MENU_PADDING  = 4
+
+MENU_WIDTH    = 128
+MENU_HEIGHT   = 32
+
+#-------------------------------------------------------------------------
 # Dimensions
 #-------------------------------------------------------------------------
 
@@ -74,3 +93,5 @@ DEFAULT_FONT = FONT_PATH + 'default.ttf'
 
 TILE_PATH = 'images/tiles/'
 EXPD_PATH = 'images/expedition/'
+
+BUTTON_PATH = 'images/menu/menu_bar.png'

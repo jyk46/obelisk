@@ -11,6 +11,7 @@ import random
 import properties
 import window
 import mapgen
+import button
 import tile
 import enemy
 import expedition
@@ -23,7 +24,10 @@ import item
 # Properties
 #-------------------------------------------------------------------------
 
-PHASE_DAY_PLAN, PHASE_DAY_EXEC, PHASE_NIGHT_PLAN, PHASE_NIGHT_EXEC = range( 4 )
+PHASE_FREE, PHASE_SCAVENGE, \
+PHASE_EXPL_SURV, PHASE_EXPL_INV, PHASE_EXPL_DEST, PHASE_EXPL_MOVE, \
+PHASE_CRAFT_ITEM, PHASE_CRAFT_SURV, PHASE_REST, PHASE_STATUS, \
+PHASE_NIGHT, PHASE_TRANSITION  = range( 12 )
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -40,11 +44,22 @@ class Engine:
     self.win_group  = pygame.sprite.RenderUpdates()
     self.map_group  = pygame.sprite.RenderUpdates()
     self.expd_group = pygame.sprite.RenderUpdates()
+    self.menu_group = pygame.sprite.RenderUpdates()
 
     # Assign default groups to sprite classes
 
     window.Window.groups         = self.win_group
     expedition.Expedition.groups = self.expd_group
+    button.Button.groups         = self.menu_group
+
+    # Initialize menu graphics
+
+    self.menu_buttons = []
+    menu_pos_y   = properties.MENU_OFFSET_Y
+
+    for text in properties.MENU_TEXT:
+      self.menu_buttons.append( button.Button( text, properties.MENU_OFFSET_X, menu_pos_y ) )
+      menu_pos_y += properties.MENU_HEIGHT + properties.MENU_PADDING
 
     # Initialize window surfaces
 
@@ -56,7 +71,7 @@ class Engine:
     # Initialize engine utility variables
 
     self.done        = False
-    self.phase       = PHASE_DAY_PLAN
+    self.phase       = PHASE_FREE
     self.expeditions = []
 
     self.cam_lock    = False
@@ -65,6 +80,11 @@ class Engine:
     self.mouse_x     = 0
     self.mouse_y     = 0
     self.mouse_click = False
+
+    # Day-Plan phase variables
+
+    self.menu_en           = False
+    self.active_expedition = None
 
   # Initialize map and add tiles to group
 
@@ -130,6 +150,8 @@ class Engine:
 
   def draw_all( self ):
 
+    # Draw map and associated markers
+
     rect_updates =  self.map_group.draw( self.camera_window.image )
     rect_updates += self.expd_group.draw( self.camera_window.image )
 
@@ -137,13 +159,24 @@ class Engine:
       expd_text = expd.get_text()
       rect_updates += [ self.camera_window.image.blit( expd_text[0], expd_text[1] ) ]
 
+    # Draw menu if enabled
+
+    if self.menu_en:
+      rect_updates += self.menu_group.draw( self.camera_window.image )
+
+    # Draw all windows onto main screen
+
     rect_updates += self.win_group.draw( self.screen )
+
+    # Update the display
 
     pygame.display.update( rect_updates )
 
   # Get inputs
 
   def get_inputs( self ):
+
+    self.mouse_click = False
 
     for event in pygame.event.get():
 
@@ -180,6 +213,60 @@ class Engine:
       and ( ( self.cam_y + properties.CAMERA_HEIGHT ) < properties.MAP_HEIGHT ):
       self.cam_y += properties.SCROLL_SPEED
 
+  # Menu selection handler
+
+  def handle_menu( self ):
+
+    menu_used = False
+
+    if self.mouse_click:
+
+      for button in self.menu_buttons:
+        if ( button.rect.collidepoint( self.mouse_x, self.mouse_y ) ):
+
+          menu_used = True
+
+          if button.text == 'EXPLORE':
+            self.phase = PHASE_EXPL_SURV
+
+          elif button.text == 'SCAVENGE':
+            self.phase = PHASE_SCAVENGE
+
+          elif button.text == 'CRAFT':
+            self.phase = PHASE_CRAFT_ITEM
+
+          elif button.text == 'REST':
+            self.phase = PHASE_REST
+
+          elif button.text == 'STATUS':
+            self.phase = PHASE_STATUS
+
+          break
+
+    return menu_used
+
+  # Day-Plan phase handler
+
+  def handle_phase_free( self ):
+
+    # Check for mouse click
+
+    if self.mouse_click:
+
+      click_x    = ( self.cam_x + self.mouse_x ) / properties.TILE_WIDTH
+      click_y    = ( self.cam_y + self.mouse_y ) / properties.TILE_HEIGHT
+      click_tile = self.map[click_x][click_y]
+
+      # Enable menu if expedition is clicked
+
+      self.menu_en = False
+
+      for expd in self.expeditions:
+        if click_tile == expd.pos_tile:
+          self.sel_expedition = expd
+          self.menu_en        = True
+          break
+
   # Start game engine
 
   def start( self ):
@@ -209,6 +296,20 @@ class Engine:
 
       if not self.cam_lock:
         self.scroll_camera()
+
+      # Handle menu selection
+
+      menu_used = False
+
+      if self.menu_en:
+        menu_used = self.handle_menu()
+
+      # Handle game phases
+
+      if not menu_used:
+
+        if self.phase == PHASE_FREE:
+          self.handle_phase_free()
 
       # Update graphics
 
