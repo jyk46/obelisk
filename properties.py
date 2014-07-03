@@ -74,15 +74,18 @@ MENU_HEIGHT   = 32
 # Dimensions
 #-------------------------------------------------------------------------
 
-WINDOW_HEIGHT = 640
+WINDOW_HEIGHT  = 640
 
-CAMERA_WIDTH  = 640
-CAMERA_HEIGHT = WINDOW_HEIGHT
+CAMERA_WIDTH   = 640
+CAMERA_HEIGHT  = WINDOW_HEIGHT
 
-STATUS_WIDTH  = 200
-STATUS_HEIGHT = WINDOW_HEIGHT
+ACTION_WIDTH   = 448
+ACTION_HEIGHT  = 576
 
-WINDOW_WIDTH  = CAMERA_WIDTH + STATUS_WIDTH
+SIDEBAR_WIDTH  = 192
+SIDEBAR_HEIGHT = WINDOW_HEIGHT
+
+WINDOW_WIDTH   = CAMERA_WIDTH + SIDEBAR_WIDTH
 
 #-------------------------------------------------------------------------
 # Paths
@@ -91,7 +94,8 @@ WINDOW_WIDTH  = CAMERA_WIDTH + STATUS_WIDTH
 FONT_PATH    = 'fonts/'
 DEFAULT_FONT = FONT_PATH + 'default.ttf'
 
-TILE_PATH = 'images/tiles/'
-EXPD_PATH = 'images/expedition/'
-
-BUTTON_PATH = 'images/menu/menu_bar.png'
+TILE_PATH    = 'images/tiles/'
+EXPD_PATH    = 'images/expedition/'
+SIDEBAR_PATH = 'images/sidebar/'
+BUTTON_PATH  = 'images/menu/menu_bar.png'
+ACTION_PATH  = 'images/action/'

@@ -35,20 +35,20 @@ PHASE_NIGHT, PHASE_TRANSITION  = range( 12 )
 
 class Engine:
 
+  #.......................................................................
   # Constructor
+  #.......................................................................
 
   def __init__( self ):
 
     # Initialize sprite groups
 
-    self.win_group  = pygame.sprite.RenderUpdates()
     self.map_group  = pygame.sprite.RenderUpdates()
     self.expd_group = pygame.sprite.RenderUpdates()
     self.menu_group = pygame.sprite.RenderUpdates()
 
     # Assign default groups to sprite classes
 
-    window.Window.groups         = self.win_group
     expedition.Expedition.groups = self.expd_group
     button.Button.groups         = self.menu_group
 
@@ -63,10 +63,11 @@ class Engine:
 
     # Initialize window surfaces
 
-    self.screen        = pygame.display.get_surface()
+    self.screen         = pygame.display.get_surface()
 
-    self.camera_window = window.Window( properties.CAMERA_WIDTH, properties.CAMERA_HEIGHT, 0, 0 )
-    self.status_window = window.Window( properties.STATUS_WIDTH, properties.STATUS_HEIGHT, properties.CAMERA_WIDTH, 0 )
+    self.camera_window  = window.Window( properties.CAMERA_WIDTH, properties.CAMERA_HEIGHT, 0, 0 )
+    self.sidebar_window = window.Window( properties.SIDEBAR_WIDTH, properties.SIDEBAR_HEIGHT, properties.CAMERA_WIDTH, 0 )
+    self.action_window  = window.Window( properties.ACTION_WIDTH, properties.ACTION_HEIGHT, properties.MENU_WIDTH + 32, 32 )
 
     # Initialize engine utility variables
 
@@ -81,12 +82,15 @@ class Engine:
     self.mouse_y     = 0
     self.mouse_click = False
 
-    # Day-Plan phase variables
+    # Phase-specific variables
 
     self.menu_en           = False
+    self.action_en         = False
     self.active_expedition = None
 
+  #.......................................................................
   # Initialize map and add tiles to group
+  #.......................................................................
 
   def init_map( self, map ):
 
@@ -96,7 +100,9 @@ class Engine:
       for j in range( properties.MAP_SIZE ):
         self.map_group.add( self.map[i][j] )
 
+  #.......................................................................
   # Randomly generate starting expedition
+  #.......................................................................
 
   def init_expedition( self ):
 
@@ -138,7 +144,9 @@ class Engine:
 
     self.expeditions.append( expedition.Expedition( start_tile, survivors, inv ) )
 
+  #.......................................................................
   # Update all sprites
+  #.......................................................................
 
   def update_all( self ):
 
@@ -146,7 +154,9 @@ class Engine:
     self.map_group.update( self.cam_x, self.cam_y )
     self.expd_group.update( self.cam_x, self.cam_y )
 
+  #.......................................................................
   # Draw all sprites
+  #.......................................................................
 
   def draw_all( self ):
 
@@ -164,15 +174,27 @@ class Engine:
     if self.menu_en:
       rect_updates += self.menu_group.draw( self.camera_window.image )
 
+    # Draw action window if necessary (reset background)
+
+    if self.action_en:
+      rect_updates += self.action_window.draw_background( properties.ACTION_PATH + 'action_bg.png' )
+
     # Draw all windows onto main screen
 
-    rect_updates += self.win_group.draw( self.screen )
+    rect_updates += self.camera_window.draw( self.screen )
+    rect_updates += self.sidebar_window.draw_background( properties.SIDEBAR_PATH + 'sidebar_bg.png' )
+    rect_updates += self.sidebar_window.draw( self.screen )
+
+    if self.action_en:
+      rect_updates += self.action_window.draw( self.screen )
 
     # Update the display
 
     pygame.display.update( rect_updates )
 
+  #.......................................................................
   # Get inputs
+  #.......................................................................
 
   def get_inputs( self ):
 
@@ -187,7 +209,9 @@ class Engine:
       elif event.type == MOUSEBUTTONDOWN:
         self.mouse_click = True
 
+  #.......................................................................
   # Scroll camera
+  #.......................................................................
 
   def scroll_camera( self ):
 
@@ -213,7 +237,9 @@ class Engine:
       and ( ( self.cam_y + properties.CAMERA_HEIGHT ) < properties.MAP_HEIGHT ):
       self.cam_y += properties.SCROLL_SPEED
 
+  #.......................................................................
   # Menu selection handler
+  #.......................................................................
 
   def handle_menu( self ):
 
@@ -227,25 +253,34 @@ class Engine:
           menu_used = True
 
           if button.text == 'EXPLORE':
-            self.phase = PHASE_EXPL_SURV
+            self.phase     = PHASE_EXPL_SURV
+            self.action_en = True
 
           elif button.text == 'SCAVENGE':
             self.phase = PHASE_SCAVENGE
 
           elif button.text == 'CRAFT':
-            self.phase = PHASE_CRAFT_ITEM
+            self.phase     = PHASE_CRAFT_ITEM
+            self.action_en = True
 
           elif button.text == 'REST':
-            self.phase = PHASE_REST
+            self.phase     = PHASE_REST
+            self.action_en = True
 
           elif button.text == 'STATUS':
-            self.phase = PHASE_STATUS
+            self.phase     = PHASE_STATUS
+            self.action_en = True
+
+          self.cam_lock = True
 
           break
 
     return menu_used
 
-  # Day-Plan phase handler
+  #.......................................................................
+  # PHASE_FREE Handling
+  #.......................................................................
+  # Default free-look phase
 
   def handle_phase_free( self ):
 
@@ -263,11 +298,31 @@ class Engine:
 
       for expd in self.expeditions:
         if click_tile == expd.pos_tile:
-          self.sel_expedition = expd
-          self.menu_en        = True
+          self.active_expedition = expd
+          self.menu_en           = True
           break
 
+  #.......................................................................
+  # PHASE_EXPL_SURV Handling
+  #.......................................................................
+  # Phase for selecting survivors to explore new tile
+
+  def handle_phase_expl_surv( self ):
+
+    pass
+
+  #.......................................................................
+  # PHASE_STATUS Handling
+  #.......................................................................
+  # Phase for displaying details about expedition
+
+  def handle_status( self ):
+
+    pass
+
+  #.......................................................................
   # Start game engine
+  #.......................................................................
 
   def start( self ):
 
@@ -310,6 +365,12 @@ class Engine:
 
         if self.phase == PHASE_FREE:
           self.handle_phase_free()
+
+        elif self.phase == PHASE_EXPL_SURV:
+          self.handle_phase_expl_surv()
+
+        elif self.phase == PHASE_STATUS:
+          self.handle_status()
 
       # Update graphics
 
