@@ -10,6 +10,7 @@ from pygame.locals import *
 import random
 import properties
 import window
+import statuswindow
 import mapgen
 import button
 import tile
@@ -67,7 +68,14 @@ class Engine:
 
     self.camera_window  = window.Window( properties.CAMERA_WIDTH, properties.CAMERA_HEIGHT, 0, 0 )
     self.sidebar_window = window.Window( properties.SIDEBAR_WIDTH, properties.SIDEBAR_HEIGHT, properties.CAMERA_WIDTH, 0 )
-    self.action_window  = window.Window( properties.ACTION_WIDTH, properties.ACTION_HEIGHT, properties.MENU_WIDTH + 32, 32 )
+    self.status_window  = statuswindow.StatusWindow( properties.ACTION_WIDTH, properties.ACTION_HEIGHT, properties.MENU_WIDTH + 32, 32 )
+
+    # Adjust window scroll zones with absolute offset
+
+    self.status_window.surv_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.status_window.surv_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.status_window.inv_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.status_window.inv_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
 
     # Initialize engine utility variables
 
@@ -84,9 +92,8 @@ class Engine:
 
     # Phase-specific variables
 
-    self.menu_en           = False
-    self.action_en         = False
-    self.active_expedition = None
+    self.menu_en     = False
+    self.active_expd = None
 
   #.......................................................................
   # Initialize map and add tiles to group
@@ -132,9 +139,6 @@ class Engine:
       properties.START_METAL,
       properties.START_AMMO,
       [
-        item.Item( 'Camping Kit' ),
-        item.Item( 'First Aid' ),
-        item.Item( 'Antibiotics' ),
         item.Item( 'Knife' ),
         item.Item( 'Pistol' ),
       ],
@@ -153,6 +157,7 @@ class Engine:
 #    self.win_group.update()
     self.map_group.update( self.cam_x, self.cam_y )
     self.expd_group.update( self.cam_x, self.cam_y )
+    self.status_window.update()
 
   #.......................................................................
   # Draw all sprites
@@ -174,19 +179,18 @@ class Engine:
     if self.menu_en:
       rect_updates += self.menu_group.draw( self.camera_window.image )
 
-    # Draw action window if necessary (reset background)
-
-    if self.action_en:
-      rect_updates += self.action_window.draw_background( properties.ACTION_PATH + 'action_bg.png' )
-
     # Draw all windows onto main screen
 
     rect_updates += self.camera_window.draw( self.screen )
     rect_updates += self.sidebar_window.draw_background( properties.SIDEBAR_PATH + 'sidebar_bg.png' )
     rect_updates += self.sidebar_window.draw( self.screen )
 
-    if self.action_en:
-      rect_updates += self.action_window.draw( self.screen )
+    # Draw phase-specific graphics
+
+    if self.phase == PHASE_STATUS:
+      rect_updates += self.status_window.draw_background( properties.ACTION_PATH + 'action_bg.png' )
+      rect_updates += self.status_window.draw_info()
+      rect_updates += self.status_window.draw( self.screen )
 
     # Update the display
 
@@ -254,22 +258,19 @@ class Engine:
 
           if button.text == 'EXPLORE':
             self.phase     = PHASE_EXPL_SURV
-            self.action_en = True
 
           elif button.text == 'SCAVENGE':
             self.phase = PHASE_SCAVENGE
 
           elif button.text == 'CRAFT':
             self.phase     = PHASE_CRAFT_ITEM
-            self.action_en = True
 
           elif button.text == 'REST':
             self.phase     = PHASE_REST
-            self.action_en = True
 
           elif button.text == 'STATUS':
-            self.phase     = PHASE_STATUS
-            self.action_en = True
+            self.phase              = PHASE_STATUS
+            self.status_window.expd = self.active_expd
 
 #          self.cam_en = False
 
@@ -299,9 +300,9 @@ class Engine:
 
       for expd in self.expeditions:
         if click_tile == expd.pos_tile:
-          self.active_expedition = expd
-          self.menu_en           = True
-          self.cam_en            = False
+          self.active_expd = expd
+          self.menu_en     = True
+          self.cam_en      = False
           break
 
   #.......................................................................
@@ -320,7 +321,32 @@ class Engine:
 
   def handle_status( self ):
 
-    pass
+    # Scroll survivor panel
+
+    if self.status_window.surv_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.status_window.surv_scroll > 0 ):
+      self.status_window.surv_scroll -= properties.SCROLL_SPEED
+
+    elif self.status_window.surv_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( ( self.status_window.surv_scroll + properties.SUBACTION_HEIGHT ) < self.status_window.max_surv_scroll ):
+      self.status_window.surv_scroll += properties.SCROLL_SPEED
+
+    # Scroll inventory panel
+
+    if self.status_window.inv_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.status_window.inv_scroll > 0 ):
+      self.status_window.inv_scroll -= properties.SCROLL_SPEED
+
+    elif self.status_window.inv_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( ( self.status_window.inv_scroll + properties.SUBACTION_HEIGHT ) < self.status_window.max_inv_scroll ):
+      self.status_window.inv_scroll += properties.SCROLL_SPEED
+
+    # Reset phase if clicked outside of context
+
+    if self.mouse_click and not self.status_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
+      self.phase   = PHASE_FREE
+      self.menu_en = False
+      self.cam_en  = True
 
   #.......................................................................
   # Start game engine

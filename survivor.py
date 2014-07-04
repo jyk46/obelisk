@@ -3,7 +3,11 @@
 #=========================================================================
 # Class for survivor units with varying stats and attributes.
 
+import pygame, sys, os
+from pygame.locals import *
+
 import random
+import properties
 import attribute
 
 #-------------------------------------------------------------------------
@@ -137,6 +141,12 @@ class Survivor():
     self.heal_rate   = heal_table[self.age/10]
     self.cure_prob   = cure_table[self.age/10]
     self.attributes  = []
+
+    # Text graphics
+
+    self.font         = pygame.font.Font( properties.DEFAULT_FONT, 14 )
+    self.text_surface = self.font.render( self.name, 1, (255,255,255) )
+    self.text_rect    = self.text_surface.get_rect()
 
     # Roll random attributes (up to three per survivor)
 

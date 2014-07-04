@@ -4,6 +4,11 @@
 # Class for equipment (weapon, armor, misc) that can be held by the
 # inventories of expeditions.
 
+import pygame, sys, os
+from pygame.locals import *
+
+import properties
+
 #-------------------------------------------------------------------------
 # Utility Tables
 #-------------------------------------------------------------------------
@@ -68,6 +73,12 @@ class Item():
     self.stam_cost  = item_table[self.name][5]
     self.armor      = item_table[self.name][6]
     self.special    = item_table[self.name][7]
+
+    # Text graphics
+
+    self.font         = pygame.font.Font( properties.DEFAULT_FONT, 14 )
+    self.text_surface = self.font.render( self.name, 1, (255,255,255) )
+    self.text_rect    = self.text_surface.get_rect()
 
   # Check if item is usable (i.e., fixed )
 

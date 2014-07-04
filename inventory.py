@@ -4,6 +4,10 @@
 # Inventory of food, materials, and Items (equipment) corresponding to a
 # unique Expedition.
 
+import pygame, sys, os
+from pygame.locals import *
+
+import properties
 import item
 
 #-------------------------------------------------------------------------
@@ -21,6 +25,16 @@ class Inventory():
     self.metal = metal
     self.ammo  = ammo
     self.items = items
+
+    # Text graphics
+
+    self.font         = pygame.font.Font( properties.DEFAULT_FONT, 14 )
+    self.text         = 'FOOD: ' + str( self.food ) + ', '\
+                      + 'WOOD: ' + str( self.wood ) + ', '\
+                      + 'METAL: ' + str( self.metal ) + ', '\
+                      + 'AMMO: ' + str( self.ammo )
+    self.text_surface = self.font.render( self.text, 1, (0,0,0) )
+    self.text_rect    = self.text_surface.get_rect()
 
   # Overload + operator for merging inventories
 
