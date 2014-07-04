@@ -44,12 +44,12 @@ NUM_FACILITY    = 1
 NUM_WRECKAGE    = 5
 NUM_RITUAL_SITE = 4
 
-MOUNTAIN_RATE    = 0.15
-CAVE_RATE        = 0.30
-SWAMP_RATE       = 0.20
-JUNGLE_RATE      = 0.10
-DEEP_JUNGLE_RATE = 0.25
-FACILITY_RATE    = 0.25
+MOUNTAIN_RATE    = 0.2 #0.15
+CAVE_RATE        = 0.4 #0.30
+SWAMP_RATE       = 0.3 #0.20
+JUNGLE_RATE      = 0.2 #0.10
+DEEP_JUNGLE_RATE = 0.3 #0.25
+FACILITY_RATE    = 0.4 #0.25
 
 #-------------------------------------------------------------------------
 # Menu

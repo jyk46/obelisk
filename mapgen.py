@@ -26,6 +26,12 @@ class MapGen():
     seed_x = random.randint( 0, self.size - 1 )
     seed_y = random.randint( 0, self.size - 1 )
 
+    # Try to reduce overlapping between special terrain
+
+    while self.map[seed_x][seed_y].terrain != 'Field':
+      seed_x = random.randint( 0, self.size - 1 )
+      seed_y = random.randint( 0, self.size - 1 )
+
     # Convert seed tile into specified terrain
 
     self.map[seed_x][seed_y] = tile.Tile( terrains[0], seed_x, seed_y )
@@ -43,7 +49,7 @@ class MapGen():
       # Iterate through frontiers in BFS-manner with probability of
       # generating the same terrain decreasing with each super-step.
 
-      while True: #len( frontier ) > 0:
+      while len( frontier ) > 0:
 
         next_frontier = []
 
@@ -95,14 +101,25 @@ class MapGen():
 
         # Swap frontiers when all tiles in current frontier are processed
 
-        if len( next_frontier ) == 0:
-          break
-
         frontier = next_frontier
 
         # Reduce spawn probability for next frontier
 
         prob -= rate
+
+      # Determine the edge tiles for the generated terrain
+
+      for ti in visited:
+
+        north_edge = ( ti.pos_y > 0 ) and ( self.map[ti.pos_x][ti.pos_y-1].terrain not in terrains )
+        east_edge  = ( ti.pos_x < ( self.size - 1 ) ) and ( self.map[ti.pos_x+1][ti.pos_y].terrain not in terrains )
+        south_edge = ( ti.pos_y < ( self.size - 1 ) ) and ( self.map[ti.pos_x][ti.pos_y+1].terrain not in terrains )
+        west_edge  = ( ti.pos_x > 0 ) and ( self.map[ti.pos_x-1][ti.pos_y].terrain not in terrains )
+
+        edges = [ north_edge, east_edge, south_edge, west_edge ]
+
+        if True in edges:
+          frontier.append( ti )
 
   # Spawn random terrain (no spread)
 
@@ -164,7 +181,8 @@ class MapGen():
     # Add swamp
 
     for i in range( self.num_swamp ):
-      self.gen_terrain( [ 'Swamp' ], [ self.swamp_rate ] )
+      self.gen_terrain( [ 'Swamp', 'Jungle' ], \
+                        [ self.swamp_rate, self.jungle_rate ] )
 
     # Add jungle
 
@@ -175,7 +193,8 @@ class MapGen():
     # Add facility
 
     for i in range( self.num_facility ):
-      self.gen_terrain( [ 'Facility' ], [ self.facility_rate ] )
+      self.gen_terrain( [ 'Facility', 'Mountain' ], \
+                        [ self.facility_rate, self.mountain_rate ] )
 
     # Add wreckage and ritual sites
 

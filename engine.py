@@ -75,7 +75,7 @@ class Engine:
     self.phase       = PHASE_FREE
     self.expeditions = []
 
-    self.cam_lock    = False
+    self.cam_en      = True
     self.cam_x       = 0
     self.cam_y       = 0
     self.mouse_x     = 0
@@ -271,7 +271,7 @@ class Engine:
             self.phase     = PHASE_STATUS
             self.action_en = True
 
-          self.cam_lock = True
+#          self.cam_en = False
 
           break
 
@@ -295,11 +295,13 @@ class Engine:
       # Enable menu if expedition is clicked
 
       self.menu_en = False
+      self.cam_en  = True
 
       for expd in self.expeditions:
         if click_tile == expd.pos_tile:
           self.active_expedition = expd
           self.menu_en           = True
+          self.cam_en            = False
           break
 
   #.......................................................................
@@ -349,7 +351,7 @@ class Engine:
 
       # Handle camera scrolling
 
-      if not self.cam_lock:
+      if self.cam_en:
         self.scroll_camera()
 
       # Handle menu selection
