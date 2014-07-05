@@ -295,29 +295,41 @@ class Engine:
 
   def handle_phase_free( self ):
 
-    # Sidebar terrain information
+    # Calculate current tile mouse is hovering over
 
-    context_x    = ( self.cam_x + self.mouse_x ) / properties.TILE_WIDTH
-    context_y    = ( self.cam_y + self.mouse_y ) / properties.TILE_HEIGHT
-    context_tile = self.map[context_x][context_y]
+    context_x = ( self.cam_x + self.mouse_x ) / properties.TILE_WIDTH
+    context_y = ( self.cam_y + self.mouse_y ) / properties.TILE_HEIGHT
 
-    self.sidebar_window.terr = context_tile
+    if ( context_x >= 0 ) and ( context_x < properties.MAP_SIZE ) \
+      and ( context_y >= 0 ) and ( context_y < properties.MAP_SIZE ):
 
-    # Sidebar expedition information (only when menu is disabled)
+      context_tile = self.map[context_x][context_y]
 
-    expd_active = False
+      # Sidebar terrain information
 
-    for expd in self.expeditions:
-      if context_tile == expd.pos_tile:
-        expd_active = True
-        break
+      self.sidebar_window.terr = context_tile
 
-    if not self.menu_en:
+      # Sidebar expedition information (only when menu is disabled)
 
+      expd_active = False
+
+      for expd in self.expeditions:
+        if context_tile == expd.pos_tile:
+          expd_active = True
+          break
+
+      if not self.menu_en:
+
+        self.sidebar_window.expd = None
+
+        if expd_active:
+          self.sidebar_window.expd = expd
+
+    else:
+
+      self.expd_active         = False
+      self.sidebar_window.terr = None
       self.sidebar_window.expd = None
-
-      if expd_active:
-        self.sidebar_window.expd = expd
 
     # Check for mouse click
 
@@ -349,6 +361,29 @@ class Engine:
 
   def handle_status( self ):
 
+    # Set active information to display
+
+    self.status_window.surv = None
+    self.status_window.it   = None
+
+    for surv, pos in zip( self.status_window.expd.survivors, self.status_window.surv_pos ):
+      surv_info_rect = pygame.rect.Rect(
+        properties.MENU_WIDTH + 32 + self.status_window.surv_rect.left + pos[0] - 4, \
+        32 + self.status_window.surv_rect.top + pos[1] - 3, \
+        properties.ACTION_SUB_WIDTH, 32
+      )
+      if surv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
+        self.status_window.surv = surv
+
+    for it, pos in zip( self.status_window.expd.inv.items, self.status_window.inv_pos ):
+      inv_info_rect = pygame.rect.Rect(
+        properties.MENU_WIDTH + 32 + self.status_window.inv_rect.left + pos[0] - 4, \
+        32 + self.status_window.inv_rect.top + pos[1] - 3, \
+        properties.ACTION_SUB_WIDTH, 32
+      )
+      if inv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
+        self.status_window.it = it
+
     # Scroll survivor panel
 
     if self.status_window.surv_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
@@ -356,7 +391,7 @@ class Engine:
       self.status_window.surv_scroll -= properties.SCROLL_SPEED
 
     elif self.status_window.surv_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( ( self.status_window.surv_scroll + properties.SUBACTION_HEIGHT ) < self.status_window.max_surv_scroll ):
+      and ( ( self.status_window.surv_scroll + properties.ACTION_SUB_HEIGHT ) < self.status_window.max_surv_scroll ):
       self.status_window.surv_scroll += properties.SCROLL_SPEED
 
     # Scroll inventory panel
@@ -366,7 +401,7 @@ class Engine:
       self.status_window.inv_scroll -= properties.SCROLL_SPEED
 
     elif self.status_window.inv_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( ( self.status_window.inv_scroll + properties.SUBACTION_HEIGHT ) < self.status_window.max_inv_scroll ):
+      and ( ( self.status_window.inv_scroll + properties.ACTION_SUB_HEIGHT ) < self.status_window.max_inv_scroll ):
       self.status_window.inv_scroll += properties.SCROLL_SPEED
 
     # Reset phase if clicked outside of context

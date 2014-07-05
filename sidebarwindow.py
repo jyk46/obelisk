@@ -104,7 +104,11 @@ class SidebarWindow( window.Window ):
       expd_size_surface = font.render( 'SIZE: ' + str( len( self.expd.survivors ) ), 1, (255,255,255) )
       rect_updates += [ self.expd_surface.blit( expd_size_surface, ( 4, 3 ) ) ]
 
-      expd_food_surface = font.render( 'FOOD: ' + str( self.expd.inv.food ), 1, (255,255,255) )
+      food_color = (255,255,255)
+      if len( self.expd.survivors ) > self.expd.inv.food:
+        food_color = (255,0,0)
+
+      expd_food_surface = font.render( 'FOOD: ' + str( self.expd.inv.food ), 1, food_color )
       rect_updates += [ self.expd_surface.blit( expd_food_surface, ( 4, 32 + 3 ) ) ]
 
       expd_wood_surface = font.render( 'WOOD: ' + str( self.expd.inv.wood ), 1, (255,255,255) )
