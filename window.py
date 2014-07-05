@@ -17,26 +17,22 @@ class Window:
 
   # Constructor
 
-  def __init__( self, width, height, pos_x, pos_y ):
+  def __init__( self, width, height, pos_x, pos_y, bg_path=None ):
 
     self.surface      = pygame.Surface( ( width, height ) )
     self.image        = self.surface.convert()
     self.rect         = self.image.get_rect()
     self.rect.topleft = pos_x, pos_y
 
-  # Draw function
-
-  def draw( self, surface ):
-
-    return [ surface.blit( self.image, self.rect ) ]
+    self.bg_path      = bg_path
 
   # Fill background with specified image
 
-  def draw_background( self, img_path ):
+  def draw_background( self ):
 
     rect_updates = []
 
-    bg_image = pygame.image.load( img_path )
+    bg_image = pygame.image.load( self.bg_path )
     bg_rect  = bg_image.get_rect()
 
     for i in range( int( math.ceil( self.rect.width / float( bg_rect.width ) ) ) ):
@@ -44,3 +40,9 @@ class Window:
         rect_updates.append( self.image.blit( bg_image, ( i * bg_rect.width, j * bg_rect.height ) ) )
 
     return rect_updates
+
+  # Draw function
+
+  def draw( self, surface ):
+
+    return [ surface.blit( self.image, self.rect ) ]

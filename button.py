@@ -19,7 +19,7 @@ class Button( pygame.sprite.Sprite ):
 
   def __init__( self, text, pos_x, pos_y ):
 
-    pygame.sprite.Sprite.__init__( self, self.groups )
+    pygame.sprite.Sprite.__init__( self )
 
     # Set button background image
 

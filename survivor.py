@@ -141,6 +141,7 @@ class Survivor():
     self.heal_rate   = heal_table[self.age/10]
     self.cure_prob   = cure_table[self.age/10]
     self.attributes  = []
+    self.free        = True
 
     # Text graphics
 

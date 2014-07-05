@@ -17,9 +17,9 @@ import properties
 
 terrain_table = {
 
-  # name      image       mv  val   camp
+  # name      image       mv  val   camp  risk
 
-  'Field' : [ 'field.png', 1, True, True,
+  'Field' : [ 'field.png', 1, True, True, 'Low',
 
     [
       # prob  enemy
@@ -44,7 +44,7 @@ terrain_table = {
 
   ],
 
-  'Jungle' : [ 'jungle.png', 1, True, True,
+  'Jungle' : [ 'jungle.png', 1, True, True, 'Medium',
 
     [
       # prob  enemy
@@ -74,7 +74,7 @@ terrain_table = {
 
   ],
 
-  'Deep Jungle' : [ 'deep_jungle.png', 2, True, True,
+  'Deep Jungle' : [ 'deep_jungle.png', 2, True, True, 'High',
 
     [
       # prob  enemy
@@ -108,7 +108,7 @@ terrain_table = {
 
   ],
 
-  'Mountain' : [ 'mountain.png', 2, True, True,
+  'Mountain' : [ 'mountain.png', 2, True, True, 'Medium',
 
     [
       # prob  enemy
@@ -138,7 +138,7 @@ terrain_table = {
 
   ],
 
-  'Cave' : [ 'cave.png', 1, True, False,
+  'Cave' : [ 'cave.png', 1, True, False, 'Medium',
 
     [
       # prob  enemy
@@ -169,7 +169,7 @@ terrain_table = {
 
   ],
 
-  'Swamp' : [ 'swamp.png', 3, True, False,
+  'Swamp' : [ 'swamp.png', 3, True, False, 'Medium',
 
     [
       # prob  enemy
@@ -200,7 +200,7 @@ terrain_table = {
 
   ],
 
-  'Wreckage' : [ 'wreckage.png', 1, True, False,
+  'Wreckage' : [ 'wreckage.png', 1, True, False, 'Low',
 
     [
       # prob  enemy
@@ -232,7 +232,7 @@ terrain_table = {
 
   ],
 
-  'Facility' : [ 'facility.png', 1, True, False,
+  'Facility' : [ 'facility.png', 1, True, False, 'High',
 
     [
       # prob  enemy
@@ -267,7 +267,7 @@ terrain_table = {
 
   ],
 
-  'Ritual Site' : [ 'ritual.png', 1, True, False,
+  'Ritual Site' : [ 'ritual.png', 1, True, False, '????',
 
     [
       # prob  enemy
@@ -297,7 +297,7 @@ terrain_table = {
 
   ],
 
-  'Obelisk' : [ 'obelisk.png', 1, True, False,
+  'Obelisk' : [ 'obelisk.png', 1, True, False, '????',
 
     [
       # prob  enemy
@@ -357,9 +357,23 @@ class Tile( pygame.sprite.Sprite ):
     self.move_cost   = terrain_table[self.terrain][1]
     self.valid       = terrain_table[self.terrain][2]
     self.campable    = terrain_table[self.terrain][3]
-    self.enemy_rates = terrain_table[self.terrain][4]
-    self.mat_rates   = terrain_table[self.terrain][5]
-    self.item_rates  = terrain_table[self.terrain][6]
+    self.risk        = terrain_table[self.terrain][4]
+    self.enemy_rates = terrain_table[self.terrain][5]
+    self.mat_rates   = terrain_table[self.terrain][6]
+    self.item_rates  = terrain_table[self.terrain][7]
+
+  # Calculate chance of finding materials during scavenge
+
+  def get_yield( self ):
+
+    prob_nothing = 1.00
+
+    for rate in self.mat_rates:
+      prob_nothing *= 1.00 - rate[0]
+
+    prob_something = 1.00 - prob_nothing
+
+    return '%.1f' % ( prob_something * 100 ) + '%'
 
   # Update graphics
 

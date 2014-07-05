@@ -10,6 +10,7 @@ from pygame.locals import *
 import random
 import properties
 import window
+import sidebarwindow
 import statuswindow
 import mapgen
 import button
@@ -42,41 +43,6 @@ class Engine:
 
   def __init__( self ):
 
-    # Initialize sprite groups
-
-    self.map_group  = pygame.sprite.RenderUpdates()
-    self.expd_group = pygame.sprite.RenderUpdates()
-    self.menu_group = pygame.sprite.RenderUpdates()
-
-    # Assign default groups to sprite classes
-
-    expedition.Expedition.groups = self.expd_group
-    button.Button.groups         = self.menu_group
-
-    # Initialize menu graphics
-
-    self.menu_buttons = []
-    menu_pos_y   = properties.MENU_OFFSET_Y
-
-    for text in properties.MENU_TEXT:
-      self.menu_buttons.append( button.Button( text, properties.MENU_OFFSET_X, menu_pos_y ) )
-      menu_pos_y += properties.MENU_HEIGHT + properties.MENU_PADDING
-
-    # Initialize window surfaces
-
-    self.screen         = pygame.display.get_surface()
-
-    self.camera_window  = window.Window( properties.CAMERA_WIDTH, properties.CAMERA_HEIGHT, 0, 0 )
-    self.sidebar_window = window.Window( properties.SIDEBAR_WIDTH, properties.SIDEBAR_HEIGHT, properties.CAMERA_WIDTH, 0 )
-    self.status_window  = statuswindow.StatusWindow( properties.ACTION_WIDTH, properties.ACTION_HEIGHT, properties.MENU_WIDTH + 32, 32 )
-
-    # Adjust window scroll zones with absolute offset
-
-    self.status_window.surv_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-    self.status_window.surv_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-    self.status_window.inv_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-    self.status_window.inv_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-
     # Initialize engine utility variables
 
     self.done        = False
@@ -94,6 +60,53 @@ class Engine:
 
     self.menu_en     = False
     self.active_expd = None
+
+    # Initialize sprite groups
+
+    self.map_group  = pygame.sprite.RenderUpdates()
+    self.expd_group = pygame.sprite.RenderUpdates()
+    self.menu_group = pygame.sprite.RenderUpdates()
+
+    # Assign default groups to sprite classes
+
+    expedition.Expedition.groups = self.expd_group
+
+    # Initialize menu graphics
+
+    menu_pos_y = properties.MENU_OFFSET_Y
+
+    for text in properties.MENU_TEXT:
+      self.menu_group.add( [ button.Button( text, properties.MENU_OFFSET_X, menu_pos_y ) ] )
+      menu_pos_y += properties.MENU_HEIGHT + properties.MENU_PADDING
+
+    # Initialize window surfaces
+
+    self.screen = pygame.display.get_surface()
+
+    self.camera_window = window.Window(
+      properties.CAMERA_WIDTH, properties.CAMERA_HEIGHT, \
+      0, 0
+    )
+
+    self.sidebar_window = sidebarwindow.SidebarWindow(
+      properties.SIDEBAR_WIDTH, properties.SIDEBAR_HEIGHT, \
+      properties.CAMERA_WIDTH, 0, \
+      properties.SIDEBAR_PATH + 'sidebar_bg.png',
+      self.expeditions
+    )
+
+    self.status_window = statuswindow.StatusWindow(
+      properties.ACTION_WIDTH, properties.ACTION_HEIGHT, \
+      properties.MENU_WIDTH + 32, 32, \
+      properties.ACTION_PATH + 'action_bg.png'
+    )
+
+    # Adjust window scroll zones with absolute offset
+
+    self.status_window.surv_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.status_window.surv_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.status_window.inv_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.status_window.inv_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
 
   #.......................................................................
   # Initialize map and add tiles to group
@@ -182,14 +195,11 @@ class Engine:
     # Draw all windows onto main screen
 
     rect_updates += self.camera_window.draw( self.screen )
-    rect_updates += self.sidebar_window.draw_background( properties.SIDEBAR_PATH + 'sidebar_bg.png' )
     rect_updates += self.sidebar_window.draw( self.screen )
 
     # Draw phase-specific graphics
 
     if self.phase == PHASE_STATUS:
-      rect_updates += self.status_window.draw_background( properties.ACTION_PATH + 'action_bg.png' )
-      rect_updates += self.status_window.draw_info()
       rect_updates += self.status_window.draw( self.screen )
 
     # Update the display
@@ -251,7 +261,7 @@ class Engine:
 
     if self.mouse_click:
 
-      for button in self.menu_buttons:
+      for button in self.menu_group:
         if ( button.rect.collidepoint( self.mouse_x, self.mouse_y ) ):
 
           menu_used = True
@@ -285,25 +295,43 @@ class Engine:
 
   def handle_phase_free( self ):
 
+    # Sidebar terrain information
+
+    context_x    = ( self.cam_x + self.mouse_x ) / properties.TILE_WIDTH
+    context_y    = ( self.cam_y + self.mouse_y ) / properties.TILE_HEIGHT
+    context_tile = self.map[context_x][context_y]
+
+    self.sidebar_window.terr = context_tile
+
+    # Sidebar expedition information (only when menu is disabled)
+
+    expd_active = False
+
+    for expd in self.expeditions:
+      if context_tile == expd.pos_tile:
+        expd_active = True
+        break
+
+    if not self.menu_en:
+
+      self.sidebar_window.expd = None
+
+      if expd_active:
+        self.sidebar_window.expd = expd
+
     # Check for mouse click
 
     if self.mouse_click:
-
-      click_x    = ( self.cam_x + self.mouse_x ) / properties.TILE_WIDTH
-      click_y    = ( self.cam_y + self.mouse_y ) / properties.TILE_HEIGHT
-      click_tile = self.map[click_x][click_y]
 
       # Enable menu if expedition is clicked
 
       self.menu_en = False
       self.cam_en  = True
 
-      for expd in self.expeditions:
-        if click_tile == expd.pos_tile:
-          self.active_expd = expd
-          self.menu_en     = True
-          self.cam_en      = False
-          break
+      if expd_active:
+        self.active_expd = expd
+        self.menu_en     = True
+        self.cam_en      = False
 
   #.......................................................................
   # PHASE_EXPL_SURV Handling
