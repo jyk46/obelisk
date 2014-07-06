@@ -55,6 +55,7 @@ class Engine:
     self.mouse_x     = 0
     self.mouse_y     = 0
     self.mouse_click = False
+    self.key_esc     = False
 
     # Phase-specific variables
 
@@ -213,6 +214,7 @@ class Engine:
   def get_inputs( self ):
 
     self.mouse_click = False
+    self.key_esc     = False
 
     for event in pygame.event.get():
 
@@ -222,6 +224,9 @@ class Engine:
 
       elif event.type == MOUSEBUTTONDOWN:
         self.mouse_click = True
+
+      elif ( event.type == KEYDOWN ) and ( event.key == K_ESCAPE ):
+        self.key_esc = True
 
   #.......................................................................
   # Scroll camera
@@ -331,9 +336,16 @@ class Engine:
       self.sidebar_window.terr = None
       self.sidebar_window.expd = None
 
+    # Give priority to ESC key
+
+    if self.key_esc:
+
+      self.menu_en = False
+      self.cam_en  = True
+
     # Check for mouse click
 
-    if self.mouse_click:
+    elif self.mouse_click:
 
       # Enable menu if expedition is clicked
 
@@ -404,9 +416,16 @@ class Engine:
       and ( ( self.status_window.inv_scroll + properties.ACTION_SUB_HEIGHT ) < self.status_window.max_inv_scroll ):
       self.status_window.inv_scroll += properties.SCROLL_SPEED
 
+    # Go back to menu if ESC pressed
+
+    if self.key_esc:
+      self.phase   = PHASE_FREE
+      self.menu_en = True
+      self.cam_en  = False
+
     # Reset phase if clicked outside of context
 
-    if self.mouse_click and not self.status_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
+    elif self.mouse_click and not self.status_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
       self.phase   = PHASE_FREE
       self.menu_en = False
       self.cam_en  = True
