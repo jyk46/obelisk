@@ -42,11 +42,11 @@ class Inventory():
 
     sum_inv = Inventory()
 
-    sum_inv.food  = self.inv.food  + inv.food
-    sum_inv.wood  = self.inv.wood  + inv.wood
-    sum_inv.metal = self.inv.metal + inv.metal
-    sum_inv.ammo  = self.inv.ammo  + inv.ammo
-    sum_inv.items = self.inv.items + inv.items
+    sum_inv.food  = self.food  + inv.food
+    sum_inv.wood  = self.wood  + inv.wood
+    sum_inv.metal = self.metal + inv.metal
+    sum_inv.ammo  = self.ammo  + inv.ammo
+    sum_inv.items = self.items + inv.items
 
     return sum_inv
 
@@ -54,10 +54,10 @@ class Inventory():
 
   def __sub__( self, inv ):
 
-    assert( inv.food  <= self.inv.food  )
-    assert( inv.wood  <= self.inv.wood  )
-    assert( inv.metal <= self.inv.metal )
-    assert( inv.ammo  <= self.inv.ammo  )
+    assert( inv.food  <= self.food  )
+    assert( inv.wood  <= self.wood  )
+    assert( inv.metal <= self.metal )
+    assert( inv.ammo  <= self.ammo  )
 
     diff_inv = Inventory()
 
@@ -74,6 +74,34 @@ class Inventory():
           break
 
     return diff_inv
+
+  # Merge resources only
+
+  def merge_resources( self, inv ):
+
+    self.food  += inv.food
+    self.wood  += inv.wood
+    self.metal += inv.metal
+    self.ammo  += inv.ammo
+
+  # Get number of unreserved items for explore phase
+
+  def get_free( self ):
+
+    free = []
+
+    for it in self.items:
+      if it.free:
+        free.append( it )
+
+    return free
+
+  # Reset free state of all items
+
+  def reset_free( self ):
+
+    for it in self.items:
+      it.free = True
 
   # Print debug information
 

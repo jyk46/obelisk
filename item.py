@@ -74,6 +74,7 @@ class Item():
     self.armor      = item_table[self.name][6]
     self.special    = item_table[self.name][7]
     self.type       = item_table[self.name][8]
+    self.free       = True
 
     # Text graphics
 

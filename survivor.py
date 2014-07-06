@@ -133,6 +133,7 @@ class Survivor():
     # Roll random stats based on age
 
     self.name        = random.choice( name_table )
+    name_table.remove( self.name )
     self.age         = random.randint( 10, 59 )
     self.max_stamina = random.randint( stam_table[self.age/10][0], stam_table[self.age/10][1] )
     self.stamina     = self.max_stamina

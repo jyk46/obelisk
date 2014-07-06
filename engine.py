@@ -11,6 +11,7 @@ import random
 import properties
 import window
 import sidebarwindow
+import explorewindow
 import statuswindow
 import mapgen
 import button
@@ -102,12 +103,23 @@ class Engine:
       properties.ACTION_PATH + 'action_bg.png'
     )
 
+    self.explore_window = explorewindow.ExploreWindow(
+      properties.ACTION_WIDTH, properties.ACTION_HEIGHT, \
+      properties.MENU_WIDTH + 32, 32, \
+      properties.ACTION_PATH + 'action_bg.png'
+    )
+
     # Adjust window scroll zones with absolute offset
 
     self.status_window.surv_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
     self.status_window.surv_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
     self.status_window.inv_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
     self.status_window.inv_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+
+    self.explore_window.old_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.explore_window.old_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.explore_window.new_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.explore_window.new_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
 
   #.......................................................................
   # Initialize map and add tiles to group
@@ -171,6 +183,7 @@ class Engine:
 #    self.win_group.update()
     self.map_group.update( self.cam_x, self.cam_y )
     self.expd_group.update( self.cam_x, self.cam_y )
+    self.explore_window.update()
     self.status_window.update()
 
   #.......................................................................
@@ -200,7 +213,11 @@ class Engine:
 
     # Draw phase-specific graphics
 
-    if self.phase == PHASE_STATUS:
+    if self.phase == PHASE_EXPL_SURV:
+      rect_updates += self.explore_window.draw( self.screen )
+    elif self.phase == PHASE_EXPL_INV:
+      rect_updates += self.explore_window.draw( self.screen )
+    elif self.phase == PHASE_STATUS:
       rect_updates += self.status_window.draw( self.screen )
 
     # Update the display
@@ -267,24 +284,27 @@ class Engine:
     if self.mouse_click:
 
       for button in self.menu_group:
-        if ( button.rect.collidepoint( self.mouse_x, self.mouse_y ) ):
+        if button.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
           menu_used = True
 
           if button.text == 'EXPLORE':
-            self.phase     = PHASE_EXPL_SURV
+            self.phase = PHASE_EXPL_SURV
+            self.explore_window.expd = self.active_expd
+            self.explore_window.surv_phase = True
+            self.explore_window.clear()
 
           elif button.text == 'SCAVENGE':
             self.phase = PHASE_SCAVENGE
 
           elif button.text == 'CRAFT':
-            self.phase     = PHASE_CRAFT_ITEM
+            self.phase = PHASE_CRAFT_ITEM
 
           elif button.text == 'REST':
-            self.phase     = PHASE_REST
+            self.phase = PHASE_REST
 
           elif button.text == 'STATUS':
-            self.phase              = PHASE_STATUS
+            self.phase = PHASE_STATUS
             self.status_window.expd = self.active_expd
 
 #          self.cam_en = False
@@ -364,7 +384,276 @@ class Engine:
 
   def handle_phase_expl_surv( self ):
 
-    pass
+    # Set active information to display
+
+    self.explore_window.surv = None
+
+    for surv, pos in zip( self.explore_window.expd.get_free(), self.explore_window.old_pos ):
+      surv_info_rect = pygame.rect.Rect(
+        properties.MENU_WIDTH + 32 + self.explore_window.old_rect.left + pos[0] - 4, \
+        32 + self.explore_window.old_rect.top + pos[1] - 3, \
+        properties.ACTION_SUB_WIDTH, 32
+      )
+      if surv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
+        self.explore_window.surv = surv
+
+        if self.mouse_click:
+          surv.free = False
+          self.explore_window.survivors.append( surv )
+
+    for surv, pos in zip( self.explore_window.survivors, self.explore_window.new_pos ):
+      surv_info_rect = pygame.rect.Rect(
+        properties.MENU_WIDTH + 32 + self.explore_window.new_rect.left + pos[0] - 4, \
+        32 + self.explore_window.new_rect.top + pos[1] - 3, \
+        properties.ACTION_SUB_WIDTH, 32
+      )
+      if surv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
+        self.explore_window.surv = surv
+
+        if self.mouse_click:
+          surv.free = True
+          self.explore_window.survivors.remove( surv )
+
+    # Scroll old survivors panel
+
+    if self.explore_window.old_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.explore_window.old_scroll > 0 ):
+      self.explore_window.old_scroll -= properties.SCROLL_SPEED
+
+    elif self.explore_window.old_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( ( self.explore_window.old_scroll + properties.ACTION_SUB_HEIGHT - 32 ) < self.explore_window.max_old_scroll ):
+      self.explore_window.old_scroll += properties.SCROLL_SPEED
+
+    # Scroll new survivors panel
+
+    if self.explore_window.new_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.explore_window.new_scroll > 0 ):
+      self.explore_window.new_scroll -= properties.SCROLL_SPEED
+
+    elif self.explore_window.new_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( ( self.explore_window.new_scroll + properties.ACTION_SUB_HEIGHT - 32 ) < self.explore_window.max_new_scroll ):
+      self.explore_window.new_scroll += properties.SCROLL_SPEED
+
+    # Go back to menu if ESC pressed
+
+    if self.key_esc:
+      self.phase   = PHASE_FREE
+      self.menu_en = True
+      self.cam_en  = False
+      self.explore_window.reset_expd()
+
+    elif self.mouse_click:
+
+      # Move to next phase if next button is clicked and at least one
+      # survivor was chosen.
+
+      for button in self.explore_window.button_group:
+
+        button_rect = pygame.rect.Rect(
+          properties.MENU_WIDTH + 32 + button.rect.left, \
+          32 + button.rect.top, \
+          button.rect.width, button.rect.height
+        )
+
+        if button_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+          and ( len( self.explore_window.survivors ) > 0 ):
+          self.phase                     = PHASE_EXPL_INV
+          self.explore_window.inv        = inventory.Inventory()
+          self.explore_window.surv_phase = False
+          self.explore_window.old_scroll = 0
+          self.explore_window.new_scroll = 0
+
+      # Reset phase if clicked outside of context
+
+      if not self.explore_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
+        self.phase   = PHASE_FREE
+        self.menu_en = False
+        self.cam_en  = True
+        self.explore_window.reset_expd()
+
+  #.......................................................................
+  # PHASE_EXPL_INV Handling
+  #.......................................................................
+  # Phase for selecting inventory for explore party
+
+  def handle_phase_expl_inv( self ):
+
+    # Handle resource transfer to explore party
+
+    self.explore_window.it = None
+
+    inv_info_rect = pygame.rect.Rect(
+      properties.MENU_WIDTH + 32 + self.explore_window.old_rect.left + self.explore_window.old_pos[0][0] - 4, \
+      32 + self.explore_window.old_rect.top + self.explore_window.old_pos[0][1] - 3, \
+      properties.ACTION_SUB_WIDTH, 32
+    )
+
+    if self.mouse_click and inv_info_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.explore_window.expd.inv.food > 0 ):
+      self.explore_window.expd.inv.food -= 1
+      self.explore_window.inv.food      += 1
+
+    inv_info_rect = pygame.rect.Rect(
+      properties.MENU_WIDTH + 32 + self.explore_window.old_rect.left + self.explore_window.old_pos[1][0] - 4, \
+      32 + self.explore_window.old_rect.top + self.explore_window.old_pos[1][1] - 3, \
+      properties.ACTION_SUB_WIDTH, 32
+    )
+
+    if self.mouse_click and inv_info_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.explore_window.expd.inv.wood > 0 ):
+      self.explore_window.expd.inv.wood -= 1
+      self.explore_window.inv.wood      += 1
+
+    inv_info_rect = pygame.rect.Rect(
+      properties.MENU_WIDTH + 32 + self.explore_window.old_rect.left + self.explore_window.old_pos[2][0] - 4, \
+      32 + self.explore_window.old_rect.top + self.explore_window.old_pos[2][1] - 3, \
+      properties.ACTION_SUB_WIDTH, 32
+    )
+
+    if self.mouse_click and inv_info_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.explore_window.expd.inv.metal > 0 ):
+      self.explore_window.expd.inv.metal -= 1
+      self.explore_window.inv.metal      += 1
+
+    inv_info_rect = pygame.rect.Rect(
+      properties.MENU_WIDTH + 32 + self.explore_window.old_rect.left + self.explore_window.old_pos[3][0] - 4, \
+      32 + self.explore_window.old_rect.top + self.explore_window.old_pos[3][1] - 3, \
+      properties.ACTION_SUB_WIDTH, 32
+    )
+
+    if self.mouse_click and inv_info_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.explore_window.expd.inv.ammo > 0 ):
+      self.explore_window.expd.inv.ammo -= 1
+      self.explore_window.inv.ammo      += 1
+
+    # Set active information to display in old survivors panel
+
+    for it, pos in zip( self.explore_window.expd.inv.get_free(), self.explore_window.old_pos[4:] ):
+      inv_info_rect = pygame.rect.Rect(
+        properties.MENU_WIDTH + 32 + self.explore_window.old_rect.left + pos[0] - 4, \
+        32 + self.explore_window.old_rect.top + pos[1] - 3, \
+        properties.ACTION_SUB_WIDTH, 32
+      )
+      if inv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
+        self.explore_window.it = it
+
+        if self.mouse_click:
+          it.free = False
+          self.explore_window.inv.items.append( it )
+
+    # Handle resource transfer to old survivors
+
+    inv_info_rect = pygame.rect.Rect(
+      properties.MENU_WIDTH + 32 + self.explore_window.new_rect.left + self.explore_window.new_pos[0][0] - 4, \
+      32 + self.explore_window.new_rect.top + self.explore_window.new_pos[0][1] - 3, \
+      properties.ACTION_SUB_WIDTH, 32
+    )
+
+    if self.mouse_click and inv_info_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.explore_window.inv.food > 0 ):
+      self.explore_window.expd.inv.food += 1
+      self.explore_window.inv.food      -= 1
+
+    inv_info_rect = pygame.rect.Rect(
+      properties.MENU_WIDTH + 32 + self.explore_window.new_rect.left + self.explore_window.new_pos[1][0] - 4, \
+      32 + self.explore_window.new_rect.top + self.explore_window.new_pos[1][1] - 3, \
+      properties.ACTION_SUB_WIDTH, 32
+    )
+
+    if self.mouse_click and inv_info_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.explore_window.inv.wood > 0 ):
+      self.explore_window.expd.inv.wood += 1
+      self.explore_window.inv.wood      -= 1
+
+    inv_info_rect = pygame.rect.Rect(
+      properties.MENU_WIDTH + 32 + self.explore_window.new_rect.left + self.explore_window.new_pos[2][0] - 4, \
+      32 + self.explore_window.new_rect.top + self.explore_window.new_pos[2][1] - 3, \
+      properties.ACTION_SUB_WIDTH, 32
+    )
+
+    if self.mouse_click and inv_info_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.explore_window.inv.metal > 0 ):
+      self.explore_window.expd.inv.metal += 1
+      self.explore_window.inv.metal      -= 1
+
+    inv_info_rect = pygame.rect.Rect(
+      properties.MENU_WIDTH + 32 + self.explore_window.new_rect.left + self.explore_window.new_pos[3][0] - 4, \
+      32 + self.explore_window.new_rect.top + self.explore_window.new_pos[3][1] - 3, \
+      properties.ACTION_SUB_WIDTH, 32
+    )
+
+    if self.mouse_click and inv_info_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.explore_window.inv.ammo > 0 ):
+      self.explore_window.expd.inv.ammo += 1
+      self.explore_window.inv.ammo      -= 1
+
+    # Set active information to display in explore party panel
+
+    for it, pos in zip( self.explore_window.inv.items, self.explore_window.new_pos[4:] ):
+      inv_info_rect = pygame.rect.Rect(
+        properties.MENU_WIDTH + 32 + self.explore_window.new_rect.left + pos[0] - 4, \
+        32 + self.explore_window.new_rect.top + pos[1] - 3, \
+        properties.ACTION_SUB_WIDTH, 32
+      )
+      if inv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
+        self.explore_window.it = it
+
+        if self.mouse_click:
+          it.free = True
+          self.explore_window.inv.items.remove( it )
+
+    # Scroll old inventory panel
+
+    if self.explore_window.old_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.explore_window.old_scroll > 0 ):
+      self.explore_window.old_scroll -= properties.SCROLL_SPEED
+
+    elif self.explore_window.old_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( ( self.explore_window.old_scroll + properties.ACTION_SUB_HEIGHT - 32 ) < self.explore_window.max_old_scroll ):
+      self.explore_window.old_scroll += properties.SCROLL_SPEED
+
+    # Scroll new inventory panel
+
+    if self.explore_window.new_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.explore_window.new_scroll > 0 ):
+      self.explore_window.new_scroll -= properties.SCROLL_SPEED
+
+    elif self.explore_window.new_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( ( self.explore_window.new_scroll + properties.ACTION_SUB_HEIGHT - 32 ) < self.explore_window.max_new_scroll ):
+      self.explore_window.new_scroll += properties.SCROLL_SPEED
+
+    # Go back to menu if ESC pressed
+
+    if self.key_esc:
+      self.phase                     = PHASE_EXPL_SURV
+      self.explore_window.surv_phase = True
+      self.explore_window.old_scroll = 0
+      self.explore_window.new_scroll = 0
+      self.explore_window.reset_inventory()
+
+    elif self.mouse_click:
+
+      # Move to next phase if next button is clicked
+
+      for button in self.explore_window.button_group:
+
+        button_rect = pygame.rect.Rect(
+          properties.MENU_WIDTH + 32 + button.rect.left, \
+          32 + button.rect.top, \
+          button.rect.width, button.rect.height
+        )
+
+        if button_rect.collidepoint( self.mouse_x, self.mouse_y ):
+          self.phase                     = PHASE_EXPL_DEST
+          self.explore_window.start_tile = None
+
+      # Reset phase if clicked outside of context
+
+      if not self.explore_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
+        self.phase   = PHASE_FREE
+        self.menu_en = False
+        self.cam_en  = True
+        self.explore_window.reset_expd()
 
   #.......................................................................
   # PHASE_STATUS Handling
@@ -478,6 +767,9 @@ class Engine:
 
         elif self.phase == PHASE_EXPL_SURV:
           self.handle_phase_expl_surv()
+
+        elif self.phase == PHASE_EXPL_INV:
+          self.handle_phase_expl_inv()
 
         elif self.phase == PHASE_STATUS:
           self.handle_status()

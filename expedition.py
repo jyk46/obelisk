@@ -46,24 +46,30 @@ class Expedition( pygame.sprite.Sprite ):
 
     self.font = pygame.font.Font( properties.DEFAULT_FONT, 8 )
 
-  # Determine number of free survivors which can take orders
+  # Return list of free survivors which can take orders
 
   def get_free( self ):
 
-    count = 0
+    free = []
 
     for surv in self.survivors:
       if surv.free:
-        count += 1
+        free.append( surv )
 
-    return count
+    return free
 
   # Reset all survivors free state
 
-  def reset_free( self ):
+  def reset_free_survivors( self ):
 
     for surv in self.survivors:
       surv.free = True
+
+  # Reset all items free state
+
+  def reset_free_items( self ):
+
+    self.inv.reset_free()
 
   # Return surface and rect of text overlay for expedition icon
 
