@@ -71,6 +71,30 @@ class Expedition( pygame.sprite.Sprite ):
 
     self.inv.reset_free()
 
+  # Commit explore party changes
+
+  def commit_free( self ):
+
+    # Remove transferred survivors
+
+    tmp_surv = []
+
+    for surv in self.survivors:
+      if surv.free:
+        tmp_surv.append( surv )
+
+    self.survivors = tmp_surv
+
+    # Remove transferred items
+
+    tmp_items = []
+
+    for it in self.inv.items:
+      if it.free:
+        tmp_items.append( it )
+
+    self.inv.items = tmp_items
+
   # Return surface and rect of text overlay for expedition icon
 
   def get_text( self ):
@@ -96,28 +120,28 @@ class Expedition( pygame.sprite.Sprite ):
 
       # Move right
 
-      if ( self.move_route[0].pos_x * properties.TILE_WIDTH ) > self.rect.left:
+      if ( self.move_route[0].rect.left ) > self.rect.left:
         self.rect.move_ip( properties.EXPEDITION_SPEED, 0 )
 
       # Move left
 
-      elif ( self.move_route[0].pos_x * properties.TILE_WIDTH ) < self.rect.left:
+      elif ( self.move_route[0].rect.left ) < self.rect.left:
         self.rect.move_ip( -properties.EXPEDITION_SPEED, 0 )
 
       # Move down
 
-      elif ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) > self.rect.top:
+      elif ( self.move_route[0].rect.top ) > self.rect.top:
         self.rect.move_ip( 0, properties.EXPEDITION_SPEED )
 
       # Move up
 
-      elif ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) < self.rect.top:
+      elif ( self.move_route[0].rect.top ) < self.rect.top:
         self.rect.move_ip( 0, -properties.EXPEDITION_SPEED )
 
       # Update position tile and route if at destination
 
-      if ( ( self.move_route[0].pos_x * properties.TILE_WIDTH  ) == self.rect.left ) \
-      or ( ( self.move_route[0].pos_y * properties.TILE_HEIGHT ) == self.rect.top  ):
+      if ( ( self.move_route[0].rect.left  ) == self.rect.left ) \
+      or ( ( self.move_route[0].rect.top ) == self.rect.top  ):
 
         self.pos_tile = self.move_route[0]
         self.abs_x    = self.pos_tile.pos_x * properties.TILE_WIDTH
@@ -132,8 +156,8 @@ class Expedition( pygame.sprite.Sprite ):
 
     min_stamina = 99
 
-    for surv in survivors:
-      if surv.stamina < min_stamina:
+    for surv in self.survivors:
+      if not surv.free and ( surv.stamina < min_stamina ):
         min_stamina = surv.stamina
 
     assert( min_stamina < 99 )
@@ -188,7 +212,7 @@ class Expedition( pygame.sprite.Sprite ):
           next_cost = self.path_dic[ti][1] + next_ti.move_cost
 
           if ( ( next_cost < avail_stamina ) and ( next_ti not in self.path_dic ) ) \
-            or ( next_cost < self.path_dic[next_ti][1] ):
+            or ( ( next_ti in self.path_dic ) and ( next_cost < self.path_dic[next_ti][1] ) ):
             self.path_dic[next_ti] = [ ti, next_cost ]
             next_frontier.append( next_ti )
 
@@ -204,17 +228,45 @@ class Expedition( pygame.sprite.Sprite ):
 
     assert( dest_tile in self.path_dic )
 
-    self.move_route.append( dest_tile )
+    route = []
+
+    route.append( dest_tile )
 
     ti = dest_tile
 
     while ti != self.pos_tile:
       ti = self.path_dic[ti][0]
-      self.move_route.append( ti )
+      route.append( ti )
 
-    self.move_route.reverse()[1:]
+    route.reverse()
 
-    return self.path_dic[dest_tile][1]
+    return route[1:], self.path_dic[dest_tile][1]
+
+  # (Un)Highlight moveable tiles in range
+
+  def highlight_range( self ):
+
+    for ti in self.path_dic:
+      ti.moveable = True
+
+  def unhighlight_range( self ):
+
+    for ti in self.path_dic:
+      ti.moveable = False
+      ti.selected = False
+
+  # Modify stamina of all survivors in expedition
+
+  def modify_stamina( self, amount ):
+
+    for surv in self.survivors:
+
+      surv.stamina += amount
+
+      if surv.stamina > surv.max_stamina:
+        surv.stamina = surv.max_stamina
+      elif surv.stamina < 0:
+        surv.stamina = 0
 
   # Split expedition
 

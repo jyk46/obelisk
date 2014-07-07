@@ -457,11 +457,31 @@ class Engine:
 
         if button_rect.collidepoint( self.mouse_x, self.mouse_y ) \
           and ( len( self.explore_window.survivors ) > 0 ):
-          self.phase                     = PHASE_EXPL_INV
-          self.explore_window.inv        = inventory.Inventory()
-          self.explore_window.surv_phase = False
-          self.explore_window.old_scroll = 0
-          self.explore_window.new_scroll = 0
+
+          # If all survivors explore, skip inventory selection and
+          # automatically transfer all items and resources over to
+          # explore party.
+
+          if len( self.explore_window.expd.get_free() ) == 0:
+
+            self.phase                     = PHASE_EXPL_DEST
+            self.explore_window.start_tile = None
+            self.menu_en                   = False
+            self.cam_en                    = True
+            self.explore_window.expd.calc_range( self.map )
+            self.explore_window.expd.highlight_range()
+
+            self.explore_window.inv = self.explore_window.expd.inv
+
+          # Otherwise, go into inventory selection
+
+          else:
+
+            self.phase                     = PHASE_EXPL_INV
+            self.explore_window.inv        = inventory.Inventory( 0, 0, 0, 0, [] )
+            self.explore_window.surv_phase = False
+            self.explore_window.old_scroll = 0
+            self.explore_window.new_scroll = 0
 
       # Reset phase if clicked outside of context
 
@@ -646,6 +666,10 @@ class Engine:
         if button_rect.collidepoint( self.mouse_x, self.mouse_y ):
           self.phase                     = PHASE_EXPL_DEST
           self.explore_window.start_tile = None
+          self.menu_en                   = False
+          self.cam_en                    = True
+          self.explore_window.expd.calc_range( self.map )
+          self.explore_window.expd.highlight_range()
 
       # Reset phase if clicked outside of context
 
@@ -654,6 +678,78 @@ class Engine:
         self.menu_en = False
         self.cam_en  = True
         self.explore_window.reset_expd()
+
+  #.......................................................................
+  # PHASE_EXPL_DEST Handling
+  #.......................................................................
+  # Phase for selecting destination tile for explore party
+
+  def handle_phase_expl_dest( self ):
+
+    # Check if cursor is over a moveable tile
+
+    for ti in self.explore_window.expd.path_dic:
+
+      ti.selected = False
+
+      if ti.rect.collidepoint( self.mouse_x, self.mouse_y ):
+
+        ti.selected = True
+
+        # Destination selected, create new expedition
+
+        if self.mouse_click:
+          self.phase                     = PHASE_EXPL_MOVE
+          self.explore_window.start_tile = self.explore_window.expd.pos_tile
+          self.cam_en                    = False
+
+          move_route, cost = self.explore_window.expd.calc_path( ti )
+
+          new_expd = expedition.Expedition(
+            self.explore_window.start_tile,
+            self.explore_window.survivors,
+            self.explore_window.inv
+          )
+
+          new_expd.move_route = move_route
+          new_expd.modify_stamina( -cost )
+
+          self.active_expd = new_expd
+
+          self.expeditions.append( new_expd )
+
+          self.explore_window.expd.commit_free()
+
+          self.explore_window.expd.unhighlight_range()
+
+          # Delete old expedition if no survivors left
+
+          if len( self.explore_window.expd.get_free() ) == 0:
+            self.explore_window.expd.kill()
+            self.expeditions.remove( self.explore_window.expd )
+
+    # Go back to menu if ESC pressed
+
+    if self.key_esc:
+      self.phase                     = PHASE_EXPL_INV
+      self.menu_en                   = True
+      self.cam_en                    = False
+      self.explore_window.surv_phase = False
+      self.explore_window.old_scroll = 0
+      self.explore_window.new_scroll = 0
+      self.explore_window.expd.unhighlight_range()
+
+  #.......................................................................
+  # PHASE_EXPL_MOVE Handling
+  #.......................................................................
+  # Phase for actually moving explore party
+
+  def handle_phase_expl_move( self ):
+
+    if len( self.active_expd.move_route ) == 0:
+      self.phase   = PHASE_FREE
+      self.menu_en = False
+      self.cam_en  = True
 
   #.......................................................................
   # PHASE_STATUS Handling
@@ -770,6 +866,12 @@ class Engine:
 
         elif self.phase == PHASE_EXPL_INV:
           self.handle_phase_expl_inv()
+
+        elif self.phase == PHASE_EXPL_DEST:
+          self.handle_phase_expl_dest()
+
+        elif self.phase == PHASE_EXPL_MOVE:
+          self.handle_phase_expl_move()
 
         elif self.phase == PHASE_STATUS:
           self.handle_status()

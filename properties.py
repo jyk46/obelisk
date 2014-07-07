@@ -20,7 +20,7 @@ START_WOOD  = 5
 START_METAL = 2
 START_AMMO  = 5
 
-EXPEDITION_SPEED = 16
+EXPEDITION_SPEED = 8
 
 #-------------------------------------------------------------------------
 # Map

@@ -17,9 +17,9 @@ import properties
 
 terrain_table = {
 
-  # name      image       mv  val   camp  risk
+  # name      image       mv  val   risk
 
-  'Field' : [ 'field.png', 1, True, True, 'Low',
+  'Field' : [ 'field.png', 1, True, 'Low',
 
     [
       # prob  enemy
@@ -44,7 +44,7 @@ terrain_table = {
 
   ],
 
-  'Jungle' : [ 'jungle.png', 1, True, True, 'Medium',
+  'Jungle' : [ 'jungle.png', 1, True, 'Medium',
 
     [
       # prob  enemy
@@ -74,7 +74,7 @@ terrain_table = {
 
   ],
 
-  'Deep Jungle' : [ 'deep_jungle.png', 2, True, True, 'High',
+  'Deep Jungle' : [ 'deep_jungle.png', 2, True, 'High',
 
     [
       # prob  enemy
@@ -108,7 +108,7 @@ terrain_table = {
 
   ],
 
-  'Mountain' : [ 'mountain.png', 2, True, True, 'Medium',
+  'Mountain' : [ 'mountain.png', 2, True, 'Medium',
 
     [
       # prob  enemy
@@ -138,7 +138,7 @@ terrain_table = {
 
   ],
 
-  'Cave' : [ 'cave.png', 1, True, False, 'Medium',
+  'Cave' : [ 'cave.png', 1, True, 'Medium',
 
     [
       # prob  enemy
@@ -169,7 +169,7 @@ terrain_table = {
 
   ],
 
-  'Swamp' : [ 'swamp.png', 3, True, False, 'Medium',
+  'Swamp' : [ 'swamp.png', 3, True, 'Medium',
 
     [
       # prob  enemy
@@ -200,7 +200,7 @@ terrain_table = {
 
   ],
 
-  'Wreckage' : [ 'wreckage.png', 1, True, False, 'Low',
+  'Wreckage' : [ 'wreckage.png', 1, True, 'Low',
 
     [
       # prob  enemy
@@ -232,7 +232,7 @@ terrain_table = {
 
   ],
 
-  'Facility' : [ 'facility.png', 1, True, False, 'High',
+  'Facility' : [ 'facility.png', 1, True, 'High',
 
     [
       # prob  enemy
@@ -267,7 +267,7 @@ terrain_table = {
 
   ],
 
-  'Ritual Site' : [ 'ritual.png', 1, True, False, '????',
+  'Ritual Site' : [ 'ritual.png', 1, True, '????',
 
     [
       # prob  enemy
@@ -297,7 +297,7 @@ terrain_table = {
 
   ],
 
-  'Obelisk' : [ 'obelisk.png', 1, True, False, '????',
+  'Obelisk' : [ 'obelisk.png', 1, True, '????',
 
     [
       # prob  enemy
@@ -340,7 +340,6 @@ class Tile( pygame.sprite.Sprite ):
     self.terrain  = terrain
     self.pos_x    = pos_x
     self.pos_y    = pos_y
-    self.has_camp = False
 
     # Set image
 
@@ -356,11 +355,25 @@ class Tile( pygame.sprite.Sprite ):
 
     self.move_cost   = terrain_table[self.terrain][1]
     self.valid       = terrain_table[self.terrain][2]
-    self.campable    = terrain_table[self.terrain][3]
-    self.risk        = terrain_table[self.terrain][4]
-    self.enemy_rates = terrain_table[self.terrain][5]
-    self.mat_rates   = terrain_table[self.terrain][6]
-    self.item_rates  = terrain_table[self.terrain][7]
+    self.risk        = terrain_table[self.terrain][3]
+    self.enemy_rates = terrain_table[self.terrain][4]
+    self.mat_rates   = terrain_table[self.terrain][5]
+    self.item_rates  = terrain_table[self.terrain][6]
+
+    # Overlays for movement
+
+    self.moveable = False
+    self.selected = False
+
+    self.move_surface      = pygame.image.load( properties.TILE_PATH + 'blue.png' )
+    self.move_surface.set_alpha( 128 )
+    self.move_rect         = self.move_surface.get_rect()
+    self.move_rect.topleft = 0, 0
+
+    self.sel_surface      = pygame.image.load( properties.TILE_PATH + 'red.png' )
+    self.sel_surface.set_alpha( 128 )
+    self.sel_rect         = self.sel_surface.get_rect()
+    self.sel_rect.topleft = 0, 0
 
   # Calculate chance of finding materials during scavenge
 
@@ -379,8 +392,20 @@ class Tile( pygame.sprite.Sprite ):
 
   def update( self, cam_x, cam_y ):
 
+    # Update position relative to camera
+
     self.rect.top  = self.abs_y - cam_y
     self.rect.left = self.abs_x - cam_x
+
+    # Draw overlays if necessary
+
+    self.image = self.surface.convert()
+
+    if self.moveable:
+      if self.selected:
+        self.image.blit( self.sel_surface, self.sel_rect )
+      else:
+        self.image.blit( self.move_surface, self.move_rect )
 
   # Overload hash operator to allow Tile objects to be used in dictionaries
 
@@ -397,7 +422,7 @@ class Tile( pygame.sprite.Sprite ):
   def debug( self ):
 
     print self.terrain, '(' + str( self.pos_x ) + ',' + str( self.pos_y ) + ')', \
-          str( self.move_cost ) + '/' + str( self.valid ) + '/' + str( self.campable )
+          str( self.move_cost ) + '/' + str( self.valid )
 
     print self.enemy_rates
     print self.mat_rates
