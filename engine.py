@@ -12,6 +12,7 @@ import properties
 import window
 import sidebarwindow
 import explorewindow
+import costbox
 import scavengewindow
 import eventwindow
 import statuswindow
@@ -124,6 +125,10 @@ class Engine:
       properties.EVENT_PATH + 'event_bg.png'
     )
 
+    # Initialize cost box for movement
+
+    self.cost_box = costbox.CostBox()
+
     # Adjust window scroll zones with absolute offset
 
     self.status_window.surv_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
@@ -220,6 +225,7 @@ class Engine:
     self.map_group.update( self.cam_x, self.cam_y )
     self.expd_group.update( self.cam_x, self.cam_y )
     self.explore_window.update()
+    self.cost_box.update()
     self.scavenge_window.update()
     self.status_window.update()
 
@@ -254,6 +260,8 @@ class Engine:
       rect_updates += self.explore_window.draw( self.screen )
     elif self.phase == PHASE_EXPL_INV:
       rect_updates += self.explore_window.draw( self.screen )
+    elif self.phase == PHASE_EXPL_DEST:
+      rect_updates += self.cost_box.draw( self.screen )
     elif self.phase == PHASE_SCAV_SURV:
       rect_updates += self.scavenge_window.draw( self.screen )
     elif self.phase == PHASE_SCAV_DONE:
@@ -366,6 +374,8 @@ class Engine:
         if button.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
           menu_used = True
+
+          self.sidebar_window.terr = self.active_expd.pos_tile
 
           if button.text == 'EXPLORE':
             self.phase                     = PHASE_EXPL_SURV
@@ -831,15 +841,46 @@ class Engine:
 
   def handle_phase_expl_dest( self ):
 
+    # Calculate current tile mouse is hovering over
+
+    context_x = ( self.cam_x + self.mouse_x ) / properties.TILE_WIDTH
+    context_y = ( self.cam_y + self.mouse_y ) / properties.TILE_HEIGHT
+
+    self.sidebar_window.terr = None
+
+    if ( context_x >= 0 ) and ( context_x < properties.MAP_SIZE ) \
+      and ( context_y >= 0 ) and ( context_y < properties.MAP_SIZE ) \
+      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
+      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
+
+      context_tile = self.map[context_x][context_y]
+
+      # Sidebar terrain information (only show if revealed on map)
+
+      if not context_tile.fog:
+        self.sidebar_window.terr = context_tile
+
+    # Reset cost box
+
+    self.cost_box.cost = 0
+
     # Check if cursor is over a moveable tile
 
-    for ti in self.explore_window.expd.path_dic:
+    for ti, info in self.explore_window.expd.path_dic.iteritems():
 
       ti.selected = False
 
       if ti.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
+        # Highlight destination tile
+
         ti.selected = True
+
+        # Enable cost box with appropriate stamina cost
+
+        self.cost_box.cost  = info[1]
+        self.cost_box.pos_x = self.mouse_x
+        self.cost_box.pos_y = self.mouse_y
 
         # Destination selected, create new expedition
 
