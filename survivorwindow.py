@@ -1,7 +1,7 @@
 #=========================================================================
-# scavengewindow.py
+# survivorwindow.py
 #=========================================================================
-# Extended window class for handling scavenge phase selection
+# Extended window class for handling survivor selection
 
 import pygame, sys, os
 from pygame.locals import *
@@ -16,11 +16,11 @@ import survivor
 # Main Class
 #-------------------------------------------------------------------------
 
-class ScavengeWindow( window.Window ):
+class SurvivorWindow( window.Window ):
 
   # Constructor
 
-  def __init__( self, width, height, pos_x, pos_y, bg_path ):
+  def __init__( self, width, height, pos_x, pos_y, bg_path, label ):
 
     window.Window.__init__( self, width, height, pos_x, pos_y, bg_path )
 
@@ -52,7 +52,7 @@ class ScavengeWindow( window.Window ):
     self.info_label_rect        = self.info_label_surface.get_rect()
     self.old_label_surface      = self.font.render( 'SURVIVORS', 1, (0,0,0) )
     self.old_label_rect         = self.old_label_surface.get_rect()
-    self.new_label_surface      = self.font.render( 'SCAVENGE PARTY', 1, (0,0,0) )
+    self.new_label_surface      = self.font.render( label, 1, (0,0,0) )
     self.new_label_rect         = self.new_label_surface.get_rect()
 
     self.info_label_rect.topleft = 16, 3

@@ -13,7 +13,7 @@ import window
 import sidebarwindow
 import explorewindow
 import costbox
-import scavengewindow
+import survivorwindow
 import eventwindow
 import statuswindow
 import mapgen
@@ -66,6 +66,7 @@ class Engine:
 
     self.menu_en     = False
     self.active_expd = None
+    self.explored    = False
 
     # Initialize sprite groups
 
@@ -113,16 +114,24 @@ class Engine:
       properties.ACTION_PATH + 'action_bg.png'
     )
 
-    self.scavenge_window = scavengewindow.ScavengeWindow(
+    self.scavenge_window = survivorwindow.SurvivorWindow(
       properties.ACTION_WIDTH, properties.ACTION_HEIGHT, \
       properties.MENU_WIDTH + 32, 32, \
-      properties.ACTION_PATH + 'action_bg.png'
+      properties.ACTION_PATH + 'action_bg.png',
+      'SCAVENGING PARTY'
     )
 
     self.event_window = eventwindow.EventWindow(
       properties.EVENT_WIDTH, properties.EVENT_HEIGHT, \
       properties.MENU_WIDTH + 32, properties.CAMERA_HEIGHT / 2 - properties.EVENT_HEIGHT / 2, \
       properties.EVENT_PATH + 'event_bg.png'
+    )
+
+    self.rest_window = survivorwindow.SurvivorWindow(
+      properties.ACTION_WIDTH, properties.ACTION_HEIGHT, \
+      properties.MENU_WIDTH + 32, 32, \
+      properties.ACTION_PATH + 'action_bg.png',
+      'RESTING PARTY'
     )
 
     # Initialize cost box for movement
@@ -145,6 +154,11 @@ class Engine:
     self.scavenge_window.old_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
     self.scavenge_window.new_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
     self.scavenge_window.new_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+
+    self.rest_window.old_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.rest_window.old_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.rest_window.new_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.rest_window.new_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
 
   #.......................................................................
   # Initialize map and add tiles to group
@@ -227,6 +241,7 @@ class Engine:
     self.explore_window.update()
     self.cost_box.update()
     self.scavenge_window.update()
+    self.rest_window.update()
     self.status_window.update()
 
   #.......................................................................
@@ -266,6 +281,8 @@ class Engine:
       rect_updates += self.scavenge_window.draw( self.screen )
     elif self.phase == PHASE_SCAV_DONE:
       rect_updates += self.event_window.draw( self.screen )
+    elif self.phase == PHASE_REST:
+      rect_updates += self.rest_window.draw( self.screen )
     elif self.phase == PHASE_STATUS:
       rect_updates += self.status_window.draw( self.screen )
 
@@ -383,12 +400,14 @@ class Engine:
             self.explore_window.surv_phase = True
             self.explore_window.clear()
             self.scavenge_window.clear()
+            self.rest_window.clear()
 
           elif button.text == 'SCAVENGE':
             self.phase                   = PHASE_SCAV_SURV
             self.scavenge_window.expd    = self.active_expd
             self.scavenge_window.clear()
             self.explore_window.clear()
+            self.rest_window.clear()
             self.event_window.expd       = self.active_expd
             self.event_window.event_tile = self.active_expd.pos_tile
 
@@ -397,6 +416,10 @@ class Engine:
 
           elif button.text == 'REST':
             self.phase = PHASE_REST
+            self.rest_window.expd = self.active_expd
+            self.explore_window.clear()
+            self.scavenge_window.clear()
+            self.rest_window.clear()
 
           elif button.text == 'STATUS':
             self.phase              = PHASE_STATUS
@@ -435,8 +458,10 @@ class Engine:
           count += len( expd.get_free() )
 
         if button_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-          and ( count == 0 ) and self.explore_window.is_clean() \
-          and self.scavenge_window.is_clean():
+          and ( count == 0 ) and ( self.phase == PHASE_FREE ):
+#          and self.explore_window.is_clean() \
+#          and self.scavenge_window.is_clean() \
+#          and self.rest_window.is_clean():
 
           done_used      = True
           self.phase     = PHASE_FREE
@@ -640,7 +665,9 @@ class Engine:
 
       # Reset phase if clicked outside of context
 
-      if not self.explore_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
+      if not self.explore_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
+        and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
+        and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
         self.phase   = PHASE_FREE
         self.menu_en = False
         self.cam_en  = True
@@ -828,7 +855,9 @@ class Engine:
 
       # Reset phase if clicked outside of context
 
-      if not self.explore_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
+      if not self.explore_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
+        and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
+        and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
         self.phase   = PHASE_FREE
         self.menu_en = False
         self.cam_en  = True
@@ -942,6 +971,8 @@ class Engine:
       self.event_window.survivors  = self.active_expd.survivors
       self.event_window.event_tile = self.active_expd.pos_tile
 
+      self.explored = True
+
       # Merge expeditions if on same tile
 
       for expd in self.expeditions:
@@ -1045,7 +1076,9 @@ class Engine:
 
       # Reset phase if clicked outside of context
 
-      if not self.explore_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
+      if not self.explore_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
+        and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
+        and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
         self.phase   = PHASE_FREE
         self.menu_en = False
         self.cam_en  = True
@@ -1079,15 +1112,155 @@ class Engine:
 
           self.event_window.commit_loot()
 
-          # Subtract scavenge cost from stamina
+          # Subtract scavenge cost from stamina (only if selecting from
+          # menu, if exploring, scavenge for free)
 
-          for surv in self.event_window.survivors:
-            surv.stamina -= properties.SCAVENGE_COST
+          if self.explored:
+            self.explored = False
+          else:
+            for surv in self.event_window.survivors:
+              surv.stamina -= properties.SCAVENGE_COST
 
           # Clean up selection windows
 
           self.explore_window.clear()
           self.scavenge_window.clear()
+          self.rest_window.clear()
+
+  #.......................................................................
+  # Heal survivors in rest phase
+  #.......................................................................
+
+  def heal_survivors( self, survivors ):
+
+    for surv in survivors:
+
+      heal_rate = surv.heal_rate
+
+      # Roll for curing sickness. If not cured, the healing rate is
+      # decreased by the sickness healing multiplier.
+
+      if surv.sick:
+
+        roll = random.random()
+
+        if roll < surv.cure_rate:
+          surv.sick = False
+
+        else:
+          heal_rate *= properties.SICK_HEAL_MULT
+
+      # Heal survivor based on age. Note that the healing rate goes back
+      # to normal on the same turn the sickness is cured.
+
+      surv.stamina += int( surv.max_stamina * heal_rate )
+
+      if surv.stamina > surv.max_stamina:
+        surv.stamina = surv.max_stamina
+
+  #.......................................................................
+  # PHASE_REST Handling
+  #.......................................................................
+  # Phase for selecting survivors to rest
+
+  def handle_phase_rest( self ):
+
+    # Set active information to display
+
+    self.rest_window.surv = None
+
+    for surv, pos in zip( self.rest_window.expd.get_free(), self.rest_window.old_pos ):
+      surv_info_rect = pygame.rect.Rect(
+        properties.MENU_WIDTH + 32 + self.rest_window.old_rect.left + pos[0] - 4, \
+        32 + self.rest_window.old_rect.top + pos[1] - 3, \
+        properties.ACTION_SUB_WIDTH, 32
+      )
+      if surv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
+        self.rest_window.surv = surv
+
+        if self.mouse_click:
+          surv.free = False
+          self.rest_window.survivors.append( surv )
+
+    for surv, pos in zip( self.rest_window.survivors, self.rest_window.new_pos ):
+      surv_info_rect = pygame.rect.Rect(
+        properties.MENU_WIDTH + 32 + self.rest_window.new_rect.left + pos[0] - 4, \
+        32 + self.rest_window.new_rect.top + pos[1] - 3, \
+        properties.ACTION_SUB_WIDTH, 32
+      )
+      if surv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
+        self.rest_window.surv = surv
+
+        if self.mouse_click:
+          surv.free = True
+          self.rest_window.survivors.remove( surv )
+
+    # Scroll old survivors panel
+
+    if self.rest_window.old_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.rest_window.old_scroll > 0 ):
+      self.rest_window.old_scroll -= properties.SCROLL_SPEED
+
+    elif self.rest_window.old_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( ( self.rest_window.old_scroll + properties.ACTION_SUB_HEIGHT - 32 ) < self.rest_window.max_old_scroll ):
+      self.rest_window.old_scroll += properties.SCROLL_SPEED
+
+    # Scroll new survivors panel
+
+    if self.rest_window.new_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.rest_window.new_scroll > 0 ):
+      self.rest_window.new_scroll -= properties.SCROLL_SPEED
+
+    elif self.rest_window.new_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( ( self.rest_window.new_scroll + properties.ACTION_SUB_HEIGHT - 32 ) < self.rest_window.max_new_scroll ):
+      self.rest_window.new_scroll += properties.SCROLL_SPEED
+
+    # Go back to menu if ESC pressed
+
+    if self.key_esc:
+      self.phase   = PHASE_FREE
+      self.menu_en = True
+      self.cam_en  = False
+      self.rest_window.reset_survivors()
+
+    elif self.mouse_click:
+
+      # Move to next phase if next button is clicked and at least one
+      # survivor was chosen.
+
+      for button in self.rest_window.button_group:
+
+        button_rect = pygame.rect.Rect(
+          properties.MENU_WIDTH + 32 + button.rect.left, \
+          32 + button.rect.top, \
+          button.rect.width, button.rect.height
+        )
+
+        if button_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+          and ( len( self.rest_window.survivors ) > 0 ):
+          self.phase   = PHASE_FREE
+          self.menu_en = False
+          self.cam_en  = True
+
+          # Heal resting survivors based on age
+
+          self.heal_survivors( self.rest_window.survivors )
+
+          # Clean up selection windows
+
+          self.explore_window.clear()
+          self.scavenge_window.clear()
+          self.rest_window.clear()
+
+      # Reset phase if clicked outside of context
+
+      if not self.explore_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
+        and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
+        and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
+        self.phase   = PHASE_FREE
+        self.menu_en = False
+        self.cam_en  = True
+        self.rest_window.reset_survivors()
 
   #.......................................................................
   # PHASE_STATUS Handling
@@ -1148,7 +1321,9 @@ class Engine:
 
     # Reset phase if clicked outside of context
 
-    elif self.mouse_click and not self.status_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
+    elif self.mouse_click and not self.status_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
+      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
       self.phase   = PHASE_FREE
       self.menu_en = False
       self.cam_en  = True
@@ -1223,6 +1398,9 @@ class Engine:
 
         elif self.phase == PHASE_CRAFT_ITEM:
           self.handle_phase_craft_item()
+
+        elif self.phase == PHASE_REST:
+          self.handle_phase_rest()
 
         elif self.phase == PHASE_STATUS:
           self.handle_phase_status()

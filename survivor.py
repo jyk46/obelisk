@@ -143,6 +143,7 @@ class Survivor():
     self.cure_prob   = cure_table[self.age/10]
     self.attributes  = []
     self.free        = True
+    self.sick        = False
 
     # Text graphics
 
