@@ -7,7 +7,10 @@
 import pygame, sys, os
 from pygame.locals import *
 
+import random
+import copy
 import properties
+import item
 
 #-------------------------------------------------------------------------
 # Utility Tables
@@ -31,15 +34,14 @@ terrain_table = {
 
     [
       # prob min max
-      [ 0.80,  1,  4 ], # food
+      [ 0.80,  1,  2 ], # food
       [ 0.20,  1,  2 ], # wood
       [ 0.00,  0,  0 ], # metal
       [ 0.00,  0,  0 ], # ammo
+      [ 0.00,  0,  0 ], # item
     ],
 
     [
-      # prob  item
-      [ 1.00, 'None' ],
     ],
 
   ],
@@ -58,18 +60,19 @@ terrain_table = {
 
     [
       # prob min max
-      [ 0.90,  2,  6 ], # food
-      [ 0.50,  2,  4 ], # wood
+      [ 0.90,  1,  2 ], # food
+      [ 0.50,  1,  2 ], # wood
       [ 0.00,  0,  0 ], # metal
       [ 0.05,  1,  2 ], # ammo
+      [ 0.10,  0,  0 ], # item
     ],
 
     [
       # prob  item
-      [ 0.05, 'Pistol'  ],
-      [ 0.10, 'Knife'   ],
-      [ 0.10, 'Spear'   ],
-      [ 0.75, 'None'    ],
+      [ 0.10, 'Pistol'  ],
+      [ 0.50, 'Knife'   ],
+      [ 0.30, 'Spear'   ],
+      [ 0.10, 'Flashbang' ],
     ],
 
   ],
@@ -89,21 +92,23 @@ terrain_table = {
 
     [
       # prob min max
-      [ 1.00,  4,  8 ], # food
-      [ 0.80,  4,  6 ], # wood
+      [ 1.00,  2,  4 ], # food
+      [ 0.80,  2,  4 ], # wood
       [ 0.00,  0,  0 ], # metal
       [ 0.05,  1,  2 ], # ammo
+      [ 0.20,  0,  0 ], # item
     ],
 
     [
       # prob  item
       [ 0.04, 'Pistol'  ],
       [ 0.01, 'Rifle'   ],
-      [ 0.10, 'Knife'   ],
-      [ 0.10, 'Spear'   ],
-      [ 0.05, 'Axe'     ],
+      [ 0.40, 'Knife'   ],
+      [ 0.25, 'Spear'   ],
+      [ 0.10, 'Axe'     ],
       [ 0.05, 'Machete' ],
-      [ 0.65, 'None'    ],
+      [ 0.10, 'Flashbang' ],
+      [ 0.05, 'Bone Ward' ],
     ],
 
   ],
@@ -121,19 +126,19 @@ terrain_table = {
 
     [
       # prob min max
-      [ 0.50,  1,  4 ], # food
+      [ 0.50,  1,  2 ], # food
       [ 0.30,  1,  2 ], # wood
-      [ 0.10,  1,  2 ], # metal
+      [ 0.10,  1,  1 ], # metal
       [ 0.00,  0,  0 ], # ammo
+      [ 0.10,  0,  0 ], # item
     ],
 
     [
       # prob  item
-      [ 0.10, 'Camping Kit'   ],
-      [ 0.05, 'First Aid'     ],
-      [ 0.05, 'Antibiotics'   ],
-      [ 0.05, 'Pistol'        ],
-      [ 0.75, 'None'          ],
+      [ 0.75, 'Pistol'    ],
+      [ 0.05, 'Rifle'     ],
+      [ 0.10, 'Flashbang' ],
+      [ 0.05, 'Bone Ward' ],
     ],
 
   ],
@@ -150,21 +155,20 @@ terrain_table = {
 
     [
       # prob min max
-      [ 0.50,  2,  4 ], # food
+      [ 0.50,  1,  4 ], # food
       [ 0.00,  0,  0 ], # wood
-      [ 0.10,  2,  3 ], # metal
+      [ 0.10,  1,  2 ], # metal
       [ 0.10,  2,  4 ], # ammo
+      [ 0.20,  0,  0 ], # item
     ],
 
     [
       # prob  item
-      [ 0.20, 'Camping Kit'   ],
-      [ 0.10, 'First Aid'     ],
-      [ 0.10, 'Antibiotics'   ],
-      [ 0.10, 'Pistol'        ],
-      [ 0.05, 'Rifle'         ],
-      [ 0.01, 'C. Fiber Vest' ],
-      [ 0.44, 'None'          ],
+      [ 0.50, 'Pistol'        ],
+      [ 0.15, 'Rifle'         ],
+      [ 0.05, 'C. Fiber Vest' ],
+      [ 0.20, 'Flashbang'     ],
+      [ 0.10, 'Bone Ward'     ],
     ],
 
   ],
@@ -184,18 +188,18 @@ terrain_table = {
       # prob min max
       [ 0.20,  1,  2 ], # food
       [ 0.10,  1,  2 ], # wood
-      [ 0.00,  0,  0 ], # metal
+      [ 0.10,  1,  2 ], # metal
       [ 0.10,  1,  2 ], # ammo
+      [ 0.25,  0,  0 ], # item
     ],
 
     [
       # prob  item
-      [ 0.10, 'Pistol'         ],
-      [ 0.07, 'Rifle'          ],
+      [ 0.80, 'Pistol'         ],
+      [ 0.10, 'Rifle'          ],
       [ 0.01, 'Jabberwocky'    ],
-      [ 0.01, 'Eldritch Staff' ],
-      [ 0.01, 'Shaman Charm'   ],
-      [ 0.80, 'None'           ],
+      [ 0.05, 'Eldritch Staff' ],
+      [ 0.04, 'Shaman Charm'   ],
     ],
 
   ],
@@ -212,22 +216,21 @@ terrain_table = {
 
     [
       # prob min max
-      [ 0.80,  2,  6 ], # food
+      [ 0.80,  2,  4 ], # food
       [ 0.00,  0,  0 ], # wood
       [ 0.50,  1,  2 ], # metal
-      [ 0.20,  2,  6 ], # ammo
+      [ 0.20,  2,  4 ], # ammo
+      [ 0.30,  0,  0 ], # item
     ],
 
     [
       # prob  item
-      [ 0.30, 'Camping Kit'   ],
-      [ 0.15, 'First Aid'     ],
-      [ 0.10, 'Antibiotics'   ],
-      [ 0.24, 'Pistol'        ],
-      [ 0.09, 'Rifle'         ],
-      [ 0.01, 'Flame Thrower' ],
-      [ 0.01, 'C. Fiber Vest' ],
-      [ 0.10, 'None'          ],
+      [ 0.65, 'Pistol'        ],
+      [ 0.10, 'Rifle'         ],
+      [ 0.05, 'Flame Thrower' ],
+      [ 0.05, 'C. Fiber Vest' ],
+      [ 0.10, 'Flashbang'     ],
+      [ 0.05, 'Bone Ward'     ],
     ],
 
   ],
@@ -245,29 +248,28 @@ terrain_table = {
 
     [
       # prob min max
-      [ 0.04,  1,  3 ], # food
-      [ 0.20,  0,  0 ], # wood
+      [ 0.50,  1,  4 ], # food
+      [ 0.00,  0,  0 ], # wood
       [ 0.30,  2,  4 ], # metal
-      [ 0.25,  2,  4 ], # ammo
+      [ 0.25,  2,  6 ], # ammo
+      [ 0.20,  0,  0 ], # item
     ],
 
     [
       # prob  item
-      [ 0.25, 'Camping Kit'   ],
-      [ 0.40, 'First Aid'     ],
-      [ 0.20, 'Antibiotics'   ],
-      [ 0.15, 'Pistol'        ],
-      [ 0.06, 'Rifle'         ],
-      [ 0.01, 'Flame Thrower' ],
-      [ 0.01, 'Machine Gun'   ],
-      [ 0.01, 'C. Fiber Vest' ],
-      [ 0.01, 'Body Armor'    ],
-      [ 0.10, 'None'          ],
+      [ 0.45, 'Pistol'        ],
+      [ 0.20, 'Rifle'         ],
+      [ 0.05, 'Flame Thrower' ],
+      [ 0.05, 'Machine Gun'   ],
+      [ 0.05, 'C. Fiber Vest' ],
+      [ 0.05, 'Body Armor'    ],
+      [ 0.10, 'Flashbang'     ],
+      [ 0.05, 'Bone Ward'     ],
     ],
 
   ],
 
-  'Ritual Site' : [ 'ritual.png', 1, True, '????',
+  'Ritual Site' : [ 'ritual.png', 1, True, 'Very High',
 
     [
       # prob  enemy
@@ -283,16 +285,16 @@ terrain_table = {
       [ 0.00,  0,  0 ], # wood
       [ 0.00,  0,  0 ], # metal
       [ 0.00,  0,  0 ], # ammo
+      [ 0.10,  0,  0 ], # item
     ],
 
     [
       # prob  item
-      [ 0.02,  'Eldritch Staff' ],
-      [ 0.01,  'Infernal Skull' ],
-      [ 0.005, 'Soul Scepter'   ],
-      [ 0.01,  'Shaman Charm'   ],
-      [ 0.005, 'Yuggoth Cloak'  ],
-      [ 0.95,  'None'           ],
+      [ 0.50, 'Eldritch Staff' ],
+      [ 0.20, 'Infernal Skull' ],
+      [ 0.05, 'Soul Scepter'   ],
+      [ 0.20, 'Shaman Charm'   ],
+      [ 0.05, 'Yuggoth Cloak'  ],
     ],
 
   ],
@@ -312,11 +314,10 @@ terrain_table = {
       [ 0.00,  0,  0 ], # wood
       [ 0.00,  0,  0 ], # metal
       [ 0.00,  0,  0 ], # ammo
+      [ 0.00,  0,  0 ], # item
     ],
 
     [
-      # prob  item
-      [ 1.00, 'None' ],
     ],
 
   ],
@@ -357,13 +358,14 @@ class Tile( pygame.sprite.Sprite ):
     self.valid       = terrain_table[self.terrain][2]
     self.risk        = terrain_table[self.terrain][3]
     self.enemy_rates = terrain_table[self.terrain][4]
-    self.mat_rates   = terrain_table[self.terrain][5]
+    self.mat_rates   = copy.deepcopy( terrain_table[self.terrain][5] )
     self.item_rates  = terrain_table[self.terrain][6]
 
     # Overlays for movement
 
     self.moveable = False
     self.selected = False
+    self.fog      = False
 
     self.move_surface      = pygame.image.load( properties.TILE_PATH + 'blue.png' )
     self.move_surface.set_alpha( 128 )
@@ -374,6 +376,71 @@ class Tile( pygame.sprite.Sprite ):
     self.sel_surface.set_alpha( 128 )
     self.sel_rect         = self.sel_surface.get_rect()
     self.sel_rect.topleft = 0, 0
+
+    self.fog_surface      = pygame.image.load( properties.TILE_PATH + 'black.png' )
+    self.fog_surface.set_alpha( 128 )
+    self.fog_rect         = self.fog_surface.get_rect()
+    self.fog_rect.topleft = 0, 0
+
+  # Roll for resources. One try per survivor who is in the scavenge
+  # party. The base scavenge probability for each resource is modified by
+  # the rolling survivor's mental bonus.
+
+  def roll_resources( self, survivors ):
+
+    loot = [ 0, 0, 0, 0 ]
+
+    for surv in survivors:
+
+      roll = random.random()
+
+      for i, rsrc in enumerate( self.mat_rates[:-1] ):
+
+        prob = rsrc[0] + ( surv.get_mental_bonus() * properties.RSRC_BONUS_MULT )
+
+        if roll < prob:
+
+          loot[i] += random.randint( rsrc[1], rsrc[2] )
+
+    # Reduce the probability of scavenging resources if the scavenge was
+    # successful for a given resource. This is to prevent camping one
+    # safe tile for infinite resources.
+
+    for i in range( len( self.mat_rates[:-1] ) ):
+
+      if loot[i] > 0:
+        self.mat_rates[i][0] *= properties.RSRC_REDUC_RATE
+
+    return loot
+
+  # Roll for items. Unlike rolling for resources, only one item can be
+  # found per scavenge party instead of one per survivor in the
+  # party. The combined mental bonuses of the survivors is used to modify
+  # the item find probability.
+
+  def roll_items( self, survivors ):
+
+    tot_bonus = 0
+
+    for surv in survivors:
+      tot_bonus += surv.get_mental_bonus()
+
+    get_roll = random.random()
+    get_prob = self.mat_rates[-1][0] + ( tot_bonus * properties.ITEM_BONUS_MULT )
+
+    if get_roll < get_prob:
+
+      item_roll = random.random()
+      item_prob = 0.0
+
+      for it in self.item_rates:
+
+        item_prob += it[0]
+
+        if item_roll < item_prob:
+          return item.Item( it[1] )
+
+    return None
 
   # Calculate chance of finding materials during scavenge
 
@@ -400,6 +467,9 @@ class Tile( pygame.sprite.Sprite ):
     # Draw overlays if necessary
 
     self.image = self.surface.convert()
+
+    if self.fog:
+      self.image.blit( self.fog_surface, self.fog_rect )
 
     if self.moveable:
       if self.selected:

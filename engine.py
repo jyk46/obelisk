@@ -12,6 +12,8 @@ import properties
 import window
 import sidebarwindow
 import explorewindow
+import scavengewindow
+import eventwindow
 import statuswindow
 import mapgen
 import button
@@ -27,10 +29,10 @@ import item
 # Properties
 #-------------------------------------------------------------------------
 
-PHASE_FREE, PHASE_SCAVENGE, \
+PHASE_FREE, PHASE_SCAV_SURV, PHASE_SCAV_DONE, \
 PHASE_EXPL_SURV, PHASE_EXPL_INV, PHASE_EXPL_DEST, PHASE_EXPL_MOVE, \
 PHASE_CRAFT_ITEM, PHASE_CRAFT_SURV, PHASE_REST, PHASE_STATUS, \
-PHASE_NIGHT, PHASE_TRANSITION  = range( 12 )
+PHASE_NIGHT, PHASE_TRANSITION  = range( 13 )
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -109,6 +111,18 @@ class Engine:
       properties.ACTION_PATH + 'action_bg.png'
     )
 
+    self.scavenge_window = scavengewindow.ScavengeWindow(
+      properties.ACTION_WIDTH, properties.ACTION_HEIGHT, \
+      properties.MENU_WIDTH + 32, 32, \
+      properties.ACTION_PATH + 'action_bg.png'
+    )
+
+    self.event_window = eventwindow.EventWindow(
+      properties.EVENT_WIDTH, properties.EVENT_HEIGHT, \
+      properties.MENU_WIDTH + 32, properties.CAMERA_HEIGHT / 2 - properties.EVENT_HEIGHT / 2, \
+      properties.EVENT_PATH + 'event_bg.png'
+    )
+
     # Adjust window scroll zones with absolute offset
 
     self.status_window.surv_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
@@ -120,6 +134,11 @@ class Engine:
     self.explore_window.old_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
     self.explore_window.new_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
     self.explore_window.new_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+
+    self.scavenge_window.old_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.scavenge_window.old_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.scavenge_window.new_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
+    self.scavenge_window.new_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
 
   #.......................................................................
   # Initialize map and add tiles to group
@@ -184,6 +203,7 @@ class Engine:
     self.map_group.update( self.cam_x, self.cam_y )
     self.expd_group.update( self.cam_x, self.cam_y )
     self.explore_window.update()
+    self.scavenge_window.update()
     self.status_window.update()
 
   #.......................................................................
@@ -217,6 +237,10 @@ class Engine:
       rect_updates += self.explore_window.draw( self.screen )
     elif self.phase == PHASE_EXPL_INV:
       rect_updates += self.explore_window.draw( self.screen )
+    elif self.phase == PHASE_SCAV_SURV:
+      rect_updates += self.scavenge_window.draw( self.screen )
+    elif self.phase == PHASE_SCAV_DONE:
+      rect_updates += self.event_window.draw( self.screen )
     elif self.phase == PHASE_STATUS:
       rect_updates += self.status_window.draw( self.screen )
 
@@ -289,13 +313,17 @@ class Engine:
           menu_used = True
 
           if button.text == 'EXPLORE':
-            self.phase = PHASE_EXPL_SURV
-            self.explore_window.expd = self.active_expd
+            self.phase                     = PHASE_EXPL_SURV
+            self.explore_window.expd       = self.active_expd
             self.explore_window.surv_phase = True
             self.explore_window.clear()
 
           elif button.text == 'SCAVENGE':
-            self.phase = PHASE_SCAVENGE
+            self.phase                   = PHASE_SCAV_SURV
+            self.scavenge_window.expd    = self.active_expd
+            self.scavenge_window.clear()
+            self.event_window.expd       = self.active_expd
+            self.event_window.event_tile = self.active_expd.pos_tile
 
           elif button.text == 'CRAFT':
             self.phase = PHASE_CRAFT_ITEM
@@ -304,7 +332,7 @@ class Engine:
             self.phase = PHASE_REST
 
           elif button.text == 'STATUS':
-            self.phase = PHASE_STATUS
+            self.phase              = PHASE_STATUS
             self.status_window.expd = self.active_expd
 
 #          self.cam_en = False
@@ -747,9 +775,137 @@ class Engine:
   def handle_phase_expl_move( self ):
 
     if len( self.active_expd.move_route ) == 0:
+      self.phase                   = PHASE_SCAV_DONE
+      self.event_window.expd       = self.active_expd
+      self.event_window.survivors  = self.active_expd.survivors
+      self.event_window.event_tile = self.active_expd.pos_tile
+
+      # Roll for scavenging
+
+      self.event_window.roll_scavenge()
+
+  #.......................................................................
+  # PHASE_SCAV_SURV Handling
+  #.......................................................................
+  # Phase for selecting survivors to scavenge current tile
+
+  def handle_phase_scav_surv( self ):
+
+    # Set active information to display
+
+    self.scavenge_window.surv = None
+
+    for surv, pos in zip( self.scavenge_window.expd.get_free(), self.scavenge_window.old_pos ):
+      surv_info_rect = pygame.rect.Rect(
+        properties.MENU_WIDTH + 32 + self.scavenge_window.old_rect.left + pos[0] - 4, \
+        32 + self.scavenge_window.old_rect.top + pos[1] - 3, \
+        properties.ACTION_SUB_WIDTH, 32
+      )
+      if surv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
+        self.scavenge_window.surv = surv
+
+        if self.mouse_click:
+          surv.free = False
+          self.scavenge_window.survivors.append( surv )
+
+    for surv, pos in zip( self.scavenge_window.survivors, self.scavenge_window.new_pos ):
+      surv_info_rect = pygame.rect.Rect(
+        properties.MENU_WIDTH + 32 + self.scavenge_window.new_rect.left + pos[0] - 4, \
+        32 + self.scavenge_window.new_rect.top + pos[1] - 3, \
+        properties.ACTION_SUB_WIDTH, 32
+      )
+      if surv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
+        self.scavenge_window.surv = surv
+
+        if self.mouse_click:
+          surv.free = True
+          self.scavenge_window.survivors.remove( surv )
+
+    # Scroll old survivors panel
+
+    if self.scavenge_window.old_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.scavenge_window.old_scroll > 0 ):
+      self.scavenge_window.old_scroll -= properties.SCROLL_SPEED
+
+    elif self.scavenge_window.old_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( ( self.scavenge_window.old_scroll + properties.ACTION_SUB_HEIGHT - 32 ) < self.scavenge_window.max_old_scroll ):
+      self.scavenge_window.old_scroll += properties.SCROLL_SPEED
+
+    # Scroll new survivors panel
+
+    if self.scavenge_window.new_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.scavenge_window.new_scroll > 0 ):
+      self.scavenge_window.new_scroll -= properties.SCROLL_SPEED
+
+    elif self.scavenge_window.new_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( ( self.scavenge_window.new_scroll + properties.ACTION_SUB_HEIGHT - 32 ) < self.scavenge_window.max_new_scroll ):
+      self.scavenge_window.new_scroll += properties.SCROLL_SPEED
+
+    # Go back to menu if ESC pressed
+
+    if self.key_esc:
       self.phase   = PHASE_FREE
-      self.menu_en = False
-      self.cam_en  = True
+      self.menu_en = True
+      self.cam_en  = False
+      self.scavenge_window.reset_survivors()
+
+    elif self.mouse_click:
+
+      # Move to next phase if next button is clicked and at least one
+      # survivor was chosen.
+
+      for button in self.scavenge_window.button_group:
+
+        button_rect = pygame.rect.Rect(
+          properties.MENU_WIDTH + 32 + button.rect.left, \
+          32 + button.rect.top, \
+          button.rect.width, button.rect.height
+        )
+
+        if button_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+          and ( len( self.scavenge_window.survivors ) > 0 ):
+          self.phase                  = PHASE_SCAV_DONE
+          self.event_window.survivors = self.scavenge_window.survivors
+
+          # Roll for scavenging
+
+          self.event_window.roll_scavenge()
+
+      # Reset phase if clicked outside of context
+
+      if not self.explore_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
+        self.phase   = PHASE_FREE
+        self.menu_en = False
+        self.cam_en  = True
+        self.scavenge_window.reset_survivors()
+
+  #.......................................................................
+  # PHASE_SCAV_DONE Handling
+  #.......................................................................
+  # Phase for displaying scavenge results
+
+  def handle_phase_scav_done( self ):
+
+    # Reset to free phase once okay button is clicked
+
+    if self.mouse_click:
+
+      for button in self.event_window.button_group:
+
+        button_rect = pygame.rect.Rect(
+          properties.MENU_WIDTH + 32 + button.rect.left, \
+          properties.CAMERA_HEIGHT / 2 - properties.EVENT_HEIGHT / 2 + button.rect.top, \
+          button.rect.width, button.rect.height
+        )
+
+        if button_rect.collidepoint( self.mouse_x, self.mouse_y ):
+          self.phase   = PHASE_FREE
+          self.menu_en = False
+          self.cam_en  = True
+
+          # Transfer loot to expedition
+
+          self.event_window.commit_loot()
 
   #.......................................................................
   # PHASE_STATUS Handling
@@ -872,6 +1028,15 @@ class Engine:
 
         elif self.phase == PHASE_EXPL_MOVE:
           self.handle_phase_expl_move()
+
+        elif self.phase == PHASE_SCAV_SURV:
+          self.handle_phase_scav_surv()
+
+        elif self.phase == PHASE_SCAV_DONE:
+          self.handle_phase_scav_done()
+
+        elif self.phase == PHASE_CRAFT_ITEM:
+          self.handle_phase_craft_item()
 
         elif self.phase == PHASE_STATUS:
           self.handle_status()

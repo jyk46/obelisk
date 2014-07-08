@@ -166,7 +166,7 @@ class StatusWindow( window.Window ):
       info_text_surface = font.render( 'AMMO: ' + str( self.it.ammo_cost ), 1, (255,255,255) )
       rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 3 * 32 + 3 ) ) ]
 
-      info_text_surface = font.render( 'DEF: ' + str( self.it.armor ), 1, (255,255,255) )
+      info_text_surface = font.render( 'ARM: ' + str( self.it.armor ), 1, (255,255,255) )
       rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 4 * 32 + 3 ) ) ]
 
       info_text_surface = font.render( 'EFFECTS:', 1, (255,255,255) )

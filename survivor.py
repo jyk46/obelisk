@@ -181,6 +181,18 @@ class Survivor():
   def __eq__( self, surv ):
     return ( self.name == surv.name )
 
+  # Return physical bonus
+
+  def get_physical_bonus( self ):
+
+    return ( self.physical - 10 ) / 2
+
+  # Return mental bonus
+
+  def get_mental_bonus( self ):
+
+    return ( self.mental - 10 ) / 2
+
   # Return combined stats bonuses from all attributes
 
   def get_attributes( self ):

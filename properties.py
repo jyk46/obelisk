@@ -20,7 +20,11 @@ START_WOOD  = 5
 START_METAL = 2
 START_AMMO  = 5
 
-EXPEDITION_SPEED = 8
+EXPEDITION_SPEED = 4
+
+RSRC_BONUS_MULT = 0.02
+ITEM_BONUS_MULT = 0.02
+RSRC_REDUC_RATE = 0.90
 
 #-------------------------------------------------------------------------
 # Map
@@ -88,6 +92,12 @@ ACTION_INFO_HEIGHT = 160
 ACTION_SUB_WIDTH  = 200
 ACTION_SUB_HEIGHT = 320
 
+EVENT_WIDTH  = 448
+EVENT_HEIGHT = 288
+
+EVENT_SUB_WIDTH  = 416
+EVENT_SUB_HEIGHT = 192
+
 SIDEBAR_WIDTH  = 256
 SIDEBAR_HEIGHT = WINDOW_HEIGHT
 
@@ -111,3 +121,4 @@ EXPD_PATH    = 'images/expedition/'
 SIDEBAR_PATH = 'images/sidebar/'
 BUTTON_PATH  = 'images/menu/menu_bar.png'
 ACTION_PATH  = 'images/action/'
+EVENT_PATH   = 'images/event/'
