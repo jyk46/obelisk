@@ -945,6 +945,7 @@ class Engine:
           self.expeditions.append( new_expd )
 
           self.explore_window.expd.commit_free()
+          new_expd.inv.reset_free()
 
           self.explore_window.expd.unhighlight_range()
 
