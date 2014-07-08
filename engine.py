@@ -893,10 +893,23 @@ class Engine:
   def handle_phase_expl_move( self ):
 
     if len( self.active_expd.move_route ) == 0:
-      self.phase                   = PHASE_SCAV_DONE
+      self.phase = PHASE_SCAV_DONE
+
+      # Configure event window for scavenging event
+
       self.event_window.expd       = self.active_expd
       self.event_window.survivors  = self.active_expd.survivors
       self.event_window.event_tile = self.active_expd.pos_tile
+
+      # Merge expeditions if on same tile
+
+      for expd in self.expeditions:
+        if ( self.active_expd != expd ) \
+          and ( self.active_expd.pos_tile == expd.pos_tile ):
+          expd.merge( self.active_expd )
+          self.expeditions.remove( self.active_expd )
+          self.event_window.expd = expd
+          break
 
       # Roll for scavenging
 
