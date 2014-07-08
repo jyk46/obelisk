@@ -59,6 +59,7 @@ class Engine:
     self.mouse_y     = 0
     self.mouse_click = False
     self.key_esc     = False
+    self.key_space   = False
 
     # Phase-specific variables
 
@@ -193,6 +194,22 @@ class Engine:
 
     self.expeditions.append( expedition.Expedition( start_tile, survivors, inv, self.map ) )
 
+    # Center camera on starting expedition
+
+    self.center_camera( start_tile )
+
+  #.......................................................................
+  # Find next expedition with free survivors
+  #.......................................................................
+
+  def get_next_expedition( self ):
+
+    for expd in self.expeditions:
+      if len( expd.get_free() ) > 0:
+        return expd
+
+    return None
+
   #.......................................................................
   # Update all sprites
   #.......................................................................
@@ -256,6 +273,7 @@ class Engine:
 
     self.mouse_click = False
     self.key_esc     = False
+    self.key_space   = False
 
     for event in pygame.event.get():
 
@@ -268,6 +286,43 @@ class Engine:
 
       elif ( event.type == KEYDOWN ) and ( event.key == K_ESCAPE ):
         self.key_esc = True
+
+      elif ( event.type == KEYDOWN ) and ( event.key == K_SPACE ):
+        self.key_space = True
+
+  #.......................................................................
+  # Center camera around given tile
+  #.......................................................................
+
+  def center_camera( self, tile ):
+
+    # Define limits of camera range
+
+    camera_limit = pygame.rect.Rect(
+      0, 0,
+      properties.MAP_WIDTH - properties.CAMERA_WIDTH,
+      properties.MAP_HEIGHT - properties.CAMERA_HEIGHT
+    )
+
+    # Determine camera center coordinates
+
+    center_x = tile.pos_x * properties.TILE_WIDTH + properties.TILE_WIDTH / 2
+    center_y = tile.pos_y * properties.TILE_HEIGHT + properties.TILE_HEIGHT / 2
+
+    self.cam_x = center_x - properties.CAMERA_WIDTH / 2
+    self.cam_y = center_y - properties.CAMERA_HEIGHT / 2
+
+    # Adjust camera coordinates if outside of camera limits
+
+    if self.cam_x < 0:
+      self.cam_x = camera_limit.left
+    elif self.cam_x > camera_limit.right:
+      self.cam_x = camera_limit.right
+
+    if self.cam_y < 0:
+      self.cam_y = camera_limit.top
+    elif self.cam_y > camera_limit.bottom:
+      self.cam_y = camera_limit.bottom
 
   #.......................................................................
   # Scroll camera
@@ -317,11 +372,13 @@ class Engine:
             self.explore_window.expd       = self.active_expd
             self.explore_window.surv_phase = True
             self.explore_window.clear()
+            self.scavenge_window.clear()
 
           elif button.text == 'SCAVENGE':
             self.phase                   = PHASE_SCAV_SURV
             self.scavenge_window.expd    = self.active_expd
             self.scavenge_window.clear()
+            self.explore_window.clear()
             self.event_window.expd       = self.active_expd
             self.event_window.event_tile = self.active_expd.pos_tile
 
@@ -340,6 +397,52 @@ class Engine:
           break
 
     return menu_used
+
+  #.......................................................................
+  # Handle done button for moving onto next day
+  #.......................................................................
+
+  def handle_done( self ):
+
+    done_used = False
+
+    if self.mouse_click:
+
+      for button in self.sidebar_window.button_group:
+
+        button_rect = pygame.rect.Rect(
+          properties.CAMERA_WIDTH + button.rect.left, \
+          button.rect.top, \
+          button.rect.width, button.rect.height
+        )
+
+        # Only move onto next day if all survivors have been used and not
+        # in the middle of assigning a task
+
+        count = 0
+
+        for expd in self.expeditions:
+          count += len( expd.get_free() )
+
+        if button_rect.collidepoint( self.mouse_x, self.mouse_y ) \
+          and ( count == 0 ) and self.explore_window.is_clean() \
+          and self.scavenge_window.is_clean():
+
+          done_used      = True
+          self.phase     = PHASE_FREE
+          self.menu_en   = False
+          self.cam_en    = True
+
+          # Increment day counter
+
+          self.sidebar_window.time_count += 1
+
+          # Reset all survivors to be free
+
+          for expd in self.expeditions:
+            expd.reset_free_survivors()
+
+    return done_used
 
   #.......................................................................
   # PHASE_FREE Handling
@@ -383,20 +486,31 @@ class Engine:
 
     else:
 
-      self.expd_active         = False
+      expd_active              = False
       self.sidebar_window.terr = None
       self.sidebar_window.expd = None
 
-    # Give priority to ESC key
+    # Give priority to ESC key for escaping menu
 
     if self.key_esc:
 
       self.menu_en = False
       self.cam_en  = True
 
+    # Center camera on next expedition if space pressed
+
+    elif self.key_space:
+
+      next_expd = self.get_next_expedition()
+
+      if next_expd != None:
+        self.center_camera( next_expd.pos_tile )
+
     # Check for mouse click
 
-    elif self.mouse_click:
+    elif self.mouse_click \
+      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
+      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
 
       # Enable menu if expedition is clicked
 
@@ -499,7 +613,7 @@ class Engine:
             self.explore_window.start_tile = None
             self.menu_en                   = False
             self.cam_en                    = True
-            self.explore_window.expd.calc_range()
+            self.explore_window.expd.calc_range( self.explore_window.survivors )
             self.explore_window.expd.highlight_range()
 
             self.explore_window.inv = self.explore_window.expd.inv
@@ -699,7 +813,7 @@ class Engine:
           self.explore_window.start_tile = None
           self.menu_en                   = False
           self.cam_en                    = True
-          self.explore_window.expd.calc_range()
+          self.explore_window.expd.calc_range( self.explore_window.survivors )
           self.explore_window.expd.highlight_range()
 
       # Reset phase if clicked outside of context
@@ -808,7 +922,7 @@ class Engine:
       if surv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
         self.scavenge_window.surv = surv
 
-        if self.mouse_click:
+        if self.mouse_click and ( surv.stamina > properties.SCAVENGE_COST ):
           surv.free = False
           self.scavenge_window.survivors.append( surv )
 
@@ -911,12 +1025,22 @@ class Engine:
 
           self.event_window.commit_loot()
 
+          # Subtract scavenge cost from stamina
+
+          for surv in self.event_window.survivors:
+            surv.stamina -= properties.SCAVENGE_COST
+
+          # Clean up selection windows
+
+          self.explore_window.clear()
+          self.scavenge_window.clear()
+
   #.......................................................................
   # PHASE_STATUS Handling
   #.......................................................................
   # Phase for displaying details about expedition
 
-  def handle_status( self ):
+  def handle_phase_status( self ):
 
     # Set active information to display
 
@@ -1007,6 +1131,10 @@ class Engine:
       if self.cam_en:
         self.scroll_camera()
 
+      # Handle done selection
+
+      done_used = self.handle_done()
+
       # Handle menu selection
 
       menu_used = False
@@ -1016,7 +1144,7 @@ class Engine:
 
       # Handle game phases
 
-      if not menu_used:
+      if not done_used and not menu_used:
 
         if self.phase == PHASE_FREE:
           self.handle_phase_free()
@@ -1043,7 +1171,7 @@ class Engine:
           self.handle_phase_craft_item()
 
         elif self.phase == PHASE_STATUS:
-          self.handle_status()
+          self.handle_phase_status()
 
       # Update graphics
 

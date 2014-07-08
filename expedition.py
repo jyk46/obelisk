@@ -215,12 +215,12 @@ class Expedition( pygame.sprite.Sprite ):
   # Calculate the minimum current stamina across all survivors usable by
   # expedition for exploration.
 
-  def calc_min_stamina( self ):
+  def calc_min_stamina( self, survivors ):
 
     min_stamina = 99
 
-    for surv in self.survivors:
-      if not surv.free and ( surv.stamina < min_stamina ):
+    for surv in survivors:
+      if surv.stamina < min_stamina:
         min_stamina = surv.stamina
 
     assert( min_stamina < 99 )
@@ -230,7 +230,7 @@ class Expedition( pygame.sprite.Sprite ):
   # Path finding, populates a dictionary of all possible tiles reachable
   # by selected expedition with the specified maximum cost.
 
-  def calc_range( self ):
+  def calc_range( self, survivors ):
 
     # Use Dijkstra's algorithm to find the shortest path from source to
     # destination. A dictionary is used for tracking the shortest path to
@@ -242,7 +242,7 @@ class Expedition( pygame.sprite.Sprite ):
     self.path_dic = { self.pos_tile: [self.pos_tile,0] }
     frontier      = [ self.pos_tile ]
 
-    avail_stamina = self.calc_min_stamina()
+    avail_stamina = self.calc_min_stamina( survivors )
 
     # Iterate over frontiers until maximum cost is reached
 

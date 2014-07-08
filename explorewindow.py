@@ -107,6 +107,18 @@ class ExploreWindow( window.Window ):
     self.inv        = inventory.Inventory( 0, 0, 0, 0, [] )
     self.start_tile = None
 
+  # Check that all selection is clean (i.e., not in the middle of selecting)
+
+  def is_clean( self ):
+
+    surv_clean = ( len( self.survivors ) == 0 )
+    inv_clean  = ( self.inv.food == 0 ) and ( self.inv.wood == 0 ) \
+             and ( self.inv.metal == 0 ) and ( self.inv.ammo == 0 ) \
+             and ( len( self.inv.items ) == 0 )
+    tile_clean = ( self.start_tile == None )
+
+    return surv_clean and inv_clean and tile_clean
+
   # Reset expedition state to before explore selection
 
   def reset_survivors( self ):
