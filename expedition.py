@@ -8,6 +8,7 @@
 import pygame, sys, os
 from pygame.locals import *
 
+import random
 import properties
 import survivor
 import inventory
@@ -74,7 +75,7 @@ class Expedition( pygame.sprite.Sprite ):
 
   # Constructor
 
-  def __init__( self, start_tile, survivors, inv, map ):
+  def __init__( self, start_tile, survivors, inv, map, img_idx=-1 ):
 
     pygame.sprite.Sprite.__init__( self, self.groups )
 
@@ -85,6 +86,9 @@ class Expedition( pygame.sprite.Sprite ):
     self.path_dic    = {}
     self.move_route  = []
     self.view_range  = 4
+    self.direction   = 'south'
+    self.step_count  = 0
+    self.anim_count  = 0
 
     # Unfog initial starting area
 
@@ -92,14 +96,19 @@ class Expedition( pygame.sprite.Sprite ):
 
     # Set image and make background transparent
 
-    self.img_path     = properties.EXPD_PATH + 'icon.png'
-    self.surface      = pygame.image.load( self.img_path )
+    if img_idx < 0:
+      self.img_roll = random.randint( 0, 3 )
+    else:
+      self.img_roll = img_idx
+
+    self.img_path     = properties.EXPD_PATH + 'hero' + str( self.img_roll ) + '_'
+    self.surface      = pygame.image.load( self.img_path + self.direction + str( self.anim_count ) + '.png' )
     self.surface.set_colorkey( self.surface.get_at( ( 0, 0 ) ), RLEACCEL )
     self.image        = self.surface.convert()
     self.rect         = self.image.get_rect()
     self.abs_x        = self.pos_tile.pos_x * properties.TILE_WIDTH
     self.abs_y        = self.pos_tile.pos_y * properties.TILE_HEIGHT
-    self.rect.topleft = self.abs_x, self.abs_y
+    self.rect.topleft = self.pos_tile.rect.topleft
 
     # Set font for labeling icon
 
@@ -164,14 +173,54 @@ class Expedition( pygame.sprite.Sprite ):
 
     return surface, rect
 
+  # Set direction for animation
+
+  def set_direction( self ):
+
+    if self.move_route[0].pos_y > self.pos_tile.pos_y:
+      self.direction = 'south'
+    elif self.move_route[0].pos_x > self.pos_tile.pos_x:
+      self.direction = 'east'
+    elif self.move_route[0].pos_y < self.pos_tile.pos_y:
+      self.direction = 'north'
+    elif self.move_route[0].pos_x < self.pos_tile.pos_x:
+      self.direction = 'west'
+
+  # Draw animation
+
+  def draw_animation( self ):
+
+    img_path   = self.img_path + self.direction + str( self.anim_count ) + '.png'
+    surface    = pygame.image.load( img_path )
+    surface.set_colorkey( surface.get_at( ( 0, 0 ) ), RLEACCEL )
+    self.image = surface.convert()
+
   # Update graphics
 
-  def update( self, cam_x, cam_y ):
+  def update( self, cam_x, cam_y, cam_en ):
 
     # Adjust position relative to camera
 
-    self.rect.top  = self.abs_y - cam_y
-    self.rect.left = self.abs_x - cam_x
+    if cam_en:
+      self.rect.top  = self.abs_y - cam_y
+      self.rect.left = self.abs_x - cam_x
+
+    # Switch animation frame when necessary
+
+    do_anim = False
+
+    if self.step_count == properties.FRAME_SWITCH:
+
+      self.anim_count += 1
+      if self.anim_count > 1:
+        self.anim_count = 0
+
+      self.step_count = 0
+
+      do_anim = True
+
+    else:
+      self.step_count += 1
 
     # Handle movement based on calculated shortest path to destination
 
@@ -199,8 +248,8 @@ class Expedition( pygame.sprite.Sprite ):
 
       # Update position tile and route if at destination
 
-      if ( ( self.move_route[0].rect.left  ) == self.rect.left ) \
-      or ( ( self.move_route[0].rect.top ) == self.rect.top  ):
+      if ( self.move_route[0].rect.left == self.rect.left ) \
+        and ( self.move_route[0].rect.top == self.rect.top ):
 
         self.pos_tile = self.move_route[0]
         self.abs_x    = self.pos_tile.pos_x * properties.TILE_WIDTH
@@ -208,9 +257,26 @@ class Expedition( pygame.sprite.Sprite ):
 
         del self.move_route[0]
 
+        # Determine new direction
+
+        if len( self.move_route ) > 0:
+          self.set_direction()
+        else:
+          self.direction = 'south'
+
+        self.step_count = 0
+        self.anim_count = 0
+
+        do_anim = True
+
         # Unfog new area
 
         self.unfog()
+
+    # Draw animation
+
+    if do_anim:
+      self.draw_animation()
 
   # Calculate the minimum current stamina across all survivors usable by
   # expedition for exploration.

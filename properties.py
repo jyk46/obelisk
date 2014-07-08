@@ -7,7 +7,9 @@
 # Performance
 #-------------------------------------------------------------------------
 
-FPS = 30
+FPS          = 20
+SPS          = 4         # steps or animation frames per second
+FRAME_SWITCH = FPS / SPS # number of frames to hold one animation frame
 
 #-------------------------------------------------------------------------
 # Survivors
@@ -20,7 +22,7 @@ START_WOOD  = 5
 START_METAL = 2
 START_AMMO  = 5
 
-EXPEDITION_SPEED = 4
+EXPEDITION_SPEED = 2
 
 RSRC_BONUS_MULT = 0.02
 ITEM_BONUS_MULT = 0.02

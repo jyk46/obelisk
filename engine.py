@@ -237,7 +237,7 @@ class Engine:
 
 #    self.win_group.update()
     self.map_group.update( self.cam_x, self.cam_y )
-    self.expd_group.update( self.cam_x, self.cam_y )
+    self.expd_group.update( self.cam_x, self.cam_y, self.cam_en )
     self.explore_window.update()
     self.cost_box.update()
     self.scavenge_window.update()
@@ -255,9 +255,9 @@ class Engine:
     rect_updates =  self.map_group.draw( self.camera_window.image )
     rect_updates += self.expd_group.draw( self.camera_window.image )
 
-    for expd in self.expeditions:
-      expd_text = expd.get_text()
-      rect_updates += [ self.camera_window.image.blit( expd_text[0], expd_text[1] ) ]
+#    for expd in self.expeditions:
+#      expd_text = expd.get_text()
+#      rect_updates += [ self.camera_window.image.blit( expd_text[0], expd_text[1] ) ]
 
     # Draw menu if enabled
 
@@ -920,15 +920,25 @@ class Engine:
 
           move_route, cost = self.explore_window.expd.calc_path( ti )
 
+          # Keep old expedition's image if all survivors exploring
+
+          if len( self.explore_window.expd.get_free() ) == 0:
+            new_expd_img_idx = self.explore_window.expd.img_roll
+          else:
+            new_expd_img_idx = -1
+
           new_expd = expedition.Expedition(
             self.explore_window.start_tile,
             self.explore_window.survivors,
             self.explore_window.inv,
-            self.map
+            self.map,
+            new_expd_img_idx
           )
 
           new_expd.move_route = move_route
           new_expd.modify_stamina( -cost )
+          new_expd.set_direction()
+          new_expd.draw_animation()
 
           self.active_expd = new_expd
 
