@@ -19,17 +19,76 @@ import tile
 
 class Expedition( pygame.sprite.Sprite ):
 
+  # Clear map fog around expedition tile
+
+  def unfog( self ):
+
+    visited  = []
+    frontier = [ self.pos_tile ]
+
+    self.pos_tile.fog = False
+
+    # Iterate over frontiers until maximum cost is reached
+
+    for i in range( self.view_range ):
+
+      next_frontier = []
+
+      # Search all tiles in the current frontier
+
+      for ti in frontier:
+
+        # Unfog neighboring tiles within map bounds
+
+        if ti.pos_y > 0:
+          if ( self.map[ti.pos_x][ti.pos_y-1] not in visited ) \
+            and ( self.map[ti.pos_x][ti.pos_y-1] not in next_frontier ):
+            self.map[ti.pos_x][ti.pos_y-1].fog = False
+            next_frontier.append( self.map[ti.pos_x][ti.pos_y-1] )
+
+        if ti.pos_x < ( properties.MAP_SIZE - 1 ):
+          if self.map[ti.pos_x+1][ti.pos_y] not in visited \
+            and ( self.map[ti.pos_x+1][ti.pos_y] not in next_frontier ):
+            self.map[ti.pos_x+1][ti.pos_y].fog = False
+            next_frontier.append( self.map[ti.pos_x+1][ti.pos_y] )
+
+        if ti.pos_y < ( properties.MAP_SIZE - 1 ):
+          if self.map[ti.pos_x][ti.pos_y+1] not in visited \
+            and ( self.map[ti.pos_x][ti.pos_y+1] not in next_frontier ):
+            self.map[ti.pos_x][ti.pos_y+1].fog = False
+            next_frontier.append( self.map[ti.pos_x][ti.pos_y+1] )
+
+        if ti.pos_x > 0:
+          if self.map[ti.pos_x-1][ti.pos_y] not in visited \
+            and ( self.map[ti.pos_x-1][ti.pos_y] not in next_frontier ):
+            self.map[ti.pos_x-1][ti.pos_y].fog = False
+            next_frontier.append( self.map[ti.pos_x-1][ti.pos_y] )
+
+        # Mark tile in frontier as visited
+
+        visited.append( ti )
+
+      # Swap frontiers when all tiles in current frontier are processed
+
+      frontier = next_frontier
+
   # Constructor
 
-  def __init__( self, start_tile, survivors, inv ):
+  def __init__( self, start_tile, survivors, inv, map ):
 
     pygame.sprite.Sprite.__init__( self, self.groups )
 
     self.pos_tile    = start_tile
     self.survivors   = survivors
     self.inv         = inv
+    self.map         = map
     self.path_dic    = {}
     self.move_route  = []
+    self.view_range  = 4
+
+    # Unfog initial starting area
+
+    self.unfog()
 
     # Set image and make background transparent
 
@@ -149,6 +208,10 @@ class Expedition( pygame.sprite.Sprite ):
 
         del self.move_route[0]
 
+        # Unfog new area
+
+        self.unfog()
+
   # Calculate the minimum current stamina across all survivors usable by
   # expedition for exploration.
 
@@ -167,7 +230,7 @@ class Expedition( pygame.sprite.Sprite ):
   # Path finding, populates a dictionary of all possible tiles reachable
   # by selected expedition with the specified maximum cost.
 
-  def calc_range( self, map ):
+  def calc_range( self ):
 
     # Use Dijkstra's algorithm to find the shortest path from source to
     # destination. A dictionary is used for tracking the shortest path to
@@ -196,16 +259,16 @@ class Expedition( pygame.sprite.Sprite ):
         neighbors = []
 
         if ti.pos_y > 0:
-          neighbors.append( map[ti.pos_x][ti.pos_y-1] )
+          neighbors.append( self.map[ti.pos_x][ti.pos_y-1] )
 
         if ti.pos_x < ( properties.MAP_SIZE - 1 ):
-          neighbors.append( map[ti.pos_x+1][ti.pos_y] )
+          neighbors.append( self.map[ti.pos_x+1][ti.pos_y] )
 
         if ti.pos_y < ( properties.MAP_SIZE - 1 ):
-          neighbors.append( map[ti.pos_x][ti.pos_y+1] )
+          neighbors.append( self.map[ti.pos_x][ti.pos_y+1] )
 
         if ti.pos_x > 0:
-          neighbors.append( map[ti.pos_x-1][ti.pos_y] )
+          neighbors.append( self.map[ti.pos_x-1][ti.pos_y] )
 
         for next_ti in neighbors:
 

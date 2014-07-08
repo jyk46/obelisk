@@ -191,7 +191,7 @@ class Engine:
 
     # Create expedition
 
-    self.expeditions.append( expedition.Expedition( start_tile, survivors, inv ) )
+    self.expeditions.append( expedition.Expedition( start_tile, survivors, inv, self.map ) )
 
   #.......................................................................
   # Update all sprites
@@ -354,13 +354,16 @@ class Engine:
     context_y = ( self.cam_y + self.mouse_y ) / properties.TILE_HEIGHT
 
     if ( context_x >= 0 ) and ( context_x < properties.MAP_SIZE ) \
-      and ( context_y >= 0 ) and ( context_y < properties.MAP_SIZE ):
+      and ( context_y >= 0 ) and ( context_y < properties.MAP_SIZE ) \
+      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
+      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
 
       context_tile = self.map[context_x][context_y]
 
-      # Sidebar terrain information
+      # Sidebar terrain information (only show if revealed on map)
 
-      self.sidebar_window.terr = context_tile
+      if not context_tile.fog:
+        self.sidebar_window.terr = context_tile
 
       # Sidebar expedition information (only when menu is disabled)
 
@@ -496,7 +499,7 @@ class Engine:
             self.explore_window.start_tile = None
             self.menu_en                   = False
             self.cam_en                    = True
-            self.explore_window.expd.calc_range( self.map )
+            self.explore_window.expd.calc_range()
             self.explore_window.expd.highlight_range()
 
             self.explore_window.inv = self.explore_window.expd.inv
@@ -696,7 +699,7 @@ class Engine:
           self.explore_window.start_tile = None
           self.menu_en                   = False
           self.cam_en                    = True
-          self.explore_window.expd.calc_range( self.map )
+          self.explore_window.expd.calc_range()
           self.explore_window.expd.highlight_range()
 
       # Reset phase if clicked outside of context
@@ -736,7 +739,8 @@ class Engine:
           new_expd = expedition.Expedition(
             self.explore_window.start_tile,
             self.explore_window.survivors,
-            self.explore_window.inv
+            self.explore_window.inv,
+            self.map
           )
 
           new_expd.move_route = move_route

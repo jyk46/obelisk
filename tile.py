@@ -365,7 +365,7 @@ class Tile( pygame.sprite.Sprite ):
 
     self.moveable = False
     self.selected = False
-    self.fog      = False
+    self.fog      = True
 
     self.move_surface      = pygame.image.load( properties.TILE_PATH + 'blue.png' )
     self.move_surface.set_alpha( 128 )
@@ -378,7 +378,6 @@ class Tile( pygame.sprite.Sprite ):
     self.sel_rect.topleft = 0, 0
 
     self.fog_surface      = pygame.image.load( properties.TILE_PATH + 'black.png' )
-    self.fog_surface.set_alpha( 128 )
     self.fog_rect         = self.fog_surface.get_rect()
     self.fog_rect.topleft = 0, 0
 
