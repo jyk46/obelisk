@@ -392,7 +392,17 @@ class Engine:
 
           menu_used = True
 
+          # Assign active terrain to display on sidebar
+
           self.sidebar_window.terr = self.active_expd.pos_tile
+
+          # Reset survivors/inventory free state
+
+          self.explore_window.reset_expd()
+          self.scavenge_window.reset_survivors()
+          self.rest_window.reset_survivors()
+
+          # Phase transition based on button click
 
           if button.text == 'EXPLORE':
             self.phase                     = PHASE_EXPL_SURV

@@ -122,11 +122,13 @@ class ExploreWindow( window.Window ):
   # Reset expedition state to before explore selection
 
   def reset_survivors( self ):
-    self.expd.reset_free_survivors()
+    if self.expd != None:
+      self.expd.reset_free_survivors()
 
   def reset_inventory( self ):
-    self.expd.inv.merge_resources( self.inv )
-    self.expd.reset_free_items()
+    if self.expd != None:
+      self.expd.inv.merge_resources( self.inv )
+      self.expd.reset_free_items()
 
   def reset_expd( self ):
     self.reset_survivors()

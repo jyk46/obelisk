@@ -107,7 +107,8 @@ class SurvivorWindow( window.Window ):
   # Reset expedition state to before explore selection
 
   def reset_survivors( self ):
-    self.expd.reset_free_survivors()
+    if self.expd != None:
+      self.expd.reset_free_survivors()
 
   # Update graphics
 
