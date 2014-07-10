@@ -140,9 +140,14 @@ class TextBox:
 
         surface_col.append( ( surface, rect ) )
 
-        # Adjust text rects to absolute scale for processing inputs
+        # Calculate hit box rects for processing inputs
 
-        rect_col.append( rect.move( self.offset_x + self.rect.left, self.offset_y + self.rect.top ) )
+        hit_rect = pygame.rect.Rect(
+          0, rect.top - properties.TEXT_Y_OFFSET,
+          self.rect.width, properties.TEXT_HEIGHT
+        )
+
+        rect_col.append( hit_rect.move( self.offset_x + self.rect.left, self.offset_y + self.rect.top ) )
 
         # Increment row index
 

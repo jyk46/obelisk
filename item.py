@@ -141,7 +141,7 @@ item_table = {
 # Main Class
 #-------------------------------------------------------------------------
 
-class Item():
+class Item:
 
   # Constructor
 

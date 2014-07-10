@@ -14,7 +14,7 @@ import item
 # Main Class
 #-------------------------------------------------------------------------
 
-class Inventory():
+class Inventory:
 
   # Constructor
 

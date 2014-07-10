@@ -64,7 +64,7 @@ opp_table = {
 # Main Class
 #-------------------------------------------------------------------------
 
-class Attribute():
+class Attribute:
 
   # Constructor
 

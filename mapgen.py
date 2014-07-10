@@ -15,7 +15,7 @@ import tile
 # Main Class
 #-------------------------------------------------------------------------
 
-class MapGen():
+class MapGen:
 
   # Generate random area of special terrain
 

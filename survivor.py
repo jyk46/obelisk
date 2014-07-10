@@ -109,23 +109,7 @@ cure_table = [
 # Main Class
 #-------------------------------------------------------------------------
 
-class Survivor():
-
-  # Stats
-
-#  name        = ''
-#  age         = 0
-#  max_stamina = 10
-#  stamina     = 10
-#  physical    = 10
-#  mental      = 10
-#  heal_rate   = 0.5
-#  cure_prob   = 0.5
-#  attributes  = []
-
-  # Chance of rolling attribute
-
-  attribute_prob = 0.50
+class Survivor:
 
   # Constructor
 
@@ -164,7 +148,7 @@ class Survivor():
 
       # Common case
 
-      elif random.random() < self.attribute_prob:
+      elif random.random() < properties.ATTRIBUTE_PROB:
 
         attr = attribute.Attribute( self.age )
 

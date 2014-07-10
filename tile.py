@@ -391,10 +391,9 @@ class Tile( pygame.sprite.Sprite ):
 
     for _survivor in survivors:
 
-      roll = random.random()
-
       for i, rsrc in enumerate( self.rsrc_rates[:-1] ):
 
+        roll = random.random()
         prob = rsrc[0] + ( _survivor.get_mental_bonus() * properties.RSRC_BONUS_MULT )
 
         if roll < prob:

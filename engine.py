@@ -908,11 +908,21 @@ class Engine:
     self.map_group.update( self.cam_x, self.cam_y )
     self.expeditions_group.update( self.cam_x, self.cam_y, self.cam_en )
     self.sidebar_window.update()
-    self.survivor_window.update()
-    self.inventory_window.update()
-    self.cost_box.update()
-    self.event_window.update()
-    self.status_window.update()
+
+    if self.phase == PHASE_EXPLORE0:
+      self.survivor_window.update()
+    elif self.phase == PHASE_EXPLORE1:
+      self.inventory_window.update()
+    elif self.phase == PHASE_EXPLORE2:
+      self.cost_box.update()
+    elif self.phase == PHASE_SCAVENGE0:
+      self.survivor_window.update()
+    elif self.phase == PHASE_SCAVENGE1:
+      self.event_window.update()
+    elif self.phase == PHASE_REST:
+      self.survivor_window.update()
+    elif self.phase == PHASE_STATUS:
+      self.status_window.update()
 
   #.......................................................................
   # Draw all sprites

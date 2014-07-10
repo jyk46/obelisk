@@ -32,7 +32,7 @@ enemy_table = {
 # Main Class
 #-------------------------------------------------------------------------
 
-class Enemy():
+class Enemy:
 
   # Constructor
 
