@@ -168,12 +168,6 @@ class Item():
     if self.name in effect_table:
       self.effect = effect_table[self.name]
 
-    # Text graphics
-
-    self.font         = pygame.font.Font( properties.DEFAULT_FONT, 14 )
-    self.text_surface = self.font.render( self.name, 1, (255,255,255) )
-    self.text_rect    = self.text_surface.get_rect()
-
   # Print debug information
 
   def debug( self ):

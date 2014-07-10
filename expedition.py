@@ -76,11 +76,11 @@ class Expedition( pygame.sprite.Sprite ):
 
   # Constructor
 
-  def __init__( self, start_tile, survivors, _inventory, map, img_idx=-1 ):
+  def __init__( self, pos_tile, survivors, _inventory, map, img_idx=-1 ):
 
     pygame.sprite.Sprite.__init__( self, self.groups )
 
-    self.pos_tile    = start_tile
+    self.pos_tile    = pos_tile
     self.survivors   = survivors
     self._inventory  = _inventory
     self.map         = map
@@ -125,20 +125,20 @@ class Expedition( pygame.sprite.Sprite ):
 
   # Reset all survivors free state
 
-  def reset_free_survivors( self ):
+  def free_survivors( self ):
 
     for _survivor in self.survivors:
-      _survivovr.free = True
+      _survivor.free = True
 
   # Reset all items free state
 
-  def reset_free_items( self ):
+  def free_inventory( self ):
 
-    self._inventory.reset_free()
+    self._inventory.free()
 
   # Commit explore party changes
 
-  def commit_free( self ):
+  def commit( self ):
 
     # Remove transferred survivors
 
@@ -272,7 +272,7 @@ class Expedition( pygame.sprite.Sprite ):
 
     min_stamina = 99
 
-    for _survivor in _survivorivors:
+    for _survivor in survivors:
       if _survivor.stamina < min_stamina:
         min_stamina = _survivor.stamina
 

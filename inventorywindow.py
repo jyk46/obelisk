@@ -1,7 +1,7 @@
 #=========================================================================
-# survivorwindow.py
+# inventorywindow.py
 #=========================================================================
-# Extended window class for handling survivor selection
+# Extended window class for handling inventory selection
 
 import pygame, sys, os
 from pygame.locals import *
@@ -14,7 +14,8 @@ import infotextbox
 import button
 import tile
 import expedition
-import survivor
+import inventory
+import item
 
 #-------------------------------------------------------------------------
 # Window Offsets
@@ -36,7 +37,7 @@ BUTTON_Y_OFFSET = properties.ACTION_HEIGHT - 16 - properties.MENU_HEIGHT
 # Main Class
 #-------------------------------------------------------------------------
 
-class SurvivorWindow( window.Window ):
+class InventoryWindow( window.Window ):
 
   # Constructor
 
@@ -47,8 +48,8 @@ class SurvivorWindow( window.Window ):
     # Member variables
 
     self._expedition = None
-    self.survivors   = []
-    self._survivor   = None
+    self._inventory  = inventory.Inventory()
+    self._item       = None
 
     # Initialize sub-windows
 
@@ -74,7 +75,7 @@ class SurvivorWindow( window.Window ):
     )
 
     self.old_label_surface, self.old_label_rect = utils.gen_text_pos(
-      'SURVIVORS', 16,
+      'INVENTORY', 16,
       OLD_X_OFFSET, OLD_Y_OFFSET - properties.TEXT_HEIGHT + properties.TEXT_Y_OFFSET,
       utils.BLACK, True
     )
@@ -95,7 +96,8 @@ class SurvivorWindow( window.Window ):
   def free( self ):
 
     if self._expedition != None:
-      self._expedition.free_survivors()
+      self._expedition._inventory.merge_resources( self._inventory )
+      self._expedition.free_inventory()
 
   # Reset scroll positions of text boxes
 
@@ -109,8 +111,8 @@ class SurvivorWindow( window.Window ):
   def reset( self ):
 
     self._expedition = None
-    self.survivors   = []
-    self._survivor   = None
+    self._inventory  = inventory.Inventory()
+    self._item       = None
 
     self.free()
     self.reset_scroll()
@@ -120,39 +122,83 @@ class SurvivorWindow( window.Window ):
 
   def process_inputs( self, mouse_x, mouse_y, mouse_click ):
 
-    self._survivor = None
+    self._item = None
 
-    # Determine free survivor info to display
+    # Determine free item info to display
 
-    for _survivor, rect in zip( self._expedition.get_free(), self.old_tbox.rect_matrix[0] ):
+    items = [ 'Food', 'Wood', 'Metal', 'Ammo', ] * 4 \
+          + self._expedition._inventory.get_free()
 
-      # Determine if mouse is hovering over survivor
+    for _item, rect in zip( items, self.old_tbox.rect_matrix[0] ):
 
-      if rect.collidepoint( mouse_x, mouse_y ):
-
-        self._survivor = _survivor
-
-        # Move selected survivors to selected column
-
-        if mouse_click:
-          _survivor.free = False
-          self.survivors.append( _survivor )
-
-    # Determine selected survivor info to display
-
-    for _survivor, rect in zip( self.survivors, self.new_tbox.rect_matrix[0] ):
-
-      # Determine if mouse is hovering over survivor
+      # Determine if mouse is hovering over item
 
       if rect.collidepoint( mouse_x, mouse_y ):
 
-        self._survivor = _survivor
+        if type( _item ) == item.Item:
+          self._item = _item
 
-        # Move deselected survivors to free column
+        # Transfer items if mouse is clicked
 
         if mouse_click:
-          _survivor.free = True
-          self.survivors.remove( _survivor )
+
+          if ( _item == 'Food' ) and ( self._expedition._inventory.food > 0 ):
+            self._expedition._inventory.food -= 1
+            self._inventory.food             += 1
+
+          elif ( _item == 'Wood' ) and ( self._expedition._inventory.wood > 0 ):
+            self._expedition._inventory.wood -= 1
+            self._inventory.wood             += 1
+
+          elif ( _item == 'Metal' ) and ( self._expedition._inventory.metal > 0 ):
+            self._expedition._inventory.metal -= 1
+            self._inventory.metal             += 1
+
+          elif ( _item == 'Ammo' ) and ( self._expedition._inventory.ammo > 0 ):
+            self._expedition._inventory.ammo -= 1
+            self._inventory.ammo             += 1
+
+          else:
+            _item.free = False
+            self._inventory.items.append( _item )
+
+    # Determine selected item info to display
+
+    items = [ 'Food', 'Wood', 'Metal', 'Ammo', ] * 4 \
+          + self._inventory.items
+
+    for _item, rect in zip( items, self.new_tbox.rect_matrix[0] ):
+
+      # Determine if mouse is hovering over item
+
+      if rect.collidepoint( mouse_x, mouse_y ):
+
+        if type( _item ) == item.Item:
+          self._item = _item
+
+        # Transfer items if mouse is clicked
+
+        if mouse_click:
+
+          if ( _item == 'Food' ) and ( self._inventory.food > 0 ):
+            self._expedition._inventory.food += 1
+            self._inventory.food             -= 1
+
+          elif ( _item == 'Wood' ) and ( self._inventory.wood > 0 ):
+            self._expedition._inventory.wood += 1
+            self._inventory.wood             -= 1
+
+          elif ( _item == 'Metal' ) and ( self._inventory.metal > 0 ):
+            self._expedition._inventory.metal += 1
+            self._inventory.metal             -= 1
+
+          elif ( _item == 'Ammo' ) and ( self._inventory.ammo > 0 ):
+            self._expedition._inventory.ammo += 1
+            self._inventory.ammo             -= 1
+
+          else:
+            _item.free = True
+            self._inventory.items.remove( _item )
 
     # Scroll text boxes if necessary
 
@@ -165,20 +211,24 @@ class SurvivorWindow( window.Window ):
 
     # Check for valid button click
 
-    if mouse_click and rect.collidepoint( mouse_x, mouse_y ) \
-      and ( len( self.survivors ) > 0 ):
+    if mouse_click and rect.collidepoint( mouse_x, mouse_y ):
       return True
     else:
       return False
 
   # Generate text matrices for scrollable text boxes
 
-  def get_text( self, survivors ):
+  def get_text( self, _inventory, items ):
 
-    text_col = []
+    text_col = [
+      'Food (' + str( _inventory.food ) + ')',
+      'Wood (' + str( _inventory.wood ) + ')',
+      'Metal (' + str( _inventory.metal ) + ')',
+      'Ammo (' + str( _inventory.ammo ) + ')',
+    ]
 
-    for _survivor in survivors:
-      text_col.append( _survivor.name )
+    for _item in items:
+      text_col.append( _item.name )
 
     return [ text_col ]
 
@@ -188,16 +238,16 @@ class SurvivorWindow( window.Window ):
 
     # Populate information text box if necessary
 
-    if self._survivor != None:
-      self.info_tbox.set_survivor( self._survivor )
+    if self._item != None:
+      self.info_tbox.set_item( self._item )
     else:
       self.info_tbox.update()
 
     # Populate old/new text boxes if a valid expedition is assigned
 
     if self._expedition != None:
-      self.old_tbox.update( self.get_text( self._expedition.get_free() ) )
-      self.new_tbox.update( self.get_text( self.survivors ) )
+      self.old_tbox.update( self.get_text( self._expedition._inventory, self._expedition._inventory.get_free() ) )
+      self.new_tbox.update( self.get_text( self._inventory, self._inventory.items ) )
 
     else:
       self.old_tbox.update()
@@ -216,7 +266,7 @@ class SurvivorWindow( window.Window ):
     # Draw labels
 
     rect_updates += [ self.image.blit( self.info_label_surface, self.info_label_rect ) ]
-    rect_updates += [ self.image.blit( self.old_label_surface, self.old_label_rect ) ]
+    rect_updates += [ self.image.blit( self.old_inv_label_surface, self.old_label_rect ) ]
     rect_updates += [ self.image.blit( self.new_label_surface, self.new_label_rect ) ]
 
     # Draw next button
@@ -234,4 +284,3 @@ class SurvivorWindow( window.Window ):
     rect_updates += window.Window.draw( self, surface )
 
     return rect_updates
-

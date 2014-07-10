@@ -23,7 +23,10 @@ TILE_X_OFFSET = 16
 TILE_Y_OFFSET = 96
 
 EXPD_X_OFFSET = 16
-EXPD_Y_OFFSET = 96 + properties.SIDEBAR_TERR_HEIGHT + 32
+EXPD_Y_OFFSET = TILE_Y_OFFSET + properties.SIDEBAR_TILE_HEIGHT + 32
+
+FREE_X_OFFSET = 16
+FREE_Y_OFFSET = EXPD_Y_OFFSET + properties.SIDEBAR_EXPD_HEIGHT + properties.TEXT_Y_OFFSET
 
 BUTTON_X_OFFSET = properties.SIDEBAR_WIDTH / 2 - properties.MENU_WIDTH / 2
 BUTTON_Y_OFFSET = properties.SIDEBAR_HEIGHT - 16 - properties.MENU_HEIGHT
@@ -123,6 +126,10 @@ class SidebarWindow( window.Window ):
 
     self.time_str += str( self.time_count )
 
+    # Compute total number of free survivors
+
+    self.free_str = str( self.get_free() ) + ' FREE SURVIVORS'
+
     # Populate text boxes
 
     if self._tile != None:
@@ -152,10 +159,7 @@ class SidebarWindow( window.Window ):
 
     # Draw number of free survivors left
 
-    free_surface = self.font.render( str( self.get_free() ) + ' FREE SURVIVORS', 1, (0,0,0) )
-    rect_updates += [ self.image.blit( free_surface, \
-                      ( 16, 96 + properties.SIDEBAR_TERR_HEIGHT + 32 \
-                          + properties.SIDEBAR_EXPD_HEIGHT + 3 ) ) ]
+    rect_updates += utils.draw_text( self.image, self.free_str, 16, FREE_X_OFFSET, FREE_Y_OFFSET, utils.BLACK, True )
 
     # Draw done button
 

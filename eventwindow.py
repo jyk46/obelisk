@@ -56,7 +56,7 @@ class EventWindow( window.Window ):
 
   # Roll for scavenge event
 
-  def roll_scavenge( self ):
+  def scavenge( self ):
 
     assert( self.event_tile != None )
 

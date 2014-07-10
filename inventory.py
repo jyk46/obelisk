@@ -26,16 +26,6 @@ class Inventory():
     self.ammo  = ammo
     self.items = items
 
-    # Text graphics
-
-    self.font         = pygame.font.Font( properties.DEFAULT_FONT, 14 )
-    self.text         = 'FOOD: ' + str( self.food ) + ', '\
-                      + 'WOOD: ' + str( self.wood ) + ', '\
-                      + 'METAL: ' + str( self.metal ) + ', '\
-                      + 'AMMO: ' + str( self.ammo )
-    self.text_surface = self.font.render( self.text, 1, (0,0,0) )
-    self.text_rect    = self.text_surface.get_rect()
-
   # Overload + operator for merging inventories
 
   def __add__( self, _inventory ):
@@ -98,7 +88,7 @@ class Inventory():
 
   # Reset free state of all items
 
-  def reset_free( self ):
+  def free( self ):
 
     for _item in self.items:
       _item.free = True

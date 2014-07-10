@@ -1,7 +1,7 @@
 #=========================================================================
-# explorewindow.py
+# combowindow.py
 #=========================================================================
-# Extended window class for handling explore phase selection
+# Extended window class for handling survivor/inventory selection
 
 import pygame, sys, os
 from pygame.locals import *
@@ -38,7 +38,7 @@ BUTTON_Y_OFFSET = properties.ACTION_HEIGHT - 16 - properties.MENU_HEIGHT
 # Main Class
 #-------------------------------------------------------------------------
 
-class ExploreWindow( window.Window ):
+class ComboWindow( window.Window ):
 
   # Constructor
 
@@ -51,7 +51,6 @@ class ExploreWindow( window.Window ):
     self._expedition = None
     self.survivors   = []
     self._inventory  = inventory.Inventory()
-    self.pos_tile    = None
     self.start_phase = True
 
     self._survivor   = None
@@ -93,7 +92,7 @@ class ExploreWindow( window.Window ):
     )
 
     self.new_label_surface, self.new_label_rect = utils.gen_text_pos(
-      'EXPLORE PARTY', 16,
+      'SELECTED', 16,
       NEW_X_OFFSET, NEW_Y_OFFSET - properties.TEXT_HEIGHT + properties.TEXT_Y_OFFSET,
       utils.BLACK, True
     )
@@ -103,30 +102,23 @@ class ExploreWindow( window.Window ):
     self.button_group = pygame.sprite.RenderUpdates()
     self.button_group.add( button.Button( 'NEXT', BUTTON_X_OFFSET, BUTTON_Y_OFFSET ) )
 
-  # Clear selection information
+  # Free up survivors and inventory when canceling selection
 
-  def clear( self ):
-    self.survivors  = []
-    self._inventory = inventory.Inventory( 0, 0, 0, 0, [] )
-    self.pos_tile   = None
-
-  # Reset expedition state to before explore selection
-
-  def reset_survivors( self ):
+  def free_survivors( self ):
 
     if self._expedition != None:
-      self._expedition.reset_free_survivors()
+      self._expedition.free_survivors()
 
-  def reset_inventory( self ):
+  def free_inventory( self ):
 
     if self._expedition != None:
       self._expedition._inventory.merge_resources( self._inventory )
-      self._expedition.reset_free_items()
+      self._expedition.free_inventory()
 
-  def reset_expedition( self ):
+  def free( self ):
 
-    self.reset_survivors()
-    self.reset_inventory()
+    self.free_survivors()
+    self.free_inventory()
 
   # Reset scroll positions of text boxes
 
@@ -134,6 +126,20 @@ class ExploreWindow( window.Window ):
 
     self.old_tbox.scroll_y = 0
     self.new_tbox.scroll_y = 0
+
+  # Reset expedition to clean state
+
+  def reset( self ):
+
+    self._expedition = None
+    self.survivors   = []
+    self._inventory  = inventory.Inventory( 0, 0, 0, 0, [] )
+    self.start_phase = True
+    self._survivor   = None
+    self._item       = None
+
+    self.free()
+    self.reset_scroll()
 
   # Process inputs. Return true if next button is clicked and at least
   # one survivor was selected.

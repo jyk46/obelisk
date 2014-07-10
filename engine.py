@@ -11,9 +11,9 @@ import random
 import properties
 import window
 import sidebarwindow
-import explorewindow
-import costbox
 import survivorwindow
+import inventorywindow
+import costbox
 import eventwindow
 import statuswindow
 import mapgen
@@ -30,10 +30,10 @@ import item
 # Properties
 #-------------------------------------------------------------------------
 
-PHASE_FREE, PHASE_SCAV_SURV, PHASE_SCAV_DONE, \
-PHASE_EXPL_SURV, PHASE_EXPL_INV, PHASE_EXPL_DEST, PHASE_EXPL_MOVE, \
-PHASE_CRAFT_ITEM, PHASE_CRAFT_SURV, PHASE_REST, PHASE_STATUS, \
-PHASE_NIGHT, PHASE_TRANSITION  = range( 13 )
+PHASE_FREE, PHASE_SCAVENGE0, PHASE_SCAVENGE1, \
+PHASE_EXPLORE0, PHASE_EXPLORE1, PHASE_EXPLORE2, PHASE_EXPLORE3, \
+PHASE_CRAFT, PHASE_REST, PHASE_STATUS, \
+PHASE_NIGHT, PHASE_TRANSITION  = range( 12 )
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -103,17 +103,16 @@ class Engine:
       self.expeditions
     )
 
-    self.explore_window = explorewindow.ExploreWindow(
+    self.survivor_window = survivorwindow.SurvivorWindow(
       properties.ACTION_WIDTH, properties.ACTION_HEIGHT,
       properties.MENU_WIDTH + 32, 32,
       properties.ACTION_PATH + 'action_bg.png'
     )
 
-    self.scavenge_window = survivorwindow.SurvivorWindow(
+    self.inventory_window = inventorywindow.InventoryWindow(
       properties.ACTION_WIDTH, properties.ACTION_HEIGHT,
       properties.MENU_WIDTH + 32, 32,
-      properties.ACTION_PATH + 'action_bg.png',
-      'SCAVENGING PARTY'
+      properties.ACTION_PATH + 'action_bg.png'
     )
 
     self.event_window = eventwindow.EventWindow(
@@ -121,13 +120,6 @@ class Engine:
       properties.MENU_WIDTH + 32,
       properties.CAMERA_HEIGHT / 2 - properties.EVENT_HEIGHT / 2,
       properties.EVENT_PATH + 'event_bg.png'
-    )
-
-    self.rest_window = survivorwindow.SurvivorWindow(
-      properties.ACTION_WIDTH, properties.ACTION_HEIGHT,
-      properties.MENU_WIDTH + 32, 32, \
-      properties.ACTION_PATH + 'action_bg.png',
-      'RESTING PARTY'
     )
 
     self.status_window = statuswindow.StatusWindow(
@@ -139,23 +131,6 @@ class Engine:
     # Initialize cost box for movement
 
     self.cost_box = costbox.CostBox()
-
-    # Adjust window scroll zones with absolute offset
-
-    self.status_window.surv_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-    self.status_window.surv_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-    self.status_window.inv_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-    self.status_window.inv_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-
-    self.scavenge_window.old_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-    self.scavenge_window.old_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-    self.scavenge_window.new_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-    self.scavenge_window.new_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-
-    self.rest_window.old_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-    self.rest_window.old_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-    self.rest_window.new_scroll_up_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
-    self.rest_window.new_scroll_down_rect.move_ip( properties.MENU_WIDTH + 32, 32 )
 
   #.......................................................................
   # Initialize map and add tiles to group
@@ -184,7 +159,7 @@ class Engine:
       pos_x = random.randint( 0, properties.MAP_SIZE - 1 )
       pos_y = random.randint( 0, properties.MAP_SIZE - 1 )
 
-    start_tile = self.map[pos_x][pos_y]
+    pos_tile = self.map[pos_x][pos_y]
 
     # Generate random set of starting survivors
 
@@ -195,7 +170,7 @@ class Engine:
 
     # Initialize starting inventory
 
-    inv = inventory.Inventory(
+    _inventory = inventory.Inventory(
       properties.START_FOOD,
       properties.START_WOOD,
       properties.START_METAL,
@@ -208,11 +183,13 @@ class Engine:
 
     # Create expedition
 
-    self.expeditions.append( expedition.Expedition( start_tile, survivors, inv, self.map ) )
+    self.expeditions.append(
+      expedition.Expedition( pos_tile, survivors, _inventory, self.map )
+    )
 
     # Center camera on starting expedition
 
-    self.center_camera( start_tile )
+    self.center_camera( pos_tile )
 
   #.......................................................................
   # Find next expedition with free survivors
@@ -328,40 +305,25 @@ class Engine:
 
           self.sidebar_window._tile = self.active_expedition.pos_tile
 
-          # Reset survivors/inventory free state
-
-          self.explore_window.reset_expedition()
-          self.scavenge_window.reset_survivors()
-          self.rest_window.reset_survivors()
-
           # Phase transition based on button click
 
           if button.text == 'EXPLORE':
-            self.phase                      = PHASE_EXPL_SURV
-            self.explore_window._expedition = self.active_expedition
-            self.explore_window.start_phase = True
-            self.explore_window.clear()
-            self.scavenge_window.clear()
-            self.rest_window.clear()
+            self.phase                       = PHASE_EXPLORE0
+            self.survivor_window.reset()
+            self.survivor_window._expedition = self.active_expedition
 
           elif button.text == 'SCAVENGE':
-            self.phase                       = PHASE_SCAV_SURV
-            self.scavenge_window._expedition = self.active_expedition
-            self.scavenge_window.clear()
-            self.explore_window.clear()
-            self.rest_window.clear()
-            self.event_window._expedition    = self.active_expedition
-            self.event_window.event_tile     = self.active_expedition.pos_tile
+            self.phase                       = PHASE_SCAVENGE0
+            self.survivor_window.reset()
+            self.survivor_window._expedition = self.active_expedition
 
           elif button.text == 'CRAFT':
-            self.phase = PHASE_CRAFT_ITEM
+            self.phase = PHASE_CRAFT
 
           elif button.text == 'REST':
-            self.phase                   = PHASE_REST
-            self.rest_window._expedition = self.active_expedition
-            self.explore_window.clear()
-            self.scavenge_window.clear()
-            self.rest_window.clear()
+            self.phase                       = PHASE_REST
+            self.survivor_window.reset()
+            self.survivor_window._expedition = self.active_expedition
 
           elif button.text == 'STATUS':
             self.phase                     = PHASE_STATUS
@@ -399,7 +361,7 @@ class Engine:
       # Reset all survivors to be free
 
       for _expedition in self.expeditions:
-        _expedition.reset_free_survivors()
+        _expedition.free_survivors()
 
       return True
 
@@ -480,15 +442,15 @@ class Engine:
         self.cam_en            = False
 
   #.......................................................................
-  # PHASE_EXPL_SURV Handling
+  # PHASE_EXPLORE0 Handling
   #.......................................................................
   # Phase for selecting survivors to explore new tile
 
-  def handle_phase_expl_surv( self ):
+  def handle_phase_explore0( self ):
 
     # Process inputs
 
-    next_phase = self.explore_window.process_inputs(
+    next_phase = self.survivor_window.process_inputs(
       self.mouse_x, self.mouse_y, self.mouse_click
     )
 
@@ -499,19 +461,19 @@ class Engine:
       self.phase   = PHASE_FREE
       self.menu_en = True
       self.cam_en  = False
-      self.explore_window.reset_expedition()
+      self.survivor_window.free()
 
     # Reset phase if clicked outside of context
 
     elif self.mouse_click \
-      and not self.explore_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and not self.survivor_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
       and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
       and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
 
       self.phase   = PHASE_FREE
       self.menu_en = False
       self.cam_en  = True
-      self.explore_window.reset_expedition()
+      self.survivor_window.free()
 
     # Move to next phase if next button is clicked and at least one
     # survivor was chosen.
@@ -522,78 +484,74 @@ class Engine:
       # automatically transfer all items and resources over to
       # explore party.
 
-      if len( self.explore_window._expedition.get_free() ) == 0:
+      if len( self.survivor_window._expedition.get_free() ) == 0:
 
-        self.phase                     = PHASE_EXPL_DEST
-        self.explore_window.pos_tile   = None
-        self.menu_en                   = False
-        self.cam_en                    = True
-        self.explore_window._expedition.calc_range( self.explore_window.survivors )
-        self.explore_window._expedition.highlight_range()
-        self.explore_window._inventory = self.explore_window._expedition._inventory
+        self.phase                        = PHASE_EXPLORE2
+        self.menu_en                      = False
+        self.cam_en                       = True
+        self.inventory_window.reset()
+        self.inventory_window._expedition = self.active_expedition
+        self.inventory_window._inventory  = self.active_expedition._inventory
+        self.active_expedition.calc_range( self.survivor_window.survivors )
+        self.active_expedition.highlight_range()
 
       # Otherwise, go into inventory selection
 
       else:
 
-        self.phase                      = PHASE_EXPL_INV
-        self.explore_window._inventory  = inventory.Inventory( 0, 0, 0, 0, [] )
-        self.explore_window.start_phase = False
-        self.explore_window.reset_scroll()
+        self.phase                        = PHASE_EXPLORE1
+        self.inventory_window.reset()
+        self.inventory_window._expedition = self.active_expedition
 
   #.......................................................................
-  # PHASE_EXPL_INV Handling
+  # PHASE_EXPLORE1 Handling
   #.......................................................................
   # Phase for selecting inventory for explore party
 
-  def handle_phase_expl_inv( self ):
+  def handle_phase_explore1( self ):
 
+    # Process inputs
+
+    next_phase = self.inventory_window.process_inputs(
+      self.mouse_x, self.mouse_y, self.mouse_click
+    )
 
     # Go back to menu if ESC pressed
 
     if self.key_esc:
-      self.phase                     = PHASE_EXPL_SURV
-      self.explore_window.surv_phase = True
-      self.explore_window.old_scroll = 0
-      self.explore_window.new_scroll = 0
-      self.explore_window.reset_inventory()
 
-    elif self.mouse_click:
+      self.phase = PHASE_EXPLORE0
+      self.inventory_window.free()
 
-      # Move to next phase if next button is clicked
+    # Reset phase if clicked outside of context
 
-      for button in self.explore_window.button_group:
+    elif self.mouse_click \
+      and not self.inventory_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
+      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
 
-        button_rect = pygame.rect.Rect(
-          properties.MENU_WIDTH + 32 + button.rect.left, \
-          32 + button.rect.top, \
-          button.rect.width, button.rect.height
-        )
+      self.phase   = PHASE_FREE
+      self.menu_en = False
+      self.cam_en  = True
+      self.survivor_window.free()
+      self.inventory_window.free()
 
-        if button_rect.collidepoint( self.mouse_x, self.mouse_y ):
-          self.phase                     = PHASE_EXPL_DEST
-          self.explore_window.start_tile = None
-          self.menu_en                   = False
-          self.cam_en                    = True
-          self.explore_window.expd.calc_range( self.explore_window.survivors )
-          self.explore_window.expd.highlight_range()
+    # Move to next phase if next button is clicked
 
-      # Reset phase if clicked outside of context
+    elif next_phase:
 
-      if not self.explore_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
-        and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
-        and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
-        self.phase   = PHASE_FREE
-        self.menu_en = False
-        self.cam_en  = True
-        self.explore_window.reset_expedition()
+      self.phase                     = PHASE_EXPLORE2
+      self.menu_en                   = False
+      self.cam_en                    = True
+      self.active_expedition.calc_range( self.survivor_window.survivors )
+      self.active_expedition.highlight_range()
 
   #.......................................................................
-  # PHASE_EXPL_DEST Handling
+  # PHASE_EXPLORE2 Handling
   #.......................................................................
   # Phase for selecting destination tile for explore party
 
-  def handle_phase_expl_dest( self ):
+  def handle_phase_explore2( self ):
 
     # Calculate current tile mouse is hovering over
 
@@ -620,15 +578,15 @@ class Engine:
 
     # Check if cursor is over a moveable tile
 
-    for ti, info in self.explore_window.expd.path_dic.iteritems():
+    for _tile, info in self.active_expedition.path_dic.iteritems():
 
-      ti.selected = False
+      _tile.selected = False
 
-      if ti.rect.collidepoint( self.mouse_x, self.mouse_y ):
+      if _tile.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
         # Highlight destination tile
 
-        ti.selected = True
+        _tile.selected = True
 
         # Enable cost box with appropriate stamina cost
 
@@ -636,196 +594,162 @@ class Engine:
         self.cost_box.pos_x = self.mouse_x
         self.cost_box.pos_y = self.mouse_y
 
-        # Destination selected, create new expedition
+        # Move to next phase if valid destination selected
 
         if self.mouse_click:
-          self.phase                     = PHASE_EXPL_MOVE
-          self.explore_window.start_tile = self.explore_window.expd.pos_tile
-          self.cam_en                    = False
 
-          move_route, cost = self.explore_window.expd.calc_path( ti )
+          self.phase  = PHASE_EXPLORE3
+          self.cam_en = False
 
           # Keep old expedition's image if all survivors exploring
 
-          if len( self.explore_window.expd.get_free() ) == 0:
-            new_expd_img_idx = self.explore_window.expd.img_roll
+          if len( self.active_expedition.get_free() ) == 0:
+            img_idx = self.active_expedition.img_roll
           else:
-            new_expd_img_idx = -1
+            img_idx = -1
 
-          new_expd = expedition.Expedition(
-            self.explore_window.start_tile,
-            self.explore_window.survivors,
-            self.explore_window.inv,
+          # Create new expedition
+
+          _expedition = expedition.Expedition(
+            self.active_expedition.pos_tile,
+            self.survivor_window.survivors,
+            self.inventory_window._inventory,
             self.map,
-            new_expd_img_idx
+            img_idx
           )
 
-          new_expd.move_route = move_route
-          new_expd.modify_stamina( -cost )
-          new_expd.set_direction()
-          new_expd.draw_animation()
+          # Configure movement route, subtract cost
 
-          self.active_expedition = new_expd
+          move_route, cost = self.active_expedition.calc_path( _tile )
 
-          self.expeditions.append( new_expd )
+          _expedition.move_route = move_route
+          _expedition.modify_stamina( -cost )
+          _expedition.set_direction()
+          _expedition.draw_animation()
 
-          self.explore_window.expd.commit_free()
-          new_expd.inv.reset_free()
+          # Finalize changes and delete old expedition if all transferred
 
-          self.explore_window.expd.unhighlight_range()
+          self.active_expedition.unhighlight_range()
+          self.active_expedition.commit()
 
-          # Delete old expedition if no survivors left
+          if len( self.active_expedition.get_free() ) == 0:
+            self.active_expedition.kill()
+            self.expeditions.remove( self.active_expedition )
 
-          if len( self.explore_window.expd.get_free() ) == 0:
-            self.explore_window.expd.kill()
-            self.expeditions.remove( self.explore_window.expd )
+          # Assign new expedition as active
+
+          self.active_expedition = _expedition
+          self.expeditions.append( _expedition )
+
+          # Free up transferred items
+
+          self.active_expedition._inventory.free()
+
+          break
 
     # Go back to menu if ESC pressed
 
     if self.key_esc:
-      self.phase                     = PHASE_EXPL_INV
-      self.menu_en                   = True
-      self.cam_en                    = False
-      self.explore_window.surv_phase = False
-      self.explore_window.old_scroll = 0
-      self.explore_window.new_scroll = 0
-      self.explore_window.expd.unhighlight_range()
+
+      self.phase   = PHASE_EXPLORE1
+      self.menu_en = True
+      self.cam_en  = False
+      self.active_expedition.unhighlight_range()
 
   #.......................................................................
-  # PHASE_EXPL_MOVE Handling
+  # PHASE_EXPLORE3 Handling
   #.......................................................................
   # Phase for actually moving explore party
 
-  def handle_phase_expl_move( self ):
+  def handle_phase_explore3( self ):
+
+    # Wait until movement animation is finished (if coming from explore
+    # phase). Move to next phase once movement is done to display
+    # scavenging results.
 
     if len( self.active_expedition.move_route ) == 0:
-      self.phase = PHASE_SCAV_DONE
+
+      self.phase = PHASE_SCAVENGE1
 
       # Configure event window for scavenging event
 
-      self.event_window.expd       = self.active_expedition
-      self.event_window.survivors  = self.active_expedition.survivors
-      self.event_window.event_tile = self.active_expedition.pos_tile
+      self.event_window._expedition = self.active_expedition
+      self.event_window.survivors   = self.active_expedition.survivors
+      self.event_window._tile       = self.active_expedition.pos_tile
+
+      # Need to set a special flag so the scavenge phase knows not to
+      # charge any stamina when coming from explore phase.
 
       self.explored = True
 
       # Merge expeditions if on same tile
 
-      for expd in self.expeditions:
-        if ( self.active_expedition != expd ) \
-          and ( self.active_expedition.pos_tile == expd.pos_tile ):
-          expd.merge( self.active_expedition )
+      for _expedition in self.expeditions:
+        if ( self.active_expedition != _expedition ) \
+          and ( self.active_expedition.pos_tile == _expedition.pos_tile ):
+          _expedition.merge( self.active_expedition )
           self.expeditions.remove( self.active_expedition )
-          self.event_window.expd = expd
+          self.event_window._expedition = _expedition
           break
 
       # Roll for scavenging
 
-      self.event_window.roll_scavenge()
+      self.event_window.scavenge()
 
   #.......................................................................
-  # PHASE_SCAV_SURV Handling
+  # PHASE_SCAVENGE0 Handling
   #.......................................................................
   # Phase for selecting survivors to scavenge current tile
 
-  def handle_phase_scav_surv( self ):
+  def handle_phase_scavenge0( self ):
 
-    # Set active information to display
+    # Process inputs
 
-    self.scavenge_window.surv = None
-
-    for surv, pos in zip( self.scavenge_window.expd.get_free(), self.scavenge_window.old_pos ):
-      surv_info_rect = pygame.rect.Rect(
-        properties.MENU_WIDTH + 32 + self.scavenge_window.old_rect.left + pos[0] - 4, \
-        32 + self.scavenge_window.old_rect.top + pos[1] - 3, \
-        properties.ACTION_SUB_WIDTH, 32
-      )
-      if surv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
-        self.scavenge_window.surv = surv
-
-        if self.mouse_click and ( surv.stamina > properties.SCAVENGE_COST ):
-          surv.free = False
-          self.scavenge_window.survivors.append( surv )
-
-    for surv, pos in zip( self.scavenge_window.survivors, self.scavenge_window.new_pos ):
-      surv_info_rect = pygame.rect.Rect(
-        properties.MENU_WIDTH + 32 + self.scavenge_window.new_rect.left + pos[0] - 4, \
-        32 + self.scavenge_window.new_rect.top + pos[1] - 3, \
-        properties.ACTION_SUB_WIDTH, 32
-      )
-      if surv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
-        self.scavenge_window.surv = surv
-
-        if self.mouse_click:
-          surv.free = True
-          self.scavenge_window.survivors.remove( surv )
-
-    # Scroll old survivors panel
-
-    if self.scavenge_window.old_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( self.scavenge_window.old_scroll > 0 ):
-      self.scavenge_window.old_scroll -= properties.SCROLL_SPEED
-
-    elif self.scavenge_window.old_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( ( self.scavenge_window.old_scroll + properties.ACTION_SUB_HEIGHT - 32 ) < self.scavenge_window.max_old_scroll ):
-      self.scavenge_window.old_scroll += properties.SCROLL_SPEED
-
-    # Scroll new survivors panel
-
-    if self.scavenge_window.new_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( self.scavenge_window.new_scroll > 0 ):
-      self.scavenge_window.new_scroll -= properties.SCROLL_SPEED
-
-    elif self.scavenge_window.new_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( ( self.scavenge_window.new_scroll + properties.ACTION_SUB_HEIGHT - 32 ) < self.scavenge_window.max_new_scroll ):
-      self.scavenge_window.new_scroll += properties.SCROLL_SPEED
+    next_phase = self.survivor_window.process_inputs(
+      self.mouse_x, self.mouse_y, self.mouse_click
+    )
 
     # Go back to menu if ESC pressed
 
     if self.key_esc:
+
       self.phase   = PHASE_FREE
       self.menu_en = True
       self.cam_en  = False
-      self.scavenge_window.reset_survivors()
+      self.survivor_window.free()
 
-    elif self.mouse_click:
+    # Reset phase if clicked outside of context
 
-      # Move to next phase if next button is clicked and at least one
-      # survivor was chosen.
+    elif self.mouse_click \
+      and not self.survivor_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
+      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
 
-      for button in self.scavenge_window.button_group:
+      self.phase   = PHASE_FREE
+      self.menu_en = False
+      self.cam_en  = True
+      self.survivor_window.free()
 
-        button_rect = pygame.rect.Rect(
-          properties.MENU_WIDTH + 32 + button.rect.left, \
-          32 + button.rect.top, \
-          button.rect.width, button.rect.height
-        )
+    # Move to next phase if next button is clicked and at least one
+    # survivor was chosen.
 
-        if button_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-          and ( len( self.scavenge_window.survivors ) > 0 ):
-          self.phase                  = PHASE_SCAV_DONE
-          self.event_window.survivors = self.scavenge_window.survivors
+    elif next_phase:
 
-          # Roll for scavenging
+      self.phase                    = PHASE_SCAVENGE1
+      self.event_window._expedition = self.active_expedition
+      self.event_window.survivors   = self.survivor_window.survivors
+      self.event_window._tile       = self.active_expedition.pos_tile
 
-          self.event_window.roll_scavenge()
+      # Roll for scavenging
 
-      # Reset phase if clicked outside of context
-
-      if not self.explore_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
-        and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
-        and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
-        self.phase   = PHASE_FREE
-        self.menu_en = False
-        self.cam_en  = True
-        self.scavenge_window.reset_survivors()
+      self.event_window.scavenge()
 
   #.......................................................................
-  # PHASE_SCAV_DONE Handling
+  # PHASE_SCAVENGE1 Handling
   #.......................................................................
   # Phase for displaying scavenge results
 
-  def handle_phase_scav_done( self ):
+  def handle_phase_scavenge1( self ):
 
     # Reset to free phase once okay button is clicked
 
@@ -856,12 +780,6 @@ class Engine:
           else:
             for surv in self.event_window.survivors:
               surv.stamina -= properties.SCAVENGE_COST
-
-          # Clean up selection windows
-
-          self.explore_window.clear()
-          self.scavenge_window.clear()
-          self.rest_window.clear()
 
   #.......................................................................
   # Heal survivors in rest phase
@@ -901,102 +819,45 @@ class Engine:
 
   def handle_phase_rest( self ):
 
-    # Set active information to display
+    # Process inputs
 
-    self.rest_window.surv = None
-
-    for surv, pos in zip( self.rest_window.expd.get_free(), self.rest_window.old_pos ):
-      surv_info_rect = pygame.rect.Rect(
-        properties.MENU_WIDTH + 32 + self.rest_window.old_rect.left + pos[0] - 4, \
-        32 + self.rest_window.old_rect.top + pos[1] - 3, \
-        properties.ACTION_SUB_WIDTH, 32
-      )
-      if surv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
-        self.rest_window.surv = surv
-
-        if self.mouse_click:
-          surv.free = False
-          self.rest_window.survivors.append( surv )
-
-    for surv, pos in zip( self.rest_window.survivors, self.rest_window.new_pos ):
-      surv_info_rect = pygame.rect.Rect(
-        properties.MENU_WIDTH + 32 + self.rest_window.new_rect.left + pos[0] - 4, \
-        32 + self.rest_window.new_rect.top + pos[1] - 3, \
-        properties.ACTION_SUB_WIDTH, 32
-      )
-      if surv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
-        self.rest_window.surv = surv
-
-        if self.mouse_click:
-          surv.free = True
-          self.rest_window.survivors.remove( surv )
-
-    # Scroll old survivors panel
-
-    if self.rest_window.old_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( self.rest_window.old_scroll > 0 ):
-      self.rest_window.old_scroll -= properties.SCROLL_SPEED
-
-    elif self.rest_window.old_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( ( self.rest_window.old_scroll + properties.ACTION_SUB_HEIGHT - 32 ) < self.rest_window.max_old_scroll ):
-      self.rest_window.old_scroll += properties.SCROLL_SPEED
-
-    # Scroll new survivors panel
-
-    if self.rest_window.new_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( self.rest_window.new_scroll > 0 ):
-      self.rest_window.new_scroll -= properties.SCROLL_SPEED
-
-    elif self.rest_window.new_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( ( self.rest_window.new_scroll + properties.ACTION_SUB_HEIGHT - 32 ) < self.rest_window.max_new_scroll ):
-      self.rest_window.new_scroll += properties.SCROLL_SPEED
+    next_phase = self.survivor_window.process_inputs(
+      self.mouse_x, self.mouse_y, self.mouse_click
+    )
 
     # Go back to menu if ESC pressed
 
     if self.key_esc:
+
       self.phase   = PHASE_FREE
       self.menu_en = True
       self.cam_en  = False
-      self.rest_window.reset_survivors()
+      self.survivor_window.free()
 
-    elif self.mouse_click:
+    # Reset phase if clicked outside of context
 
-      # Move to next phase if next button is clicked and at least one
-      # survivor was chosen.
+    elif self.mouse_click \
+      and not self.survivor_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
+      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
 
-      for button in self.rest_window.button_group:
+      self.phase   = PHASE_FREE
+      self.menu_en = False
+      self.cam_en  = True
+      self.survivor_window.free()
 
-        button_rect = pygame.rect.Rect(
-          properties.MENU_WIDTH + 32 + button.rect.left, \
-          32 + button.rect.top, \
-          button.rect.width, button.rect.height
-        )
+    # Move to next phase if next button is clicked and at least one
+    # survivor was chosen.
 
-        if button_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-          and ( len( self.rest_window.survivors ) > 0 ):
-          self.phase   = PHASE_FREE
-          self.menu_en = False
-          self.cam_en  = True
+    elif next_phase:
 
-          # Heal resting survivors based on age
+      self.phase   = PHASE_FREE
+      self.menu_en = False
+      self.cam_en  = True
 
-          self.heal_survivors( self.rest_window.survivors )
+      # Heal resting survivors based on age
 
-          # Clean up selection windows
-
-          self.explore_window.clear()
-          self.scavenge_window.clear()
-          self.rest_window.clear()
-
-      # Reset phase if clicked outside of context
-
-      if not self.explore_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
-        and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
-        and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
-        self.phase   = PHASE_FREE
-        self.menu_en = False
-        self.cam_en  = True
-        self.rest_window.reset_survivors()
+      self.heal_survivors( self.survivor_window.survivors )
 
   #.......................................................................
   # PHASE_STATUS Handling
@@ -1071,12 +932,11 @@ class Engine:
   def update_all( self ):
 
     self.map_group.update( self.cam_x, self.cam_y )
-    self.expd_group.update( self.cam_x, self.cam_y, self.cam_en )
+    self.expeditions_group.update( self.cam_x, self.cam_y, self.cam_en )
     self.sidebar_window.update()
-    self.explore_window.update()
+    self.survivor_window.update()
+    self.inventory_window.update()
     self.cost_box.update()
-    self.scavenge_window.update()
-    self.rest_window.update()
     self.status_window.update()
 
   #.......................................................................
@@ -1088,7 +948,7 @@ class Engine:
     # Draw map and associated markers
 
     rect_updates =  self.map_group.draw( self.camera_window.image )
-    rect_updates += self.expd_group.draw( self.camera_window.image )
+    rect_updates += self.expeditions_group.draw( self.camera_window.image )
 
     # Draw menu if enabled
 
@@ -1102,18 +962,18 @@ class Engine:
 
     # Draw phase-specific graphics
 
-    if self.phase == PHASE_EXPL_SURV:
-      rect_updates += self.explore_window.draw( self.screen )
-    elif self.phase == PHASE_EXPL_INV:
-      rect_updates += self.explore_window.draw( self.screen )
-    elif self.phase == PHASE_EXPL_DEST:
+    if self.phase == PHASE_EXPLORE0:
+      rect_updates += self.survivor_window.draw( self.screen )
+    elif self.phase == PHASE_EXPLORE1:
+      rect_updates += self.inventory_window.draw( self.screen )
+    elif self.phase == PHASE_EXPLORE2:
       rect_updates += self.cost_box.draw( self.screen )
-    elif self.phase == PHASE_SCAV_SURV:
-      rect_updates += self.scavenge_window.draw( self.screen )
-    elif self.phase == PHASE_SCAV_DONE:
+    elif self.phase == PHASE_SCAVENGE0:
+      rect_updates += self.survivor_window.draw( self.screen )
+    elif self.phase == PHASE_SCAVENGE1:
       rect_updates += self.event_window.draw( self.screen )
     elif self.phase == PHASE_REST:
-      rect_updates += self.rest_window.draw( self.screen )
+      rect_updates += self.survivor_window.draw( self.screen )
     elif self.phase == PHASE_STATUS:
       rect_updates += self.status_window.draw( self.screen )
 
@@ -1171,26 +1031,26 @@ class Engine:
         if self.phase == PHASE_FREE:
           self.handle_phase_free()
 
-        elif self.phase == PHASE_EXPL_SURV:
-          self.handle_phase_expl_surv()
+        elif self.phase == PHASE_EXPLORE0:
+          self.handle_phase_explore0()
 
-        elif self.phase == PHASE_EXPL_INV:
-          self.handle_phase_expl_inv()
+        elif self.phase == PHASE_EXPLORE1:
+          self.handle_phase_explore1()
 
-        elif self.phase == PHASE_EXPL_DEST:
-          self.handle_phase_expl_dest()
+        elif self.phase == PHASE_EXPLORE2:
+          self.handle_phase_explore2()
 
-        elif self.phase == PHASE_EXPL_MOVE:
-          self.handle_phase_expl_move()
+        elif self.phase == PHASE_EXPLORE3:
+          self.handle_phase_explore3()
 
-        elif self.phase == PHASE_SCAV_SURV:
-          self.handle_phase_scav_surv()
+        elif self.phase == PHASE_SCAVENGE0:
+          self.handle_phase_scavenge0()
 
-        elif self.phase == PHASE_SCAV_DONE:
-          self.handle_phase_scav_done()
+        elif self.phase == PHASE_SCAVENGE1:
+          self.handle_phase_scavenge1()
 
-        elif self.phase == PHASE_CRAFT_ITEM:
-          self.handle_phase_craft_item()
+        elif self.phase == PHASE_CRAFT:
+          self.handle_phase_craft()
 
         elif self.phase == PHASE_REST:
           self.handle_phase_rest()
