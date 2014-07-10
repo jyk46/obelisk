@@ -22,7 +22,7 @@ START_WOOD  = 5
 START_METAL = 2
 START_AMMO  = 5
 
-EXPEDITION_SPEED = 2
+EXPD_SPEED = 2
 
 RSRC_BONUS_MULT = 0.02
 ITEM_BONUS_MULT = 0.02
@@ -81,6 +81,16 @@ MENU_WIDTH    = 128
 MENU_HEIGHT   = 32
 
 #-------------------------------------------------------------------------
+# Text
+#-------------------------------------------------------------------------
+
+TEXT_Y_OFFSET = 3
+TEXT_X_OFFSET = 4
+TEXT_HEIGHT   = 32
+
+SCROLL_HEIGHT = 16
+
+#-------------------------------------------------------------------------
 # Dimensions
 #-------------------------------------------------------------------------
 
@@ -110,8 +120,8 @@ EVENT_SUB_HEIGHT = 192
 SIDEBAR_WIDTH  = 256
 SIDEBAR_HEIGHT = WINDOW_HEIGHT
 
-SIDEBAR_TERR_WIDTH  = 224
-SIDEBAR_TERR_HEIGHT = 96
+SIDEBAR_TILE_WIDTH  = 224
+SIDEBAR_TILE_HEIGHT = 96
 
 SIDEBAR_EXPD_WIDTH  = 224
 SIDEBAR_EXPD_HEIGHT = 160

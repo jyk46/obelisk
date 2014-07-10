@@ -53,51 +53,54 @@ class MapGen():
 
         next_frontier = []
 
-        for i, ti in enumerate( frontier ):
+        for i, _tile in enumerate( frontier ):
 
           # Chance to convert north neighbor to terrain
 
-          if ti.pos_y > 0:
+          if _tile.pos_y > 0:
 
-            next_ti = self.map[ti.pos_x][ti.pos_y-1]
+            next_tile = self.map[_tile.pos_x][_tile.pos_y-1]
 
-            if ( random.random() < prob ) and ( next_ti not in visited ):
-              self.map[ti.pos_x][ti.pos_y-1] = tile.Tile( terrain, ti.pos_x, ti.pos_y - 1 )
-              next_frontier.append( next_ti )
+            if ( random.random() < prob ) and ( next_tile not in visited ):
+              self.map[_tile.pos_x][_tile.pos_y-1] \
+                = tile.Tile( terrain, _tile.pos_x, _tile.pos_y - 1 )
+              next_frontier.append( next_tile )
 
           # Chance to convert east neighbor to terrain
 
-          if ti.pos_x < ( self.size - 1 ):
+          if _tile.pos_x < ( self.size - 1 ):
 
-            next_ti = self.map[ti.pos_x+1][ti.pos_y]
+            next_tile = self.map[_tile.pos_x+1][_tile.pos_y]
 
-            if ( random.random() < prob ) and ( next_ti not in visited ):
-              self.map[ti.pos_x+1][ti.pos_y] = tile.Tile( terrain, ti.pos_x + 1, ti.pos_y )
-              next_frontier.append( next_ti )
+            if ( random.random() < prob ) and ( next_tile not in visited ):
+              self.map[_tile.pos_x+1][_tile.pos_y] \
+                = tile.Tile( terrain, _tile.pos_x + 1, _tile.pos_y )
+              next_frontier.append( next_tile )
 
           # Chance to convert south neighbor to terrain
 
-          if ti.pos_y < ( self.size - 1 ):
+          if _tile.pos_y < ( self.size - 1 ):
 
-            next_ti = self.map[ti.pos_x][ti.pos_y+1]
+            next_tile = self.map[_tile.pos_x][_tile.pos_y+1]
 
-            if ( random.random() < prob ) and ( next_ti not in visited ):
-              self.map[ti.pos_x][ti.pos_y+1] = tile.Tile( terrain, ti.pos_x, ti.pos_y + 1 )
-              next_frontier.append( next_ti )
+            if ( random.random() < prob ) and ( next_tile not in visited ):
+              self.map[_tile.pos_x][_tile.pos_y+1] \
+                = tile.Tile( terrain, _tile.pos_x, _tile.pos_y + 1 )
+              next_frontier.append( next_tile )
 
           # Chance to convert west neighbor to terrain
 
-          if ti.pos_x > 0:
+          if _tile.pos_x > 0:
 
-            next_ti = self.map[ti.pos_x-1][ti.pos_y]
+            next_tile = self.map[_tile.pos_x-1][_tile.pos_y]
 
-            if ( random.random() < prob ) and ( next_ti not in visited ):
-              self.map[ti.pos_x-1][ti.pos_y] = tile.Tile( terrain, ti.pos_x - 1, ti.pos_y )
-              next_frontier.append( next_ti )
+            if ( random.random() < prob ) and ( next_tile not in visited ):
+              self.map[_tile.pos_x-1][_tile.pos_y] = tile.Tile( terrain, _tile.pos_x - 1, _tile.pos_y )
+              next_frontier.append( next_tile )
 
           # Mark tile in frontier as visited
 
-          visited.append( ti )
+          visited.append( _tile )
 
         # Swap frontiers when all tiles in current frontier are processed
 
@@ -109,17 +112,17 @@ class MapGen():
 
       # Determine the edge tiles for the generated terrain
 
-      for ti in visited:
+      for _tile in visited:
 
-        north_edge = ( ti.pos_y > 0 ) and ( self.map[ti.pos_x][ti.pos_y-1].terrain not in terrains )
-        east_edge  = ( ti.pos_x < ( self.size - 1 ) ) and ( self.map[ti.pos_x+1][ti.pos_y].terrain not in terrains )
-        south_edge = ( ti.pos_y < ( self.size - 1 ) ) and ( self.map[ti.pos_x][ti.pos_y+1].terrain not in terrains )
-        west_edge  = ( ti.pos_x > 0 ) and ( self.map[ti.pos_x-1][ti.pos_y].terrain not in terrains )
+        north_edge = ( _tile.pos_y > 0 ) and ( self.map[_tile.pos_x][_tile.pos_y-1].terrain not in terrains )
+        east_edge  = ( _tile.pos_x < ( self.size - 1 ) ) and ( self.map[_tile.pos_x+1][_tile.pos_y].terrain not in terrains )
+        south_edge = ( _tile.pos_y < ( self.size - 1 ) ) and ( self.map[_tile.pos_x][_tile.pos_y+1].terrain not in terrains )
+        west_edge  = ( _tile.pos_x > 0 ) and ( self.map[_tile.pos_x-1][_tile.pos_y].terrain not in terrains )
 
         edges = [ north_edge, east_edge, south_edge, west_edge ]
 
         if True in edges:
-          frontier.append( ti )
+          frontier.append( _tile )
 
   # Spawn random terrain (no spread)
 

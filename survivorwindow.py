@@ -94,21 +94,15 @@ class SurvivorWindow( window.Window ):
   # Clear selection information
 
   def clear( self ):
+
     self.survivors = []
-
-  # Check that all selection is clean (i.e., not in the middle of selecting)
-
-  def is_clean( self ):
-
-    surv_clean = ( len( self.survivors ) == 0 )
-
-    return surv_clean
 
   # Reset expedition state to before explore selection
 
   def reset_survivors( self ):
-    if self.expd != None:
-      self.expd.reset_free_survivors()
+
+    if self._expedition != None:
+      self._expedition.reset_free_survivors()
 
   # Update graphics
 

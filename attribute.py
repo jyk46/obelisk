@@ -66,19 +66,6 @@ opp_table = {
 
 class Attribute():
 
-  # Stats bonuses
-
-#  name           = ''
-#  physical_bonus = 0.0
-#  mental_bonus   = 0.0
-#  heal_bonus     = 0.0
-#  cure_bonus     = 0.0
-#  explore_bonus  = 0.0
-#  scavenge_bonus = 0.0
-#  day_bonus      = 0.0
-#  night_bonus    = 0.0
-#  job            = NONE
-
   # Constructor
 
   def __init__( self, age, name='' ):

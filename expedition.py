@@ -10,6 +10,7 @@ from pygame.locals import *
 
 import random
 import properties
+import utils
 import survivor
 import inventory
 import tile
@@ -75,20 +76,20 @@ class Expedition( pygame.sprite.Sprite ):
 
   # Constructor
 
-  def __init__( self, start_tile, survivors, inv, map, img_idx=-1 ):
+  def __init__( self, start_tile, survivors, _inventory, map, img_idx=-1 ):
 
     pygame.sprite.Sprite.__init__( self, self.groups )
 
     self.pos_tile    = start_tile
     self.survivors   = survivors
-    self.inv         = inv
+    self._inventory  = _inventory
     self.map         = map
     self.path_dic    = {}
     self.move_route  = []
     self.view_range  = 4
     self.direction   = 'south'
     self.step_count  = 0
-    self.anim_count  = 0
+    self.draw_count  = 0
 
     # Unfog initial starting area
 
@@ -102,7 +103,7 @@ class Expedition( pygame.sprite.Sprite ):
       self.img_roll = img_idx
 
     self.img_path     = properties.EXPD_PATH + 'hero' + str( self.img_roll ) + '_'
-    self.surface      = pygame.image.load( self.img_path + self.direction + str( self.anim_count ) + '.png' )
+    self.surface      = pygame.image.load( self.img_path + self.direction + str( self.draw_count ) + '.png' )
     self.surface.set_colorkey( self.surface.get_at( ( 0, 0 ) ), RLEACCEL )
     self.image        = self.surface.convert()
     self.rect         = self.image.get_rect()
@@ -110,19 +111,15 @@ class Expedition( pygame.sprite.Sprite ):
     self.abs_y        = self.pos_tile.pos_y * properties.TILE_HEIGHT
     self.rect.topleft = self.pos_tile.rect.topleft
 
-    # Set font for labeling icon
-
-    self.font = pygame.font.Font( properties.DEFAULT_FONT, 8 )
-
   # Return list of free survivors which can take orders
 
   def get_free( self ):
 
     free = []
 
-    for surv in self.survivors:
-      if surv.free:
-        free.append( surv )
+    for _survivor in self.survivors:
+      if _survivor.free:
+        free.append( _survivor )
 
     return free
 
@@ -130,14 +127,14 @@ class Expedition( pygame.sprite.Sprite ):
 
   def reset_free_survivors( self ):
 
-    for surv in self.survivors:
-      surv.free = True
+    for _survivor in self.survivors:
+      _survivovr.free = True
 
   # Reset all items free state
 
   def reset_free_items( self ):
 
-    self.inv.reset_free()
+    self._inventory.reset_free()
 
   # Commit explore party changes
 
@@ -145,33 +142,23 @@ class Expedition( pygame.sprite.Sprite ):
 
     # Remove transferred survivors
 
-    tmp_surv = []
+    tmp_survivors = []
 
-    for surv in self.survivors:
-      if surv.free:
-        tmp_surv.append( surv )
+    for _survivor in self.survivors:
+      if _survivor.free:
+        tmp_survivors.append( _survivor )
 
-    self.survivors = tmp_surv
+    self.survivors = tmp_survivors
 
     # Remove transferred items
 
     tmp_items = []
 
-    for it in self.inv.items:
-      if it.free:
-        tmp_items.append( it )
+    for _item in self._inventory.items:
+      if _item.free:
+        tmp_items.append( _item )
 
-    self.inv.items = tmp_items
-
-  # Return surface and rect of text overlay for expedition icon
-
-  def get_text( self ):
-
-    surface     = self.font.render( str( len( self.survivors ) ), 1, (0,0,0) )
-    rect        = surface.get_rect()
-    rect.center = self.rect.center[0], self.rect.center[1] + 2
-
-    return surface, rect
+    self._inventory.items = tmp_items
 
   # Set direction for animation
 
@@ -190,7 +177,7 @@ class Expedition( pygame.sprite.Sprite ):
 
   def draw_animation( self ):
 
-    img_path   = self.img_path + self.direction + str( self.anim_count ) + '.png'
+    img_path   = self.img_path + self.direction + str( self.draw_count ) + '.png'
     surface    = pygame.image.load( img_path )
     surface.set_colorkey( surface.get_at( ( 0, 0 ) ), RLEACCEL )
     self.image = surface.convert()
@@ -207,17 +194,17 @@ class Expedition( pygame.sprite.Sprite ):
 
     # Switch animation frame when necessary
 
-    do_anim = False
+    do_draw = False
 
     if self.step_count == properties.FRAME_SWITCH:
 
-      self.anim_count += 1
-      if self.anim_count > 1:
-        self.anim_count = 0
+      self.draw_count += 1
+      if self.draw_count > 1:
+        self.draw_count = 0
 
       self.step_count = 0
 
-      do_anim = True
+      do_draw = True
 
     else:
       self.step_count += 1
@@ -229,22 +216,22 @@ class Expedition( pygame.sprite.Sprite ):
       # Move right
 
       if ( self.move_route[0].rect.left ) > self.rect.left:
-        self.rect.move_ip( properties.EXPEDITION_SPEED, 0 )
+        self.rect.move_ip( properties.EXPD_SPEED, 0 )
 
       # Move left
 
       elif ( self.move_route[0].rect.left ) < self.rect.left:
-        self.rect.move_ip( -properties.EXPEDITION_SPEED, 0 )
+        self.rect.move_ip( -properties.EXPD_SPEED, 0 )
 
       # Move down
 
       elif ( self.move_route[0].rect.top ) > self.rect.top:
-        self.rect.move_ip( 0, properties.EXPEDITION_SPEED )
+        self.rect.move_ip( 0, properties.EXPD_SPEED )
 
       # Move up
 
       elif ( self.move_route[0].rect.top ) < self.rect.top:
-        self.rect.move_ip( 0, -properties.EXPEDITION_SPEED )
+        self.rect.move_ip( 0, -properties.EXPD_SPEED )
 
       # Update position tile and route if at destination
 
@@ -265,9 +252,9 @@ class Expedition( pygame.sprite.Sprite ):
           self.direction = 'south'
 
         self.step_count = 0
-        self.anim_count = 0
+        self.draw_count = 0
 
-        do_anim = True
+        do_draw = True
 
         # Unfog new area
 
@@ -275,7 +262,7 @@ class Expedition( pygame.sprite.Sprite ):
 
     # Draw animation
 
-    if do_anim:
+    if do_draw:
       self.draw_animation()
 
   # Calculate the minimum current stamina across all survivors usable by
@@ -285,9 +272,9 @@ class Expedition( pygame.sprite.Sprite ):
 
     min_stamina = 99
 
-    for surv in survivors:
-      if surv.stamina < min_stamina:
-        min_stamina = surv.stamina
+    for _survivor in _survivorivors:
+      if _survivor.stamina < min_stamina:
+        min_stamina = _survivor.stamina
 
     assert( min_stamina < 99 )
 
@@ -308,7 +295,7 @@ class Expedition( pygame.sprite.Sprite ):
     self.path_dic = { self.pos_tile: [self.pos_tile,0] }
     frontier      = [ self.pos_tile ]
 
-    avail_stamina = self.calc_min_stamina( survivors )
+    min_stamina = self.calc_min_stamina( survivors )
 
     # Iterate over frontiers until maximum cost is reached
 
@@ -318,32 +305,32 @@ class Expedition( pygame.sprite.Sprite ):
 
       # Search all tiles in the current frontier
 
-      for ti in frontier:
+      for _tile in frontier:
 
         # Determine which neighbors are within map bounds
 
         neighbors = []
 
-        if ti.pos_y > 0:
-          neighbors.append( self.map[ti.pos_x][ti.pos_y-1] )
+        if _tile.pos_y > 0:
+          neighbors.append( self.map[_tile.pos_x][_tile.pos_y-1] )
 
-        if ti.pos_x < ( properties.MAP_SIZE - 1 ):
-          neighbors.append( self.map[ti.pos_x+1][ti.pos_y] )
+        if _tile.pos_x < ( properties.MAP_SIZE - 1 ):
+          neighbors.append( self.map[_tile.pos_x+1][_tile.pos_y] )
 
-        if ti.pos_y < ( properties.MAP_SIZE - 1 ):
-          neighbors.append( self.map[ti.pos_x][ti.pos_y+1] )
+        if _tile.pos_y < ( properties.MAP_SIZE - 1 ):
+          neighbors.append( self.map[_tile.pos_x][_tile.pos_y+1] )
 
-        if ti.pos_x > 0:
-          neighbors.append( self.map[ti.pos_x-1][ti.pos_y] )
+        if _tile.pos_x > 0:
+          neighbors.append( self.map[_tile.pos_x-1][_tile.pos_y] )
 
-        for next_ti in neighbors:
+        for next_tile in neighbors:
 
-          next_cost = self.path_dic[ti][1] + next_ti.move_cost
+          next_cost = self.path_dic[_tile][1] + next_tile.move_cost
 
-          if ( ( next_cost < avail_stamina ) and ( next_ti not in self.path_dic ) ) \
-            or ( ( next_ti in self.path_dic ) and ( next_cost < self.path_dic[next_ti][1] ) ):
-            self.path_dic[next_ti] = [ ti, next_cost ]
-            next_frontier.append( next_ti )
+          if ( ( next_cost < min_stamina ) and ( next_tile not in self.path_dic ) ) \
+            or ( ( next_tile in self.path_dic ) and ( next_cost < self.path_dic[next_tile][1] ) ):
+            self.path_dic[next_tile] = [ _tile, next_cost ]
+            next_frontier.append( next_tile )
 
       # Swap frontiers when all tiles in current frontier are processed
 
@@ -361,11 +348,11 @@ class Expedition( pygame.sprite.Sprite ):
 
     route.append( dest_tile )
 
-    ti = dest_tile
+    _tile = dest_tile
 
-    while ti != self.pos_tile:
-      ti = self.path_dic[ti][0]
-      route.append( ti )
+    while _tile != self.pos_tile:
+      _tile = self.path_dic[_tile][0]
+      route.append( _tile )
 
     route.reverse()
 
@@ -375,58 +362,58 @@ class Expedition( pygame.sprite.Sprite ):
 
   def highlight_range( self ):
 
-    for ti in self.path_dic:
-      ti.moveable = True
+    for _tile in self.path_dic:
+      _tile.moveable = True
 
   def unhighlight_range( self ):
 
-    for ti in self.path_dic:
-      ti.moveable = False
-      ti.selected = False
+    for _tile in self.path_dic:
+      _tile.moveable = False
+      _tile.selected = False
 
   # Modify stamina of all survivors in expedition
 
   def modify_stamina( self, amount ):
 
-    for surv in self.survivors:
+    for _survivor in self.survivors:
 
-      surv.stamina += amount
+      _survivor.stamina += amount
 
-      if surv.stamina > surv.max_stamina:
-        surv.stamina = surv.max_stamina
-      elif surv.stamina < 0:
-        surv.stamina = 0
+      if _survivor.stamina > _survivor.max_stamina:
+        _survivor.stamina = _survivor.max_stamina
+      elif _survivor.stamina < 0:
+        _survivor.stamina = 0
 
   # Split expedition
 
-  def split( self, survivors, inv ):
+  def split( self, survivors, _inventory ):
 
     # Remove survivors and items from parent expedition
 
-    for new_surv in survivors:
-      for i, old_surv in enumerate( self.survivors ):
-        if old_surv == new_surv:
+    for new_survivor in survivors:
+      for i, old_survivor in enumerate( self.survivors ):
+        if old_survivor == new_survivor:
           del self.survivors[i]
           break
 
-    self.inv -= inv
+    self._inventory -= _inventory
 
     # Create and return child expedition
 
-    return Expedition( self.pos_tile, survivors, inv )
+    return Expedition( self.pos_tile, survivors, _inventory )
 
   # Merge expeditions
 
-  def merge( self, expd ):
+  def merge( self, _expedition ):
 
     # Combine survivors and inventories
 
-    self.survivors += expd.survivors
-    self.inv       += expd.inv
+    self.survivors  += _expedition.survivors
+    self._inventory += _expedition._inventory
 
     # Remove merged expedition
 
-    expd.kill()
+    _expedition.kill()
 
   # Print debug information
 
@@ -435,7 +422,7 @@ class Expedition( pygame.sprite.Sprite ):
     print 'Expedition:'
     self.pos_tile.debug()
 
-    for surv in self.survivors:
-      surv.debug()
+    for _survivors in self.survivors:
+      _survivors.debug()
 
-    self.inv.debug()
+    self._inventory.debug()

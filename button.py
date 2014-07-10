@@ -8,6 +8,7 @@ import pygame, sys, os
 from pygame.locals import *
 
 import properties
+import utils
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -30,14 +31,8 @@ class Button( pygame.sprite.Sprite ):
     self.pos_y        = pos_y
     self.rect.topleft = self.pos_x, self.pos_y
 
-    # Set text overlay for button
-
-    self.font             = pygame.font.Font( properties.DEFAULT_FONT, 14 )
-    self.text             = text
-    self.text_image       = self.font.render( self.text, 1, (0,0,0) )
-    self.text_rect        = self.text_image.get_rect()
-    self.text_rect.center = properties.MENU_WIDTH / 2, properties.MENU_HEIGHT / 2
-
     # Draw text on top of button
 
-    self.image.blit( self.text_image, self.text_rect )
+    self.text = text
+
+    utils.draw_text_center( self.image, self.text, 14 )

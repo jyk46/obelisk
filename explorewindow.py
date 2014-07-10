@@ -7,11 +7,32 @@ import pygame, sys, os
 from pygame.locals import *
 
 import properties
+import utils
 import window
+import textbox
+import infotextbox
 import button
+import tile
 import expedition
 import survivor
 import inventory
+import item
+
+#-------------------------------------------------------------------------
+# Window Offsets
+#-------------------------------------------------------------------------
+
+INFO_X_OFFSET = 16
+INFO_Y_OFFSET = 32
+
+OLD_X_OFFSET  = 16
+OLD_Y_OFFSET  = 32 + properties.ACTION_INFO_HEIGHT + 32
+
+NEW_X_OFFSET  = 16 + properties.ACTION_SUB_WIDTH + 16
+NEW_Y_OFFSET  = 32 + properties.ACTION_INFO_HEIGHT + 32
+
+BUTTON_X_OFFSET = properties.ACTION_WIDTH / 2 - properties.MENU_WIDTH / 2
+BUTTON_Y_OFFSET = properties.ACTION_HEIGHT - 16 - properties.MENU_HEIGHT
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -27,288 +48,316 @@ class ExploreWindow( window.Window ):
 
     # Member variables
 
-    self.expd       = None
-    self.survivors  = []
-    self.inv        = inventory.Inventory()
-    self.start_tile = None
-    self.surv_phase = True
+    self._expedition = None
+    self.survivors   = []
+    self._inventory  = inventory.Inventory()
+    self.pos_tile    = None
+    self.start_phase = True
 
-    self.surv       = None
-    self.it         = None
+    self._survivor   = None
+    self._item       = None
 
     # Initialize sub-windows
 
-    self.info_surface = pygame.Surface( ( properties.ACTION_INFO_WIDTH, properties.ACTION_INFO_HEIGHT ) )
-    self.old_surface  = pygame.Surface( ( properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT - 32 ) )
-    self.new_surface  = pygame.Surface( ( properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT - 32 ) )
+    self.info_tbox = infotextbox.InfoTextBox(
+      properties.ACTION_INFO_WIDTH, properties.ACTION_INFO_HEIGHT,
+      INFO_X_OFFSET, INFO_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
+    )
 
-    self.info_rect    = self.info_surface.get_rect()
-    self.old_rect     = self.old_surface.get_rect()
-    self.new_rect     = self.new_surface.get_rect()
+    self.old_tbox = textbox.TextBox(
+      properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT - 32,
+      OLD_X_OFFSET, OLD_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
+    )
 
-    self.info_rect.topleft = 16, 32
-    self.old_rect.topleft = 16, 32 + properties.ACTION_INFO_HEIGHT + 32
-    self.new_rect.topleft  = 16 + properties.ACTION_SUB_WIDTH + 16, 32 + properties.ACTION_INFO_HEIGHT + 32
+    self.new_tbox = textbox.TextBox(
+      properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT - 32,
+      NEW_X_OFFSET, NEW_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
+    )
 
-    # Initialize font and labels for sub-windows
+    # Initialize labels for sub-windows
 
-    self.font                   = pygame.font.Font( properties.DEFAULT_FONT, 16 )
-    self.font.set_bold( True )
-    self.info_label_surface     = self.font.render( 'INFORMATION', 1, (0,0,0) )
-    self.info_label_rect        = self.info_label_surface.get_rect()
-    self.old_surv_label_surface = self.font.render( 'SURVIVORS', 1, (0,0,0) )
-    self.old_surv_label_rect    = self.old_surv_label_surface.get_rect()
-    self.old_inv_label_surface  = self.font.render( 'INVENTORY', 1, (0,0,0) )
-    self.old_inv_label_rect     = self.old_surv_label_surface.get_rect()
-    self.new_label_surface      = self.font.render( 'EXPLORE PARTY', 1, (0,0,0) )
-    self.new_label_rect         = self.new_label_surface.get_rect()
+    self.info_label_surface, self.info_label_rect = utils.gen_text_pos(
+      'INFORMATION', 16, INFO_X_OFFSET, properties.TEXT_Y_OFFSET, utils.BLACK, True
+    )
 
-    self.info_label_rect.topleft     = 16, 3
-    self.old_surv_label_rect.topleft = 16, 32 + properties.ACTION_INFO_HEIGHT + 3
-    self.old_inv_label_rect.topleft  = 16, 32 + properties.ACTION_INFO_HEIGHT + 3
-    self.new_label_rect.topleft      = 16 + properties.ACTION_SUB_WIDTH + 16, 32 + properties.ACTION_INFO_HEIGHT + 3
+    self.old0_label_surface, self.old0_label_rect = utils.gen_text_pos(
+      'SURVIVORS', 16,
+      OLD_X_OFFSET, OLD_Y_OFFSET - properties.TEXT_HEIGHT + properties.TEXT_Y_OFFSET,
+      utils.BLACK, True
+    )
+
+    self.old1_label_surface, self.old1_label_rect = utils.gen_text_pos(
+      'INVENTORY', 16,
+      OLD_X_OFFSET, OLD_Y_OFFSET - properties.TEXT_HEIGHT + properties.TEXT_Y_OFFSET,
+      utils.BLACK, True
+    )
+
+    self.new_label_surface, self.new_label_rect = utils.gen_text_pos(
+      'EXPLORE PARTY', 16,
+      NEW_X_OFFSET, NEW_Y_OFFSET - properties.TEXT_HEIGHT + properties.TEXT_Y_OFFSET,
+      utils.BLACK, True
+    )
 
     # Initialize next button
 
     self.button_group = pygame.sprite.RenderUpdates()
-    self.button_group.add( button.Button( 'NEXT', \
-                             properties.ACTION_WIDTH / 2 - properties.MENU_WIDTH / 2, \
-                             properties.ACTION_HEIGHT - 16 - properties.MENU_HEIGHT ) )
-
-    # Scrollable area and indices
-
-    self.old_scroll = 0
-    self.new_scroll = 0
-
-    self.old_scroll_up_rect = pygame.rect.Rect(
-      self.old_rect.topleft[0], self.old_rect.topleft[1], \
-      properties.ACTION_SUB_WIDTH, 16
-    )
-
-    self.old_scroll_down_rect = pygame.rect.Rect(
-      self.old_rect.topleft[0], self.old_rect.topleft[1] + properties.ACTION_SUB_HEIGHT - 32 - 16, \
-      properties.ACTION_SUB_WIDTH, 16
-    )
-
-    self.new_scroll_up_rect = pygame.rect.Rect(
-      self.new_rect.topleft[0], self.new_rect.topleft[1], \
-      properties.ACTION_SUB_WIDTH, 16
-    )
-
-    self.new_scroll_down_rect = pygame.rect.Rect(
-      self.new_rect.topleft[0], self.new_rect.topleft[1] + properties.ACTION_SUB_HEIGHT - 32 - 16, \
-      properties.ACTION_SUB_WIDTH, 16
-    )
+    self.button_group.add( button.Button( 'NEXT', BUTTON_X_OFFSET, BUTTON_Y_OFFSET ) )
 
   # Clear selection information
 
   def clear( self ):
     self.survivors  = []
-    self.inv        = inventory.Inventory( 0, 0, 0, 0, [] )
-    self.start_tile = None
-
-  # Check that all selection is clean (i.e., not in the middle of selecting)
-
-  def is_clean( self ):
-
-    surv_clean = ( len( self.survivors ) == 0 )
-    inv_clean  = ( self.inv.food == 0 ) and ( self.inv.wood == 0 ) \
-             and ( self.inv.metal == 0 ) and ( self.inv.ammo == 0 ) \
-             and ( len( self.inv.items ) == 0 )
-    tile_clean = ( self.start_tile == None )
-
-    return surv_clean and inv_clean and tile_clean
+    self._inventory = inventory.Inventory( 0, 0, 0, 0, [] )
+    self.pos_tile   = None
 
   # Reset expedition state to before explore selection
 
   def reset_survivors( self ):
-    if self.expd != None:
-      self.expd.reset_free_survivors()
+
+    if self._expedition != None:
+      self._expedition.reset_free_survivors()
 
   def reset_inventory( self ):
-    if self.expd != None:
-      self.expd.inv.merge_resources( self.inv )
-      self.expd.reset_free_items()
 
-  def reset_expd( self ):
+    if self._expedition != None:
+      self._expedition._inventory.merge_resources( self._inventory )
+      self._expedition.reset_free_items()
+
+  def reset_expedition( self ):
+
     self.reset_survivors()
     self.reset_inventory()
+
+  # Reset scroll positions of text boxes
+
+  def reset_scroll( self ):
+
+    self.old_tbox.scroll_y = 0
+    self.new_tbox.scroll_y = 0
+
+  # Process inputs. Return true if next button is clicked and at least
+  # one survivor was selected.
+
+  def process_inputs( self, mouse_x, mouse_y, mouse_click ):
+
+    self._survivor = None
+    self._item     = None
+
+    # Determine survivor info to display
+
+    if self.start_phase:
+
+      # Free survivors
+
+      for _survivor, rect in zip( self._expedition.get_free(), self.old_tbox.rect_matrix[0] ):
+
+        # Determine if mouse is hovering over survivor
+
+        if rect.collidepoint( mouse_x, mouse_y ):
+
+          self._survivor = _survivor
+
+          # Move selected survivors to selected column
+
+          if mouse_click:
+            _survivor.free = False
+            self.survivors.append( _survivor )
+
+      # Selected survivors
+
+      for _survivor, rect in zip( self.survivors, self.new_tbox.rect_matrix[0] ):
+
+        # Determine if mouse is hovering over survivor
+
+        if rect.collidepoint( mouse_x, mouse_y ):
+
+          self._survivor = _survivor
+
+          # Move deselected survivors to free column
+
+          if mouse_click:
+            _survivor.free = True
+            self.survivors.remove( _survivor )
+
+    # Determine item info to display
+
+    else:
+
+      # Free items
+
+      items = [ 'Food', 'Wood', 'Metal', 'Ammo', ] * 4 \
+            + self._expedition._inventory.get_free()
+
+      for _item, rect in zip( items, self.old_tbox.rect_matrix[0] ):
+
+        # Determine if mouse is hovering over item
+
+        if rect.collidepoint( mouse_x, mouse_y ):
+
+          if type( _item ) == item.Item:
+            self._item = _item
+
+          # Transfer items if mouse is clicked
+
+          if mouse_click:
+
+            if ( _item == 'Food' ) and ( self._expedition._inventory.food > 0 ):
+              self._expedition._inventory.food -= 1
+              self._inventory.food             += 1
+
+            elif ( _item == 'Wood' ) and ( self._expedition._inventory.wood > 0 ):
+              self._expedition._inventory.wood -= 1
+              self._inventory.wood             += 1
+
+            elif ( _item == 'Metal' ) and ( self._expedition._inventory.metal > 0 ):
+              self._expedition._inventory.metal -= 1
+              self._inventory.metal             += 1
+
+            elif ( _item == 'Ammo' ) and ( self._expedition._inventory.ammo > 0 ):
+              self._expedition._inventory.ammo -= 1
+              self._inventory.ammo             += 1
+
+            else:
+              _item.free = False
+              self._inventory.items.append( _item )
+
+      # Selected items
+
+      items = [ 'Food', 'Wood', 'Metal', 'Ammo', ] * 4 \
+            + self._inventory.items
+
+      for _item, rect in zip( items, self.new_tbox.rect_matrix[0] ):
+
+        # Determine if mouse is hovering over item
+
+        if rect.collidepoint( mouse_x, mouse_y ):
+
+          if type( _item ) == item.Item:
+            self._item = _item
+
+          # Transfer items if mouse is clicked
+
+          if mouse_click:
+
+            if ( _item == 'Food' ) and ( self._inventory.food > 0 ):
+              self._expedition._inventory.food += 1
+              self._inventory.food             -= 1
+
+            elif ( _item == 'Wood' ) and ( self._inventory.wood > 0 ):
+              self._expedition._inventory.wood += 1
+              self._inventory.wood             -= 1
+
+            elif ( _item == 'Metal' ) and ( self._inventory.metal > 0 ):
+              self._expedition._inventory.metal += 1
+              self._inventory.metal             -= 1
+
+            elif ( _item == 'Ammo' ) and ( self._inventory.ammo > 0 ):
+              self._expedition._inventory.ammo += 1
+              self._inventory.ammo             -= 1
+
+            else:
+              _item.free = True
+              self._inventory.items.remove( _item )
+
+    # Scroll text boxes if necessary
+
+    self.old_tbox.scroll_text( mouse_x, mouse_y )
+    self.new_tbox.scroll_text( mouse_x, mouse_y )
+
+    # Adjust button coordinates to absolute scale
+
+    rect = self.button_group.sprites()[0].rect.move( self.rect.left, self.rect.top )
+
+    # Check for valid button click
+
+    if mouse_click and rect.collidepoint( mouse_x, mouse_y ) \
+      and ( not self.start_phase or ( len( self.survivors ) > 0 ) ):
+      return True
+    else:
+      return False
+
+  # Generate text matrices for scrollable text boxes
+
+  def get_survivors_text( self, survivors ):
+
+    text_col = []
+
+    for _survivor in survivors:
+      text_col.append( _survivor.name )
+
+    return [ text_col ]
+
+  def get_inventory_text( self, _inventory, items ):
+
+    text_col = [
+      'Food (' + str( _inventory.food ) + ')',
+      'Wood (' + str( _inventory.wood ) + ')',
+      'Metal (' + str( _inventory.metal ) + ')',
+      'Ammo (' + str( _inventory.ammo ) + ')',
+    ]
+
+    for _item in items:
+      text_col.append( _item.name )
+
+    return [ text_col ]
 
   # Update graphics
 
   def update( self ):
 
-    # Determine scroll position of both sub-windows
+    # Populate information text box if necessary
 
-    self.old_pos = []
-    self.new_pos = []
+    if self._survivor != None:
+      self.info_tbox.set_survivor( self._survivor )
+    elif self._item != None:
+      self.info_tbox.set_item( self._item )
+    else:
+      self.info_tbox.update()
 
-    if self.expd != None:
+    # Populate old/new text boxes if a valid expedition is assigned
 
-      # Survivor select phase
+    if self._expedition != None:
 
-      if self.surv_phase:
+      # Display free survivors and selected survivors
 
-        for i, surv in enumerate( self.expd.get_free() ):
-          self.old_pos.append( ( 4, i * 32 + 3 - self.old_scroll ) )
+      if self.start_phase:
+        self.old_tbox.update( self.get_survivors_text( self._expedition.get_free() ) )
+        self.new_tbox.update( self.get_survivors_text( self.survivors ) )
 
-        for i, surv in enumerate( self.survivors ):
-          self.new_pos.append( ( 4, i * 32 + 3 - self.new_scroll ) )
-
-        self.max_old_scroll = len( self.expd.get_free() ) * 32
-        self.max_new_scroll = len( self.survivors ) * 32
-
-      # Inventory select phase
+      # Display free items and selected items
 
       else:
+        self.old_tbox.update( self.get_inventory_text( self._expedition._inventory, self._expedition._inventory.get_free() ) )
+        self.new_tbox.update( self.get_inventory_text( self._inventory, self_inventory.items ) )
 
-        # Reserve slots for resources
-
-        self.old_pos.append( ( 4, 3 - self.old_scroll ) )
-        self.old_pos.append( ( 4, 32 + 3 - self.old_scroll ) )
-        self.old_pos.append( ( 4, 2 * 32 + 3 - self.old_scroll ) )
-        self.old_pos.append( ( 4, 3 * 32 + 3 - self.old_scroll ) )
-
-        self.new_pos.append( ( 4, 3 - self.new_scroll ) )
-        self.new_pos.append( ( 4, 32 + 3 - self.new_scroll ) )
-        self.new_pos.append( ( 4, 2 * 32 + 3 - self.new_scroll ) )
-        self.new_pos.append( ( 4, 3 * 32 + 3 - self.new_scroll ) )
-
-        for i, it in enumerate( self.expd.inv.get_free() ):
-          self.old_pos.append( ( 4, ( 4 + i ) * 32 + 3 - self.old_scroll ) )
-
-        for i, it in enumerate( self.inv.items ):
-          self.new_pos.append( ( 4, ( 4 + i ) * 32 + 3 - self.new_scroll ) )
-
-        self.max_old_scroll = ( 4 + len( self.inv.get_free() ) ) * 32
-        self.max_new_scroll = ( 4 + len( self.inv.items ) ) * 32
+    else:
+      self.old_tbox.update()
+      self.new_tbox.update()
 
   # Draw information onto window
 
   def draw_info( self ):
 
-    rect_updates = []
+    # Draw text boxes
 
-    # Refresh black background for sub-windows
+    rect_updates  = self.info_tbox.draw( self.image )
+    rect_updates += self.old_tbox.draw( self.image )
+    rect_updates += self.new_tbox.draw( self.image )
 
-    self.info_surface.fill( (0,0,0) )
-    self.old_surface.fill( (0,0,0) )
-    self.new_surface.fill( (0,0,0) )
-
-    # Detailed survivor/item information
-
-    font = pygame.font.Font( properties.DEFAULT_FONT, 14 )
-
-    if self.surv_phase and ( self.surv != None ):
-
-      font.set_bold( True )
-      info_text_surface = font.render( self.surv.name, 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 3 ) ) ]
-      font.set_bold( False )
-
-      info_text_surface = font.render( 'AGE: ' + str( self.surv.age ), 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'STAM: ' + str( self.surv.stamina ) + '/' + str( self.surv.max_stamina ), 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 2 * 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'PHYS: ' + str( self.surv.physical ), 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 3 * 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'MENT: ' + str( self.surv.mental ), 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 4 * 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'ATTRIBUTES:', 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( properties.ACTION_INFO_WIDTH / 2 + 4, 32 + 3 ) ) ]
-
-      for i, attr in enumerate( self.surv.attributes ):
-        info_text_surface = font.render( '* ' + attr.name, 1, (255,255,255) )
-        rect_updates += [ self.info_surface.blit( info_text_surface, ( properties.ACTION_INFO_WIDTH / 2 + 4, ( i + 2 ) * 32 + 3 ) ) ]
-
-    elif not self.surv_phase and ( self.it != None ):
-
-      font.set_bold( True )
-      info_text_surface = font.render( self.it.name, 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 3 ) ) ]
-      font.set_bold( False )
-
-      info_text_surface = font.render( 'TYPE: ' + self.it.type, 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'DMG: ' + str( self.it.dmg_min ) + '-' + str( self.it.dmg_max ), 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 2 * 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'AMMO: ' + str( self.it.ammo_cost ), 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 3 * 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'ARM: ' + str( self.it.armor ), 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 4 * 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'EFFECTS:', 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( properties.ACTION_INFO_WIDTH / 2 + 4, 32 + 3 ) ) ]
-
-    # Draw survivor information
-
-    if self.surv_phase:
-
-      for surv, pos in zip( self.expd.get_free(), self.old_pos ):
-        rect_updates += [ self.old_surface.blit( surv.text_surface, pos ) ]
-
-      for surv, pos in zip( self.survivors, self.new_pos ):
-        rect_updates += [ self.new_surface.blit( surv.text_surface, pos ) ]
-
-    # Draw item information
-
-    else:
-
-      # Draw resources in inventory panel
-
-      rsrc_text_surfaces = [
-        font.render( 'Food (' + str( self.expd.inv.food ) + ')', 1, (255,255,255) ),
-        font.render( 'Wood (' + str( self.expd.inv.wood ) + ')', 1, (255,255,255) ),
-        font.render( 'Metal (' + str( self.expd.inv.metal ) + ')', 1, (255,255,255) ),
-        font.render( 'Ammo (' + str( self.expd.inv.ammo ) + ')', 1, (255,255,255) ),
-      ]
-
-      for text_surface, pos in zip( rsrc_text_surfaces, self.old_pos[:4] ):
-        rect_updates += [ self.old_surface.blit( text_surface, pos ) ]
-
-      rsrc_text_surfaces = [
-        font.render( 'Food (' + str( self.inv.food ) + ')', 1, (255,255,255) ),
-        font.render( 'Wood (' + str( self.inv.wood ) + ')', 1, (255,255,255) ),
-        font.render( 'Metal (' + str( self.inv.metal ) + ')', 1, (255,255,255) ),
-        font.render( 'Ammo (' + str( self.inv.ammo ) + ')', 1, (255,255,255) ),
-      ]
-
-      for text_surface, pos in zip( rsrc_text_surfaces, self.new_pos[:4] ):
-        rect_updates += [ self.new_surface.blit( text_surface, pos ) ]
-
-      for it, pos in zip( self.expd.inv.get_free(), self.old_pos[4:] ):
-        rect_updates += [ self.old_surface.blit( it.text_surface, pos ) ]
-
-      for it, pos in zip( self.inv.items, self.new_pos[4:] ):
-        rect_updates += [ self.new_surface.blit( it.text_surface, pos ) ]
-
-    # Draw sub-windows onto status window
-
-    rect_updates += [ self.image.blit( self.info_surface, self.info_rect ) ]
-    rect_updates += [ self.image.blit( self.old_surface, self.old_rect ) ]
-    rect_updates += [ self.image.blit( self.new_surface, self.new_rect ) ]
-
-    # Draw labels onto status window
+    # Draw labels
 
     rect_updates += [ self.image.blit( self.info_label_surface, self.info_label_rect ) ]
 
-    if self.surv_phase:
-      rect_updates += [ self.image.blit( self.old_surv_label_surface, self.old_surv_label_rect ) ]
+    if self.start_phase:
+      rect_updates += [ self.image.blit( self.old0_label_surface, self.old0_label_rect ) ]
     else:
-      rect_updates += [ self.image.blit( self.old_inv_label_surface, self.old_inv_label_rect ) ]
+      rect_updates += [ self.image.blit( self.old1_inv_label_surface, self.old1_label_rect ) ]
 
     rect_updates += [ self.image.blit( self.new_label_surface, self.new_label_rect ) ]
 
     # Draw next button
 
-    self.button_group.draw( self.image )
+    rect_updates += self.button_group.draw( self.image )
 
     return rect_updates
 

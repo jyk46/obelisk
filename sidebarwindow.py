@@ -7,8 +7,26 @@ import pygame, sys, os
 from pygame.locals import *
 
 import properties
+import utils
 import window
+import infotextbox
 import button
+
+#-------------------------------------------------------------------------
+# Window Offsets
+#-------------------------------------------------------------------------
+
+TIME_X_OFFSET = 20
+TIME_Y_OFFSET = 6
+
+TILE_X_OFFSET = 16
+TILE_Y_OFFSET = 96
+
+EXPD_X_OFFSET = 16
+EXPD_Y_OFFSET = 96 + properties.SIDEBAR_TERR_HEIGHT + 32
+
+BUTTON_X_OFFSET = properties.SIDEBAR_WIDTH / 2 - properties.MENU_WIDTH / 2
+BUTTON_Y_OFFSET = properties.SIDEBAR_HEIGHT - 16 - properties.MENU_HEIGHT
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -22,42 +40,47 @@ class SidebarWindow( window.Window ):
 
     window.Window.__init__( self, width, height, pos_x, pos_y, bg_path )
 
+    # Member variables
+
+    self.day_en      = True
+    self.time_count  = 1
+
+    self._tile       = None
+    self._expedition = None
+    self.expeditions = expeditions
+
+    self.time_str    = ''
+
     # Initialize sub-windows
 
-    self.terr_surface = pygame.Surface( ( properties.SIDEBAR_TERR_WIDTH, properties.SIDEBAR_TERR_HEIGHT ) )
-    self.expd_surface = pygame.Surface( ( properties.SIDEBAR_EXPD_WIDTH, properties.SIDEBAR_EXPD_HEIGHT ) )
+    self.tile_tbox = infotextbox.InfoTextBox(
+      properties.SIDEBAR_TILE_WIDTH, properties.SIDEBAR_TILE_HEIGHT,
+      TILE_X_OFFSET, TILE_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
+    )
 
-    self.terr_rect    = self.terr_surface.get_rect()
-    self.expd_rect    = self.expd_surface.get_rect()
+    self.expedition_tbox = infotextbox.InfoTextBox(
+      properties.SIDEBAR_EXPD_WIDTH, properties.SIDEBAR_EXPD_HEIGHT,
+      EXPD_X_OFFSET, EXPD_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
+    )
 
-    self.terr_rect.topleft = 16, 96
-    self.expd_rect.topleft = 16, 96 + properties.SIDEBAR_TERR_HEIGHT + 32
+    # Initialize labels for sub-windows
 
-    # Initialize font and labels for sub-windows
+    self.tile_label_surface, self.tile_label_rect = utils.gen_text_pos(
+      'TERRAIN INFO', 16,
+      TILE_X_OFFSET, TILE_Y_OFFSET - properties.TEXT_HEIGHT + properties.TEXT_Y_OFFSET,
+      utils.BLACK, True
+    )
 
-    self.font               = pygame.font.Font( properties.DEFAULT_FONT, 16 )
-    self.font.set_bold( True )
-    self.terr_label_surface = self.font.render( 'TERRAIN INFO', 1, (0,0,0) )
-    self.terr_label_rect    = self.terr_label_surface.get_rect()
-    self.expd_label_surface = self.font.render( 'EXPEDITION INFO', 1, (0,0,0) )
-    self.expd_label_rect    = self.expd_label_surface.get_rect()
-
-    self.terr_label_rect.topleft = 16, 64 + 3
-    self.expd_label_rect.topleft = 16, 96 + properties.SIDEBAR_TERR_HEIGHT + 3
+    self.expedition_label_surface, self.expedition_label_rect = utils.gen_text_pos(
+      'EXPEDITION INFO', 16,
+      EXPD_X_OFFSET, EXPD_Y_OFFSET - properties.TEXT_HEIGHT + properties.TEXT_Y_OFFSET,
+      utils.BLACK, True
+    )
 
     # Initialize done button
 
     self.button_group = pygame.sprite.RenderUpdates()
-    self.button_group.add( button.Button( 'DONE', 64, properties.SIDEBAR_HEIGHT - 16 - properties.MENU_HEIGHT ) )
-
-    # Member variables
-
-    self.day_en     = True
-    self.time_count = 1
-
-    self.terr        = None
-    self.expd        = None
-    self.expeditions = expeditions
+    self.button_group.add( button.Button( 'DONE', BUTTON_X_OFFSET, BUTTON_Y_OFFSET ) )
 
   # Get number of free survivors remaining on map
 
@@ -71,75 +94,63 @@ class SidebarWindow( window.Window ):
 
     return count
 
+  # Process inputs. Return true if done button is clicked and there are
+  # no more free survivors left.
+
+  def process_inputs( self, mouse_x, mouse_y, mouse_click ):
+
+    # Adjust button coordinates to absolute scale
+
+    rect = self.button_group.sprites()[0].rect.move( self.rect.left, self.rect.top )
+
+    # Check for valid button click
+
+    if mouse_click and rect.collidepoint( mouse_x, mouse_y ) and ( self.get_free() == 0 ):
+      return True
+    else:
+      return False
+
+  # Update graphics
+
+  def update( self ):
+
+    # Compute time count
+
+    self.time_str = 'DAY '
+
+    if not self.day_en:
+      self.time_str = 'NIGHT '
+
+    self.time_str += str( self.time_count )
+
+    # Populate text boxes
+
+    if self._tile != None:
+      self.tile_tbox.set_tile( self._tile )
+    else:
+      self.tile_tbox.update()
+
+    if self._expedition != None:
+      self.expedition_tbox.set_expedition( self._expedition )
+    else:
+      self.expedition_tbox.update()
+
   # Draw information onto window
 
   def draw_info( self ):
 
-    rect_updates = []
+    # Draw text boxes
 
-    # Refresh black background for sub-windows
+    rect_updates  = self.tile_tbox.draw( self.image )
+    rect_updates += self.expedition_tbox.draw( self.image )
 
-    self.terr_surface.fill( (0,0,0) )
-    self.expd_surface.fill( (0,0,0) )
+    # Draw labels
 
-    # Populate terrain panel information
+    rect_updates += utils.draw_text( self.image, self.time_str, 40, TIME_X_OFFSET, TIME_Y_OFFSET, utils.BLACK, True )
+    rect_updates += [ self.image.blit( self.tile_label_surface, self.tile_label_rect ) ]
+    rect_updates += [ self.image.blit( self.expedition_label_surface, self.expedition_label_rect ) ]
 
-    font = pygame.font.Font( properties.DEFAULT_FONT, 14 )
-
-    if self.terr != None:
-
-      terr_type_surface = font.render( 'TYPE: ' + self.terr.terrain, 1, (255,255,255) )
-      rect_updates += [ self.terr_surface.blit( terr_type_surface, ( 4, 3 ) ) ]
-
-      terr_risk_surface = font.render( 'RISK: ' + self.terr.risk, 1, (255,255,255) )
-      rect_updates += [ self.terr_surface.blit( terr_risk_surface, ( 4, 32 + 3 ) ) ]
-
-      terr_yield_surface = font.render( 'YIELD: ' + self.terr.get_yield(), 1, (255,255,255) )
-      rect_updates += [ self.terr_surface.blit( terr_yield_surface, ( 4, 2 * 32 + 3 ) ) ]
-
-    # Populate expedition panel information
-
-    if self.expd != None:
-
-      expd_size_surface = font.render( 'SIZE: ' + str( len( self.expd.survivors ) ), 1, (255,255,255) )
-      rect_updates += [ self.expd_surface.blit( expd_size_surface, ( 4, 3 ) ) ]
-
-      food_color = (255,255,255)
-      if len( self.expd.survivors ) > self.expd.inv.food:
-        food_color = (255,0,0)
-
-      expd_food_surface = font.render( 'FOOD: ' + str( self.expd.inv.food ), 1, food_color )
-      rect_updates += [ self.expd_surface.blit( expd_food_surface, ( 4, 32 + 3 ) ) ]
-
-      expd_wood_surface = font.render( 'WOOD: ' + str( self.expd.inv.wood ), 1, (255,255,255) )
-      rect_updates += [ self.expd_surface.blit( expd_wood_surface, ( 4, 2 * 32 + 3 ) ) ]
-
-      expd_metal_surface = font.render( 'METAL: ' + str( self.expd.inv.metal ), 1, (255,255,255) )
-      rect_updates += [ self.expd_surface.blit( expd_metal_surface, ( 4, 3 * 32 + 3 ) ) ]
-
-      expd_ammo_surface = font.render( 'AMMO: ' + str( self.expd.inv.ammo ), 1, (255,255,255) )
-      rect_updates += [ self.expd_surface.blit( expd_ammo_surface, ( 4, 4 * 32 + 3 ) ) ]
-
-    # Draw sub-windows onto sidebar window
-
-    rect_updates += [ self.image.blit( self.terr_surface, self.terr_rect ) ]
-    rect_updates += [ self.image.blit( self.expd_surface, self.expd_rect ) ]
-
-    # Draw labels onto sidebar window
-
-    font = pygame.font.Font( properties.DEFAULT_FONT, 40 )
-    font.set_bold( True )
-
-    time_str = 'DAY '
-    if not self.day_en:
-      time_str = 'NIGHT '
-    time_str += str( self.time_count )
-
-    time_surface = font.render( time_str, 1, (0,0,0) )
-
-    rect_updates += [ self.image.blit( time_surface, ( 20, 6 ) ) ]
-    rect_updates += [ self.image.blit( self.terr_label_surface, self.terr_label_rect ) ]
-    rect_updates += [ self.image.blit( self.expd_label_surface, self.expd_label_rect ) ]
+    # Draw number of free survivors left
 
     free_surface = self.font.render( str( self.get_free() ) + ' FREE SURVIVORS', 1, (0,0,0) )
     rect_updates += [ self.image.blit( free_surface, \
@@ -148,7 +159,7 @@ class SidebarWindow( window.Window ):
 
     # Draw done button
 
-    self.button_group.draw( self.image )
+    rect_updates += self.button_group.draw( self.image )
 
     return rect_updates
 

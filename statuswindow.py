@@ -57,10 +57,6 @@ class StatusWindow( window.Window ):
     self.surv_label_rect.topleft = 16, 32 + properties.ACTION_INFO_HEIGHT + 3
     self.inv_label_rect.topleft  = 16 + properties.ACTION_SUB_WIDTH + 16, 32 + properties.ACTION_INFO_HEIGHT + 3
 
-#    # Position of materials information
-#
-#    self.mats_pos = 16, 32 + properties.ACTION_SUB_HEIGHT + 2
-
     # Scrollable area and indices
 
     self.surv_scroll = 0
@@ -185,10 +181,6 @@ class StatusWindow( window.Window ):
     rect_updates += [ self.image.blit( self.info_surface, self.info_rect ) ]
     rect_updates += [ self.image.blit( self.surv_surface, self.surv_rect ) ]
     rect_updates += [ self.image.blit( self.inv_surface, self.inv_rect ) ]
-
-#    # Draw materials information below sub-windows
-#
-#    rect_updates += [ self.image.blit( self.expd.inv.text_surface, self.mats_pos ) ]
 
     # Draw labels onto status window
 

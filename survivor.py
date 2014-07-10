@@ -8,6 +8,7 @@ from pygame.locals import *
 
 import random
 import properties
+import utils
 import attribute
 
 #-------------------------------------------------------------------------
@@ -147,9 +148,7 @@ class Survivor():
 
     # Text graphics
 
-    self.font         = pygame.font.Font( properties.DEFAULT_FONT, 14 )
-    self.text_surface = self.font.render( self.name, 1, (255,255,255) )
-    self.text_rect    = self.text_surface.get_rect()
+    self.text_surface, self.text_rect = utils.gen_text_pos( self.name, 14, 0, 0, utils.WHITE )
 
     # Roll random attributes (up to three per survivor)
 
@@ -179,8 +178,8 @@ class Survivor():
   # Overload == operator to return true if names match (assume only
   # unique names per play-through)
 
-  def __eq__( self, surv ):
-    return ( self.name == surv.name )
+  def __eq__( self, _survivor ):
+    return ( self.name == _survivor.name )
 
   # Return physical bonus
 

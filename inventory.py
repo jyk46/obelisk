@@ -38,51 +38,51 @@ class Inventory():
 
   # Overload + operator for merging inventories
 
-  def __add__( self, inv ):
+  def __add__( self, _inventory ):
 
-    sum_inv = Inventory()
+    sum_inventory = Inventory()
 
-    sum_inv.food  = self.food  + inv.food
-    sum_inv.wood  = self.wood  + inv.wood
-    sum_inv.metal = self.metal + inv.metal
-    sum_inv.ammo  = self.ammo  + inv.ammo
-    sum_inv.items = self.items + inv.items
+    sum_inventory.food  = self.food  + _inventory.food
+    sum_inventory.wood  = self.wood  + _inventory.wood
+    sum_inventory.metal = self.metal + _inventory.metal
+    sum_inventory.ammo  = self.ammo  + _inventory.ammo
+    sum_inventory.items = self.items + _inventory.items
 
-    return sum_inv
+    return sum_inventory
 
   # Overload - operator for splitting inventories
 
-  def __sub__( self, inv ):
+  def __sub__( self, _inventory ):
 
-    assert( inv.food  <= self.food  )
-    assert( inv.wood  <= self.wood  )
-    assert( inv.metal <= self.metal )
-    assert( inv.ammo  <= self.ammo  )
+    assert( _inventory.food  <= self.food  )
+    assert( _inventory.wood  <= self.wood  )
+    assert( _inventory.metal <= self.metal )
+    assert( _inventory.ammo  <= self.ammo  )
 
-    diff_inv = Inventory()
+    diff_inventory = Inventory()
 
-    diff_inv.food  = self.food  - inv.food
-    diff_inv.wood  = self.wood  - inv.wood
-    diff_inv.metal = self.metal - inv.metal
-    diff_inv.ammo  = self.ammo  - inv.ammo
-    diff_inv.items = self.items
+    diff_inventory.food  = self.food  - _inventory.food
+    diff_inventory.wood  = self.wood  - _inventory.wood
+    diff_inventory.metal = self.metal - _inventory.metal
+    diff_inventory.ammo  = self.ammo  - _inventory.ammo
+    diff_inventory.items = self.items
 
-    for new_item in inv.items:
-      for i, old_item in enumerate( diff_inv.items ):
+    for new_item in _inventory.items:
+      for i, old_item in enumerate( diff_inventory.items ):
         if old_item == new_item:
-          del diff_inv.items[i]
+          del diff_inventory.items[i]
           break
 
-    return diff_inv
+    return diff_inventory
 
   # Merge resources only
 
-  def merge_resources( self, inv ):
+  def merge_resources( self, _inventory ):
 
-    self.food  += inv.food
-    self.wood  += inv.wood
-    self.metal += inv.metal
-    self.ammo  += inv.ammo
+    self.food  += _inventory.food
+    self.wood  += _inventory.wood
+    self.metal += _inventory.metal
+    self.ammo  += _inventory.ammo
 
   # Get number of unreserved items for explore phase
 
@@ -90,9 +90,9 @@ class Inventory():
 
     free = []
 
-    for it in self.items:
-      if it.free:
-        free.append( it )
+    for _item in self.items:
+      if _item.free:
+        free.append( _item )
 
     return free
 
@@ -100,8 +100,8 @@ class Inventory():
 
   def reset_free( self ):
 
-    for it in self.items:
-      it.free = True
+    for _item in self.items:
+      _item.free = True
 
   # Print debug information
 
@@ -110,5 +110,5 @@ class Inventory():
     print 'F' + str( self.food ), 'W' + str( self.wood ), \
           'M' + str( self.metal ), 'A' + str( self.ammo )
 
-    for it in self.items:
-      it.debug()
+    for _item in self.items:
+      _item.debug()

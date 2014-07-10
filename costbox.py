@@ -7,6 +7,7 @@ import pygame, sys, os
 from pygame.locals import *
 
 import properties
+import utils
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -26,20 +27,17 @@ class CostBox:
 
     # Initialize image surface
 
-    self.surface   = pygame.image.load( properties.EXPD_PATH + 'cost.png' )
-    self.image     = self.surface.convert()
-    self.rect      = self.image.get_rect()
-
-    # Initialize font
-
-    self.font      = pygame.font.Font( properties.DEFAULT_FONT, 14 )
+    self.surface = pygame.image.load( properties.EXPD_PATH + 'cost.png' )
+    self.image   = self.surface.convert()
+    self.rect    = self.image.get_rect()
 
   # Update graphics
 
   def update( self ):
+
     self.rect.bottomright = self.pos_x, self.pos_y
 
-  # Aggregate draw function
+  # Draw graphics
 
   def draw( self, surface ):
 
@@ -49,13 +47,13 @@ class CostBox:
 
     if self.cost > 0:
 
+      # Reset background
+
+      self.image = self.surface.convert()
+
       # Draw cost onto background
 
-      self.image        = self.surface.convert()
-      cost_surface      = self.font.render( str( self.cost ), 1, (255,255,255) )
-      cost_rect         = cost_surface.get_rect()
-      cost_rect.topleft = 12, 4
-      rect_updates     += [ self.image.blit( cost_surface, cost_rect ) ]
+      rect_updates += utils.draw_text_center( self.image, str( self.cost ), 14, utils.WHITE )
 
       # Draw cost box onto main surface at mouse pointer tip
 

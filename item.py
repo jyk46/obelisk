@@ -13,6 +13,86 @@ import properties
 # Utility Tables
 #-------------------------------------------------------------------------
 
+# Text for effects
+
+effect_table = {
+
+  'Binoculars' : [
+    'Increases view range of',
+    'expedition by +2.',
+  ],
+
+  'First Aid' : [
+    'Increases heal rate of',
+    'all survivors by an',
+    'additional 20%.',
+  ],
+
+  'Antibiotics' : [
+    'Increases sickness cure',
+    'rate of all survivors by',
+    'an additional 20%.',
+  ],
+
+  'Analyzer' : [
+    'Displays more information',
+    'about terrain.',
+  ],
+
+  'Energy Drain' : [
+    'Drain eldritch energy',
+    'from ritual sites.',
+  ],
+
+  'Elder Sign' : [
+    'Power to neutralize',
+    'ancient forces.',
+  ],
+
+  'Pit Trap' : [
+    'Deals minor damage to',
+    'enemies before battle.',
+  ],
+
+  'Spike Trap' : [
+    'Deals major damage to',
+    'enemies before battle.',
+  ],
+
+  'Explosive Trap' : [
+    'Deals major damage to',
+    'enemies before battle.',
+    'Chance to kill enemy.',
+  ],
+
+  'Camouflage' : [
+    'Reduces chance of',
+    'detection at night.',
+  ],
+
+  'Bone Ward' : [
+    'Greatly reduces chance',
+    'of detection at night.',
+  ],
+
+  'Flashbang' : [
+    'Stuns enemy; attack',
+    'twice at start of',
+    'battle.',
+  ],
+
+  'Barricade' : [
+    'Blocks minor enemy',
+    'attacks.',
+  ],
+
+  'Barbed Fence' : [
+    'Blocks major enemy',
+    'attacks.',
+  ],
+
+}
+
 # Possible items
 
 item_table = {
@@ -30,8 +110,8 @@ item_table = {
   'Spike Trap'     : [  1,  1,  0,  0,  0,  0,  0, 'Defense' ],
   'Explosive Trap' : [  2,  2,  0,  0,  0,  0,  0, 'Defense' ],
   'Camouflage'     : [  2,  0,  0,  0,  0,  0,  0, 'Defense' ],
-  'Flashbang'      : [ 99, 99,  0,  0,  0,  0,  0, 'Defense' ],
   'Bone Ward'      : [ 99, 99,  0,  0,  0,  0,  0, 'Defense' ],
+  'Flashbang'      : [ 99, 99,  0,  0,  0,  0,  0, 'Defense' ],
   'Barricade'      : [  4,  0,  0,  0,  0,  0,  0, 'Defense' ],
   'Barbed Fence'   : [  2,  2,  0,  0,  0,  0,  0, 'Defense' ],
 
@@ -65,13 +145,12 @@ class Item():
 
   # Constructor
 
-  def __init__( self, name, fixed=100 ):
+  def __init__( self, name ):
 
     assert( name in item_table )
 
     self.name       = name
     self.equipped   = False
-    self.fixed      = fixed
     self.wood_cost  = item_table[self.name][0]
     self.metal_cost = item_table[self.name][1]
     self.dmg_min    = item_table[self.name][2]
@@ -82,16 +161,18 @@ class Item():
     self.type       = item_table[self.name][7]
     self.free       = True
 
+    # Assign effect text
+
+    self.effect = []
+
+    if self.name in effect_table:
+      self.effect = effect_table[self.name]
+
     # Text graphics
 
     self.font         = pygame.font.Font( properties.DEFAULT_FONT, 14 )
     self.text_surface = self.font.render( self.name, 1, (255,255,255) )
     self.text_rect    = self.text_surface.get_rect()
-
-  # Check if item is usable (i.e., fixed )
-
-  def is_fixed( self ):
-    return ( self.fixed == 100 )
 
   # Print debug information
 

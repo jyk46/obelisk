@@ -358,7 +358,7 @@ class Tile( pygame.sprite.Sprite ):
     self.valid       = terrain_table[self.terrain][2]
     self.risk        = terrain_table[self.terrain][3]
     self.enemy_rates = terrain_table[self.terrain][4]
-    self.mat_rates   = copy.deepcopy( terrain_table[self.terrain][5] )
+    self.rsrc_rates  = copy.deepcopy( terrain_table[self.terrain][5] )
     self.item_rates  = terrain_table[self.terrain][6]
 
     # Overlays for movement
@@ -389,13 +389,13 @@ class Tile( pygame.sprite.Sprite ):
 
     loot = [ 0, 0, 0, 0 ]
 
-    for surv in survivors:
+    for _survivor in survivors:
 
       roll = random.random()
 
-      for i, rsrc in enumerate( self.mat_rates[:-1] ):
+      for i, rsrc in enumerate( self.rsrc_rates[:-1] ):
 
-        prob = rsrc[0] + ( surv.get_mental_bonus() * properties.RSRC_BONUS_MULT )
+        prob = rsrc[0] + ( _survivor.get_mental_bonus() * properties.RSRC_BONUS_MULT )
 
         if roll < prob:
 
@@ -405,10 +405,10 @@ class Tile( pygame.sprite.Sprite ):
     # successful for a given resource. This is to prevent camping one
     # safe tile for infinite resources.
 
-    for i in range( len( self.mat_rates[:-1] ) ):
+    for i in range( len( self.rsrc_rates[:-1] ) ):
 
       if loot[i] > 0:
-        self.mat_rates[i][0] *= properties.RSRC_REDUC_RATE
+        self.rsrc_rates[i][0] *= properties.RSRC_REDUC_RATE
 
     return loot
 
@@ -421,11 +421,11 @@ class Tile( pygame.sprite.Sprite ):
 
     tot_bonus = 0
 
-    for surv in survivors:
-      tot_bonus += surv.get_mental_bonus()
+    for _survivor in survivors:
+      tot_bonus += _survivor.get_mental_bonus()
 
     get_roll = random.random()
-    get_prob = self.mat_rates[-1][0] + ( tot_bonus * properties.ITEM_BONUS_MULT )
+    get_prob = self.rsrc_rates[-1][0] + ( tot_bonus * properties.ITEM_BONUS_MULT )
 
     if get_roll < get_prob:
 
@@ -447,7 +447,7 @@ class Tile( pygame.sprite.Sprite ):
 
     prob_nothing = 1.00
 
-    for rate in self.mat_rates:
+    for rate in self.rsrc_rates:
       prob_nothing *= 1.00 - rate[0]
 
     prob_something = 1.00 - prob_nothing
@@ -483,8 +483,8 @@ class Tile( pygame.sprite.Sprite ):
 
   # Overload == operator to return true if position matches
 
-  def __eq__( self, ti ):
-    return ( self.pos_x == ti.pos_x ) and ( self.pos_y == ti.pos_y )
+  def __eq__( self, _tile ):
+    return ( self.pos_x == _tile.pos_x ) and ( self.pos_y == _tile.pos_y )
 
   # Print debug information
 
@@ -494,5 +494,5 @@ class Tile( pygame.sprite.Sprite ):
           str( self.move_cost ) + '/' + str( self.valid )
 
     print self.enemy_rates
-    print self.mat_rates
+    print self.rsrc_rates
     print self.item_rates
