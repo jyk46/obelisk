@@ -128,7 +128,8 @@ class SurvivorWindow( window.Window ):
 
       # Determine if mouse is hovering over survivor
 
-      if rect.collidepoint( mouse_x, mouse_y ):
+      if rect.collidepoint( mouse_x, mouse_y ) \
+        and self.old_tbox.rect.collidepoint( mouse_x, mouse_y ):
 
         self._survivor = _survivor
 
@@ -144,7 +145,8 @@ class SurvivorWindow( window.Window ):
 
       # Determine if mouse is hovering over survivor
 
-      if rect.collidepoint( mouse_x, mouse_y ):
+      if rect.collidepoint( mouse_x, mouse_y ) \
+        and self.new_tbox.rect.collidepoint( mouse_x, mouse_y ):
 
         self._survivor = _survivor
 

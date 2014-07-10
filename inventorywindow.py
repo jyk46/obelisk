@@ -133,7 +133,8 @@ class InventoryWindow( window.Window ):
 
       # Determine if mouse is hovering over item
 
-      if rect.collidepoint( mouse_x, mouse_y ):
+      if rect.collidepoint( mouse_x, mouse_y ) \
+        and self.old_tbox.rect.collidepoint( mouse_x, mouse_y ):
 
         if type( _item ) == item.Item:
           self._item = _item
@@ -175,7 +176,8 @@ class InventoryWindow( window.Window ):
 
       # Determine if mouse is hovering over item
 
-      if rect.collidepoint( mouse_x, mouse_y ):
+      if rect.collidepoint( mouse_x, mouse_y ) \
+        and self.new_tbox.rect.collidepoint( mouse_x, mouse_y ):
 
         if type( _item ) == item.Item:
           self._item = _item
