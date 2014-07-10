@@ -77,7 +77,7 @@ class InfoTextBox( textbox.TextBox ):
     text_matrix.append( [
       '**' + str( _survivor.name ),
       'AGE: ' + str( _survivor.age ),
-      'STAM: ' + str( _survivor.stamina ),
+      'STAM: ' + str( _survivor.stamina ) + '/' + str( _survivor.max_stamina ),
       'PHYS: ' + str( _survivor.physical ),
       'MENT: ' + str( _survivor.mental ),
     ] )

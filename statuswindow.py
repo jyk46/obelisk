@@ -7,8 +7,28 @@ import pygame, sys, os
 from pygame.locals import *
 
 import properties
+import utils
 import window
+import textbox
+import infotextbox
+import button
 import expedition
+
+#-------------------------------------------------------------------------
+# Window Offsets
+#-------------------------------------------------------------------------
+
+INFO_X_OFFSET = 16
+INFO_Y_OFFSET = 32
+
+OLD_X_OFFSET  = 16
+OLD_Y_OFFSET  = 32 + properties.ACTION_INFO_HEIGHT + 32
+
+NEW_X_OFFSET  = 16 + properties.ACTION_SUB_WIDTH + 16
+NEW_Y_OFFSET  = 32 + properties.ACTION_INFO_HEIGHT + 32
+
+BUTTON_X_OFFSET = properties.ACTION_WIDTH / 2 - properties.MENU_WIDTH / 2
+BUTTON_Y_OFFSET = properties.ACTION_HEIGHT - 16 - properties.MENU_HEIGHT
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -24,169 +44,155 @@ class StatusWindow( window.Window ):
 
     # Member variables
 
-    self.expd = None
-    self.surv = None
-    self.it   = None
+    self._expedition = None
+    self._survivor   = None
+    self._item       = None
 
     # Initialize sub-windows
 
-    self.info_surface = pygame.Surface( ( properties.ACTION_INFO_WIDTH, properties.ACTION_INFO_HEIGHT ) )
-    self.surv_surface = pygame.Surface( ( properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT ) )
-    self.inv_surface  = pygame.Surface( ( properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT ) )
-
-    self.info_rect    = self.info_surface.get_rect()
-    self.surv_rect    = self.surv_surface.get_rect()
-    self.inv_rect     = self.inv_surface.get_rect()
-
-    self.info_rect.topleft = 16, 32
-    self.surv_rect.topleft = 16, 32 + properties.ACTION_INFO_HEIGHT + 32
-    self.inv_rect.topleft  = 16 + properties.ACTION_SUB_WIDTH + 16, 32 + properties.ACTION_INFO_HEIGHT + 32
-
-    # Initialize font and labels for sub-windows
-
-    self.font               = pygame.font.Font( properties.DEFAULT_FONT, 16 )
-    self.font.set_bold( True )
-    self.info_label_surface = self.font.render( 'INFORMATION', 1, (0,0,0) )
-    self.info_label_rect    = self.info_label_surface.get_rect()
-    self.surv_label_surface = self.font.render( 'SURVIVORS', 1, (0,0,0) )
-    self.surv_label_rect    = self.surv_label_surface.get_rect()
-    self.inv_label_surface  = self.font.render( 'INVENTORY', 1, (0,0,0) )
-    self.inv_label_rect     = self.inv_label_surface.get_rect()
-
-    self.info_label_rect.topleft = 16, 3
-    self.surv_label_rect.topleft = 16, 32 + properties.ACTION_INFO_HEIGHT + 3
-    self.inv_label_rect.topleft  = 16 + properties.ACTION_SUB_WIDTH + 16, 32 + properties.ACTION_INFO_HEIGHT + 3
-
-    # Scrollable area and indices
-
-    self.surv_scroll = 0
-    self.inv_scroll  = 0
-
-    self.surv_scroll_up_rect = pygame.rect.Rect(
-      self.surv_rect.topleft[0], self.surv_rect.topleft[1], \
-      properties.ACTION_SUB_WIDTH, 16
+    self.info_tbox = infotextbox.InfoTextBox(
+      properties.ACTION_INFO_WIDTH, properties.ACTION_INFO_HEIGHT,
+      INFO_X_OFFSET, INFO_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
     )
 
-    self.surv_scroll_down_rect = pygame.rect.Rect(
-      self.surv_rect.topleft[0], self.surv_rect.topleft[1] + properties.ACTION_SUB_HEIGHT - 16, \
-      properties.ACTION_SUB_WIDTH, 16
+    self.old_tbox = textbox.TextBox(
+      properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT,
+      OLD_X_OFFSET, OLD_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
     )
 
-    self.inv_scroll_up_rect = pygame.rect.Rect(
-      self.inv_rect.topleft[0], self.inv_rect.topleft[1], \
-      properties.ACTION_SUB_WIDTH, 16
+    self.new_tbox = textbox.TextBox(
+      properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT,
+      NEW_X_OFFSET, NEW_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
     )
 
-    self.inv_scroll_down_rect = pygame.rect.Rect(
-      self.inv_rect.topleft[0], self.inv_rect.topleft[1] + properties.ACTION_SUB_HEIGHT - 16, \
-      properties.ACTION_SUB_WIDTH, 16
+    # Initialize labels for sub-windows
+
+    self.info_label_surface, self.info_label_rect = utils.gen_text_pos(
+      'INFORMATION', 16, INFO_X_OFFSET, properties.TEXT_Y_OFFSET, utils.BLACK, True
     )
+
+    self.old_label_surface, self.old_label_rect = utils.gen_text_pos(
+      'SURVIVORS', 16,
+      OLD_X_OFFSET, OLD_Y_OFFSET - properties.TEXT_HEIGHT + properties.TEXT_Y_OFFSET,
+      utils.BLACK, True
+    )
+
+    self.new_label_surface, self.new_label_rect = utils.gen_text_pos(
+      'INVENTORY', 16,
+      NEW_X_OFFSET, NEW_Y_OFFSET - properties.TEXT_HEIGHT + properties.TEXT_Y_OFFSET,
+      utils.BLACK, True
+    )
+
+    # Initialize okay button
+
+    self.button_group = pygame.sprite.RenderUpdates()
+    self.button_group.add( button.Button( 'OKAY', BUTTON_X_OFFSET, BUTTON_Y_OFFSET ) )
+
+  # Reset scroll positions of text boxes
+
+  def reset_scroll( self ):
+
+    self.old_tbox.scroll_y = 0
+    self.new_tbox.scroll_y = 0
+
+  # Reset expedition to clean state
+
+  def reset( self ):
+
+    self._expedition = None
+    self._survivor   = None
+    self._item       = None
+
+    self.reset_scroll()
+
+  # Process inputs. Return true if okay button is clicked.
+
+  def process_inputs( self, mouse_x, mouse_y, mouse_click ):
+
+    self._survivor = None
+    self._item     = None
+
+    # Determine free survivor info to display
+
+    for _survivor, rect in zip( self._expedition.survivors, self.old_tbox.rect_matrix[0] ):
+      if rect.collidepoint( mouse_x, mouse_y ):
+        self._survivor = _survivor
+
+    # Determine selected item info to display
+
+    for _item, rect in zip( self._expedition._inventory.items, self.new_tbox.rect_matrix[0] ):
+      if rect.collidepoint( mouse_x, mouse_y ):
+        self._item = _item
+
+    # Scroll text boxes if necessary
+
+    self.old_tbox.scroll_text( mouse_x, mouse_y )
+    self.new_tbox.scroll_text( mouse_x, mouse_y )
+
+    # Adjust button coordinates to absolute scale
+
+    rect = self.button_group.sprites()[0].rect.move( self.rect.left, self.rect.top )
+
+    # Check for valid button click
+
+    if mouse_click and rect.collidepoint( mouse_x, mouse_y ):
+      return True
+    else:
+      return False
+
+  # Generate text matrices for scrollable text boxes
+
+  def get_text( self, elements ):
+
+    text_col = []
+
+    for element in elements:
+      text_col.append( element.name )
+
+    return [ text_col ]
 
   # Update graphics
 
   def update( self ):
 
-    # Determine scroll position of both sub-windows
+    # Populate information text box if necessary
 
-    self.surv_pos = []
-    self.inv_pos  = []
+    if self._survivor != None:
+      self.info_tbox.set_survivor( self._survivor )
+    elif self._item != None:
+      self.info_tbox.set_item( self._item )
+    else:
+      self.info_tbox.update()
 
-    if self.expd != None:
+    # Populate old/new text boxes if a valid expedition is assigned
 
-      for i, surv in enumerate( self.expd.survivors ):
-        self.surv_pos.append( ( 4, i * 32 + 3 - self.surv_scroll ) )
+    if self._expedition != None:
+      self.old_tbox.update( self.get_text( self._expedition.survivors ) )
+      self.new_tbox.update( self.get_text( self._expedition._inventory.items ) )
 
-      for i, it in enumerate( self.expd.inv.items ):
-        self.inv_pos.append( ( 4, i * 32 + 3 - self.inv_scroll ) )
-
-      # Maximum scroll limit
-
-      self.max_surv_scroll = len( self.expd.survivors ) * 32
-      self.max_inv_scroll  = len( self.expd.inv.items ) * 32
+    else:
+      self.old_tbox.update()
+      self.new_tbox.update()
 
   # Draw information onto window
 
   def draw_info( self ):
 
-    rect_updates = []
+    # Draw text boxes
 
-    # Refresh black background for sub-windows
+    rect_updates  = self.info_tbox.draw( self.image )
+    rect_updates += self.old_tbox.draw( self.image )
+    rect_updates += self.new_tbox.draw( self.image )
 
-    self.info_surface.fill( (0,0,0) )
-    self.surv_surface.fill( (0,0,0) )
-    self.inv_surface.fill( (0,0,0) )
-
-    # Detailed survivor/item information
-
-    font = pygame.font.Font( properties.DEFAULT_FONT, 14 )
-
-    if self.surv != None:
-
-      font.set_bold( True )
-      info_text_surface = font.render( self.surv.name, 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 3 ) ) ]
-      font.set_bold( False )
-
-      info_text_surface = font.render( 'AGE: ' + str( self.surv.age ), 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'STAM: ' + str( self.surv.stamina ) + '/' + str( self.surv.max_stamina ), 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 2 * 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'PHYS: ' + str( self.surv.physical ), 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 3 * 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'MENT: ' + str( self.surv.mental ), 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 4 * 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'ATTRIBUTES:', 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( properties.ACTION_INFO_WIDTH / 2 + 4, 32 + 3 ) ) ]
-
-      for i, attr in enumerate( self.surv.attributes ):
-        info_text_surface = font.render( '* ' + attr.name, 1, (255,255,255) )
-        rect_updates += [ self.info_surface.blit( info_text_surface, ( properties.ACTION_INFO_WIDTH / 2 + 4, ( i + 2 ) * 32 + 3 ) ) ]
-
-    elif self.it != None:
-
-      font.set_bold( True )
-      info_text_surface = font.render( self.it.name, 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 3 ) ) ]
-      font.set_bold( False )
-
-      info_text_surface = font.render( 'TYPE: ' + self.it.type, 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'DMG: ' + str( self.it.dmg_min ) + '-' + str( self.it.dmg_max ), 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 2 * 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'AMMO: ' + str( self.it.ammo_cost ), 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 3 * 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'ARM: ' + str( self.it.armor ), 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 4 * 32 + 3 ) ) ]
-
-      info_text_surface = font.render( 'EFFECTS:', 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( properties.ACTION_INFO_WIDTH / 2 + 4, 32 + 3 ) ) ]
-
-    # Populate sub-windows with information
-
-    for surv, pos in zip( self.expd.survivors, self.surv_pos ):
-      rect_updates += [ self.surv_surface.blit( surv.text_surface, pos ) ]
-
-    for it, pos in zip( self.expd.inv.items, self.inv_pos ):
-      rect_updates += [ self.inv_surface.blit( it.text_surface, pos ) ]
-
-    # Draw sub-windows onto status window
-
-    rect_updates += [ self.image.blit( self.info_surface, self.info_rect ) ]
-    rect_updates += [ self.image.blit( self.surv_surface, self.surv_rect ) ]
-    rect_updates += [ self.image.blit( self.inv_surface, self.inv_rect ) ]
-
-    # Draw labels onto status window
+    # Draw labels
 
     rect_updates += [ self.image.blit( self.info_label_surface, self.info_label_rect ) ]
-    rect_updates += [ self.image.blit( self.surv_label_surface, self.surv_label_rect ) ]
-    rect_updates += [ self.image.blit( self.inv_label_surface, self.inv_label_rect ) ]
+    rect_updates += [ self.image.blit( self.old_label_surface, self.old_label_rect ) ]
+    rect_updates += [ self.image.blit( self.new_label_surface, self.new_label_rect ) ]
+
+    # Draw next button
+
+    rect_updates += self.button_group.draw( self.image )
 
     return rect_updates
 

@@ -327,6 +327,7 @@ class Engine:
 
           elif button.text == 'STATUS':
             self.phase                     = PHASE_STATUS
+            self.status_window.reset()
             self.status_window._expedition = self.active_expedition
 
           return True
@@ -673,6 +674,7 @@ class Engine:
 
       # Configure event window for scavenging event
 
+      self.event_window.reset()
       self.event_window._expedition = self.active_expedition
       self.event_window.survivors   = self.active_expedition.survivors
       self.event_window._tile       = self.active_expedition.pos_tile
@@ -687,9 +689,9 @@ class Engine:
       for _expedition in self.expeditions:
         if ( self.active_expedition != _expedition ) \
           and ( self.active_expedition.pos_tile == _expedition.pos_tile ):
-          _expedition.merge( self.active_expedition )
-          self.expeditions.remove( self.active_expedition )
-          self.event_window._expedition = _expedition
+          self.active_expedition.merge( _expedition )
+          self.expeditions.remove( _expedition )
+          self.event_window._expedition = self.active_expedition
           break
 
       # Roll for scavenging
@@ -736,6 +738,7 @@ class Engine:
     elif next_phase:
 
       self.phase                    = PHASE_SCAVENGE1
+      self.event_window.reset()
       self.event_window._expedition = self.active_expedition
       self.event_window.survivors   = self.survivor_window.survivors
       self.event_window._tile       = self.active_expedition.pos_tile
@@ -751,35 +754,32 @@ class Engine:
 
   def handle_phase_scavenge1( self ):
 
-    # Reset to free phase once okay button is clicked
+    # Process inputs
 
-    if self.mouse_click:
+    next_phase = self.event_window.process_inputs(
+      self.mouse_x, self.mouse_y, self.mouse_click
+    )
 
-      for button in self.event_window.button_group:
+    # Reset to free phase once okay button is clicked or ESC pressed
 
-        button_rect = pygame.rect.Rect(
-          properties.MENU_WIDTH + 32 + button.rect.left, \
-          properties.CAMERA_HEIGHT / 2 - properties.EVENT_HEIGHT / 2 + button.rect.top, \
-          button.rect.width, button.rect.height
-        )
+    if self.key_esc or next_phase:
 
-        if button_rect.collidepoint( self.mouse_x, self.mouse_y ):
-          self.phase   = PHASE_FREE
-          self.menu_en = False
-          self.cam_en  = True
+      self.phase   = PHASE_FREE
+      self.menu_en = False
+      self.cam_en  = True
 
-          # Transfer loot to expedition
+      # Transfer loot to expedition
 
-          self.event_window.commit_loot()
+      self.event_window.commit()
 
-          # Subtract scavenge cost from stamina (only if selecting from
-          # menu, if exploring, scavenge for free)
+      # Subtract scavenge cost from stamina (only if selecting from
+      # menu, if exploring, scavenge for free)
 
-          if self.explored:
-            self.explored = False
-          else:
-            for surv in self.event_window.survivors:
-              surv.stamina -= properties.SCAVENGE_COST
+      if self.explored:
+        self.explored = False
+      else:
+        for _survivor in self.active_expedition.survivors:
+          _survivor.stamina -= properties.SCAVENGE_COST
 
   #.......................................................................
   # Heal survivors in rest phase
@@ -866,64 +866,38 @@ class Engine:
 
   def handle_phase_status( self ):
 
-    # Set active information to display
+    # Process inputs
 
-    self.status_window._survivor = None
-    self.status_window._item     = None
-
-    for surv, pos in zip( self.status_window.expd.survivors, self.status_window.surv_pos ):
-      surv_info_rect = pygame.rect.Rect(
-        properties.MENU_WIDTH + 32 + self.status_window.surv_rect.left + pos[0] - 4, \
-        32 + self.status_window.surv_rect.top + pos[1] - 3, \
-        properties.ACTION_SUB_WIDTH, 32
-      )
-      if surv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
-        self.status_window.surv = surv
-
-    for it, pos in zip( self.status_window.expd.inv.items, self.status_window.inv_pos ):
-      inv_info_rect = pygame.rect.Rect(
-        properties.MENU_WIDTH + 32 + self.status_window.inv_rect.left + pos[0] - 4, \
-        32 + self.status_window.inv_rect.top + pos[1] - 3, \
-        properties.ACTION_SUB_WIDTH, 32
-      )
-      if inv_info_rect.collidepoint( self.mouse_x, self.mouse_y ):
-        self.status_window.it = it
-
-    # Scroll survivor panel
-
-    if self.status_window.surv_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( self.status_window.surv_scroll > 0 ):
-      self.status_window.surv_scroll -= properties.SCROLL_SPEED
-
-    elif self.status_window.surv_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( ( self.status_window.surv_scroll + properties.ACTION_SUB_HEIGHT ) < self.status_window.max_surv_scroll ):
-      self.status_window.surv_scroll += properties.SCROLL_SPEED
-
-    # Scroll inventory panel
-
-    if self.status_window.inv_scroll_up_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( self.status_window.inv_scroll > 0 ):
-      self.status_window.inv_scroll -= properties.SCROLL_SPEED
-
-    elif self.status_window.inv_scroll_down_rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( ( self.status_window.inv_scroll + properties.ACTION_SUB_HEIGHT ) < self.status_window.max_inv_scroll ):
-      self.status_window.inv_scroll += properties.SCROLL_SPEED
+    next_phase = self.status_window.process_inputs(
+      self.mouse_x, self.mouse_y, self.mouse_click
+    )
 
     # Go back to menu if ESC pressed
 
     if self.key_esc:
+
       self.phase   = PHASE_FREE
       self.menu_en = True
       self.cam_en  = False
 
     # Reset phase if clicked outside of context
 
-    elif self.mouse_click and not self.status_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
+    elif self.mouse_click \
+      and not self.status_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
       and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
       and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
+
       self.phase   = PHASE_FREE
       self.menu_en = False
       self.cam_en  = True
+
+    # Go back to menu if okay button is clicked
+
+    elif next_phase:
+
+      self.phase   = PHASE_FREE
+      self.menu_en = True
+      self.cam_en  = False
 
   #.......................................................................
   # Update all sprites
@@ -937,6 +911,7 @@ class Engine:
     self.survivor_window.update()
     self.inventory_window.update()
     self.cost_box.update()
+    self.event_window.update()
     self.status_window.update()
 
   #.......................................................................

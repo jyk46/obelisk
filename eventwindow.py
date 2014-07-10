@@ -7,8 +7,20 @@ import pygame, sys, os
 from pygame.locals import *
 
 import properties
+import utils
 import window
+import textbox
 import button
+
+#-------------------------------------------------------------------------
+# Window Offsets
+#-------------------------------------------------------------------------
+
+INFO_X_OFFSET = 16
+INFO_Y_OFFSET = 32
+
+BUTTON_X_OFFSET = properties.EVENT_WIDTH / 2 - properties.MENU_WIDTH / 2
+BUTTON_Y_OFFSET = properties.EVENT_HEIGHT - 16 - properties.MENU_HEIGHT
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -24,105 +36,126 @@ class EventWindow( window.Window ):
 
     # Member variables
 
-    self.expd       = None
-    self.survivors  = []
-    self.event_tile = None
-    self.food       = 0
-    self.wood       = 0
-    self.metal      = 0
-    self.ammo       = 0
-    self.it         = None
+    self._expedition = None
+    self.survivors   = []
+    self._tile       = None
+    self.food        = 0
+    self.wood        = 0
+    self.metal       = 0
+    self.ammo        = 0
+    self._item       = None
 
     # Initialize sub-windows
 
-    self.info_surface      = pygame.Surface( ( properties.EVENT_SUB_WIDTH, properties.EVENT_SUB_HEIGHT ) )
-    self.info_rect         = self.info_surface.get_rect()
-    self.info_rect.topleft = 16, 32
+    self.info_tbox = textbox.TextBox(
+      properties.EVENT_SUB_WIDTH, properties.EVENT_SUB_HEIGHT,
+      INFO_X_OFFSET, INFO_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
+    )
 
-    # Initialize font and labels for sub-windows
+    # Initialize labels for sub-windows
 
-    self.font                    = pygame.font.Font( properties.DEFAULT_FONT, 16 )
-    self.font.set_bold( True )
-    self.info_label_surface      = self.font.render( 'EVENT', 1, (0,0,0) )
-    self.info_label_rect         = self.info_label_surface.get_rect()
-    self.info_label_rect.topleft = 16, 3
+    self.info_label_surface, self.info_label_rect = utils.gen_text_pos(
+      'EVENT', 16, INFO_X_OFFSET, properties.TEXT_Y_OFFSET, utils.BLACK, True
+    )
 
     # Initialize okay button
 
     self.button_group = pygame.sprite.RenderUpdates()
-    self.button_group.add( button.Button( 'OKAY', \
-                             properties.EVENT_WIDTH / 2 - properties.MENU_WIDTH / 2, \
-                             properties.EVENT_HEIGHT - 16 - properties.MENU_HEIGHT ) )
+    self.button_group.add( button.Button( 'OKAY', BUTTON_X_OFFSET, BUTTON_Y_OFFSET ) )
 
   # Roll for scavenge event
 
   def scavenge( self ):
 
-    assert( self.event_tile != None )
+    assert( self._tile != None )
 
     self.food, self.wood, self.metal, self.ammo \
-      = self.event_tile.roll_resources( self.survivors )
+      = self._tile.roll_resources( self.survivors )
 
-    self.it = self.event_tile.roll_items( self.survivors )
+    self._item = self._tile.roll_items( self.survivors )
 
   # Actually transfer rolled loot to expedition
 
-  def commit_loot( self ):
+  def commit( self ):
 
-    assert( self.expd != None )
+    assert( self._expedition != None )
 
-    self.expd.inv.food  += self.food
-    self.expd.inv.wood  += self.wood
-    self.expd.inv.metal += self.metal
-    self.expd.inv.ammo  += self.ammo
+    self._expedition._inventory.food  += self.food
+    self._expedition._inventory.wood  += self.wood
+    self._expedition._inventory.metal += self.metal
+    self._expedition._inventory.ammo  += self.ammo
 
-    if self.it != None:
-      self.expd.inv.items.append( self.it )
+    if self._item != None:
+      self._expedition._invenetory.items.append( self._item )
+
+  # Reset expedition to clean state
+
+  def reset( self ):
+
+    self._expedition = None
+    self.survivors   = []
+    self._tile       = None
+    self.food        = 0
+    self.wood        = 0
+    self.metal       = 0
+    self.ammo        = 0
+    self._item       = None
+
+  # Process inputs. Return true if okay button is clicked.
+
+  def process_inputs( self, mouse_x, mouse_y, mouse_click ):
+
+    # Adjust button coordinates to absolute scale
+
+    rect = self.button_group.sprites()[0].rect.move( self.rect.left, self.rect.top )
+
+    # Check for valid button click
+
+    if mouse_click and rect.collidepoint( mouse_x, mouse_y ):
+      return True
+    else:
+      return False
+
+  # Generate text matrices for scrollable text boxes
+
+  def get_text( self ):
+
+    text_col = [
+      'The expedition found:',
+      '  ' + str( self.food ) + '  Food',
+      '  ' + str( self.wood ) + '  Wood',
+      '  ' + str( self.metal ) + '  Metal',
+      '  ' + str( self.ammo ) + '  Ammo',
+    ]
+
+    if self._item != None:
+      text_col.append( '  ' + self._item.name )
+
+    return [ text_col ]
+
+  # Update graphics
+
+  def update( self ):
+
+    # Populate information text box if necessary
+
+    self.info_tbox.update( self.get_text() )
 
   # Draw information onto window
 
   def draw_info( self ):
 
-    rect_updates = []
+    # Draw text boxes
 
-    # Refresh black background for sub-windows
+    rect_updates  = self.info_tbox.draw( self.image )
 
-    self.info_surface.fill( (0,0,0) )
-
-    # Event information
-
-    font = pygame.font.Font( properties.DEFAULT_FONT, 14 )
-
-    info_text_surface = font.render( 'The expedition found:', 1, (255,255,255) )
-    rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 3 ) ) ]
-
-    info_text_surface = font.render( '  ' + str( self.food ) + ' Food', 1, (255,255,255) )
-    rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 32 + 3 ) ) ]
-
-    info_text_surface = font.render( '  ' + str( self.wood ) + ' Wood', 1, (255,255,255) )
-    rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 2 * 32 + 3 ) ) ]
-
-    info_text_surface = font.render( '  ' + str( self.metal ) + ' Metal', 1, (255,255,255) )
-    rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 3 * 32 + 3 ) ) ]
-
-    info_text_surface = font.render( '  ' + str( self.ammo ) + ' Ammo', 1, (255,255,255) )
-    rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 4 * 32 + 3 ) ) ]
-
-    if self.it != None:
-      info_text_surface = font.render( '  ' + self.it.name, 1, (255,255,255) )
-      rect_updates += [ self.info_surface.blit( info_text_surface, ( 4, 5 * 32 + 3 ) ) ]
-
-    # Draw sub-windows onto status window
-
-    rect_updates += [ self.image.blit( self.info_surface, self.info_rect ) ]
-
-    # Draw labels onto status window
+    # Draw labels
 
     rect_updates += [ self.image.blit( self.info_label_surface, self.info_label_rect ) ]
 
-    # Draw okay button
+    # Draw next button
 
-    self.button_group.draw( self.image )
+    rect_updates += self.button_group.draw( self.image )
 
     return rect_updates
 

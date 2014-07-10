@@ -59,12 +59,12 @@ class InventoryWindow( window.Window ):
     )
 
     self.old_tbox = textbox.TextBox(
-      properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT - 32,
+      properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT,
       OLD_X_OFFSET, OLD_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
     )
 
     self.new_tbox = textbox.TextBox(
-      properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT - 32,
+      properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT,
       NEW_X_OFFSET, NEW_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
     )
 
@@ -126,7 +126,7 @@ class InventoryWindow( window.Window ):
 
     # Determine free item info to display
 
-    items = [ 'Food', 'Wood', 'Metal', 'Ammo', ] * 4 \
+    items = [ 'Food', 'Wood', 'Metal', 'Ammo', ] \
           + self._expedition._inventory.get_free()
 
     for _item, rect in zip( items, self.old_tbox.rect_matrix[0] ):
@@ -142,21 +142,25 @@ class InventoryWindow( window.Window ):
 
         if mouse_click:
 
-          if ( _item == 'Food' ) and ( self._expedition._inventory.food > 0 ):
-            self._expedition._inventory.food -= 1
-            self._inventory.food             += 1
+          if _item == 'Food':
+            if self._expedition._inventory.food > 0:
+              self._expedition._inventory.food -= 1
+              self._inventory.food             += 1
 
-          elif ( _item == 'Wood' ) and ( self._expedition._inventory.wood > 0 ):
-            self._expedition._inventory.wood -= 1
-            self._inventory.wood             += 1
+          elif _item == 'Wood':
+            if self._expedition._inventory.wood > 0:
+              self._expedition._inventory.wood -= 1
+              self._inventory.wood             += 1
 
-          elif ( _item == 'Metal' ) and ( self._expedition._inventory.metal > 0 ):
-            self._expedition._inventory.metal -= 1
-            self._inventory.metal             += 1
+          elif _item == 'Metal':
+            if self._expedition._inventory.metal > 0:
+              self._expedition._inventory.metal -= 1
+              self._inventory.metal             += 1
 
-          elif ( _item == 'Ammo' ) and ( self._expedition._inventory.ammo > 0 ):
-            self._expedition._inventory.ammo -= 1
-            self._inventory.ammo             += 1
+          elif _item == 'Ammo':
+            if self._expedition._inventory.ammo > 0:
+              self._expedition._inventory.ammo -= 1
+              self._inventory.ammo             += 1
 
           else:
             _item.free = False
@@ -164,7 +168,7 @@ class InventoryWindow( window.Window ):
 
     # Determine selected item info to display
 
-    items = [ 'Food', 'Wood', 'Metal', 'Ammo', ] * 4 \
+    items = [ 'Food', 'Wood', 'Metal', 'Ammo', ] \
           + self._inventory.items
 
     for _item, rect in zip( items, self.new_tbox.rect_matrix[0] ):
@@ -180,21 +184,25 @@ class InventoryWindow( window.Window ):
 
         if mouse_click:
 
-          if ( _item == 'Food' ) and ( self._inventory.food > 0 ):
-            self._expedition._inventory.food += 1
-            self._inventory.food             -= 1
+          if _item == 'Food':
+            if self._inventory.food > 0:
+              self._expedition._inventory.food += 1
+              self._inventory.food             -= 1
 
-          elif ( _item == 'Wood' ) and ( self._inventory.wood > 0 ):
-            self._expedition._inventory.wood += 1
-            self._inventory.wood             -= 1
+          elif _item == 'Wood':
+            if self._inventory.wood > 0:
+              self._expedition._inventory.wood += 1
+              self._inventory.wood             -= 1
 
-          elif ( _item == 'Metal' ) and ( self._inventory.metal > 0 ):
-            self._expedition._inventory.metal += 1
-            self._inventory.metal             -= 1
+          elif _item == 'Metal':
+            if self._inventory.metal > 0:
+              self._expedition._inventory.metal += 1
+              self._inventory.metal             -= 1
 
-          elif ( _item == 'Ammo' ) and ( self._inventory.ammo > 0 ):
-            self._expedition._inventory.ammo += 1
-            self._inventory.ammo             -= 1
+          elif _item == 'Ammo':
+            if self._inventory.ammo > 0:
+              self._expedition._inventory.ammo += 1
+              self._inventory.ammo             -= 1
 
           else:
             _item.free = True
@@ -266,7 +274,7 @@ class InventoryWindow( window.Window ):
     # Draw labels
 
     rect_updates += [ self.image.blit( self.info_label_surface, self.info_label_rect ) ]
-    rect_updates += [ self.image.blit( self.old_inv_label_surface, self.old_label_rect ) ]
+    rect_updates += [ self.image.blit( self.old_label_surface, self.old_label_rect ) ]
     rect_updates += [ self.image.blit( self.new_label_surface, self.new_label_rect ) ]
 
     # Draw next button
