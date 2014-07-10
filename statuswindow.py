@@ -116,14 +116,14 @@ class StatusWindow( window.Window ):
 
     for _survivor, rect in zip( self._expedition.survivors, self.old_tbox.rect_matrix[0] ):
       if rect.collidepoint( mouse_x, mouse_y ) \
-        and self.old_tbox.rect.collidepoint( mouse_x, mouse_y ):
+        and self.old_tbox.rect.move( self.rect.left, self.rect.top ).collidepoint( mouse_x, mouse_y ):
         self._survivor = _survivor
 
     # Determine selected item info to display
 
     for _item, rect in zip( self._expedition._inventory.items, self.new_tbox.rect_matrix[0] ):
       if rect.collidepoint( mouse_x, mouse_y ) \
-        and self.new_tbox.rect.collidepoint( mouse_x, mouse_y ):
+        and self.new_tbox.rect.move( self.rect.left, self.rect.top ).collidepoint( mouse_x, mouse_y ):
         self._item = _item
 
     # Scroll text boxes if necessary
