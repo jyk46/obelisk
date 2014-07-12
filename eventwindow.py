@@ -76,7 +76,7 @@ class EventWindow( window.Window ):
 
   # Actually transfer rolled loot to expedition
 
-  def commit( self ):
+  def commit( self, explored ):
 
     assert( self._expedition != None )
 
@@ -87,6 +87,12 @@ class EventWindow( window.Window ):
 
     if self._item != None:
       self._expedition._invenetory.items.append( self._item )
+
+    # Do not subtract stamina cost if scavenging at the end of explore
+
+    if not explored:
+      for _survivor in self.survivors:
+        _survivor.stamina -= properties.SCAVENGE_COST
 
   # Reset expedition to clean state
 

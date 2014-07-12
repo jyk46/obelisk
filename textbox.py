@@ -119,7 +119,7 @@ class TextBox:
 
       for text in text_col:
 
-        # Check if text should be bolded
+        # Check if text should be bolded or colored
 
         bold = False
 
@@ -127,13 +127,31 @@ class TextBox:
           bold = True
           text = text.replace( '**', '' )
 
+        color = self.color
+
+        if '\R' in text:
+          color = utils.RED
+          text  = text.replace( '\R', '' )
+        elif '\G' in text:
+          color = utils.GREEN
+          text  = text.replace( '\G', '' )
+        elif '\B' in text:
+          color = utils.BLUE
+          text  = text.replace( '\B', '' )
+        elif '\K' in text:
+          color = utils.BLACK
+          text  = text.replace( '\K', '' )
+        elif '\W' in text:
+          color = utils.WHITE
+          text  = text.replace( '\W', '' )
+
         # Draw text
 
         surface, rect = utils.gen_text_pos(
           text, self.size,
           ( col_offset * col_idx ) + properties.TEXT_X_OFFSET,
           ( properties.TEXT_HEIGHT * row_idx ) + properties.TEXT_Y_OFFSET - self.scroll_y,
-          self.color, bold
+          color, bold
         )
 
         # Add text surface to column array

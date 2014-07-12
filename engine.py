@@ -15,6 +15,7 @@ import survivorwindow
 import inventorywindow
 import costbox
 import eventwindow
+import craftwindow
 import statuswindow
 import mapgen
 import button
@@ -120,6 +121,12 @@ class Engine:
       properties.MENU_WIDTH + 32,
       properties.CAMERA_HEIGHT / 2 - properties.EVENT_HEIGHT / 2,
       properties.EVENT_PATH + 'event_bg.png'
+    )
+
+    self.craft_window = craftwindow.CraftWindow(
+      properties.ACTION_WIDTH, properties.ACTION_HEIGHT,
+      properties.MENU_WIDTH + 32, 32,
+      properties.ACTION_PATH + 'action_bg.png'
     )
 
     self.status_window = statuswindow.StatusWindow(
@@ -309,29 +316,34 @@ class Engine:
 
           self.sidebar_window._tile = self.active_expedition.pos_tile
 
+          # Reset all window state
+
+          self.survivor_window.reset()
+          self.inventory_window.reset()
+          self.event_window.reset()
+          self.craft_window.reset()
+          self.status_window.reset()
+
           # Phase transition based on button click
 
           if button.text == 'EXPLORE':
             self.phase                       = PHASE_EXPLORE0
-            self.survivor_window.reset()
             self.survivor_window._expedition = self.active_expedition
 
           elif button.text == 'SCAVENGE':
             self.phase                       = PHASE_SCAVENGE0
-            self.survivor_window.reset()
             self.survivor_window._expedition = self.active_expedition
 
           elif button.text == 'CRAFT':
-            self.phase = PHASE_CRAFT
+            self.phase                    = PHASE_CRAFT
+            self.craft_window._expedition = self.active_expedition
 
           elif button.text == 'REST':
             self.phase                       = PHASE_REST
-            self.survivor_window.reset()
             self.survivor_window._expedition = self.active_expedition
 
           elif button.text == 'STATUS':
             self.phase                     = PHASE_STATUS
-            self.status_window.reset()
             self.status_window._expedition = self.active_expedition
 
           return True
@@ -454,7 +466,7 @@ class Engine:
     # Process inputs
 
     next_phase = self.survivor_window.process_inputs(
-      self.mouse_x, self.mouse_y, self.mouse_click
+      self.mouse_x, self.mouse_y, self.mouse_click, 1
     )
 
     # Go back to menu if ESC pressed
@@ -603,7 +615,7 @@ class Engine:
 
           # Keep old expedition's image if all survivors exploring
 
-          if len( self.active_expedition.get_free() ) == 0:
+          if len( self.active_expedition.survivors ) == len( self.survivor_window.survivors ):
             img_idx = self.active_expedition.img_roll
           else:
             img_idx = -1
@@ -632,7 +644,7 @@ class Engine:
           self.active_expedition.unhighlight_range()
           self.active_expedition.commit()
 
-          if len( self.active_expedition.get_free() ) == 0:
+          if len( self.active_expedition.survivors ) == len( self.survivor_window.survivors ):
             self.active_expedition.kill()
             self.expeditions.remove( self.active_expedition )
 
@@ -707,7 +719,7 @@ class Engine:
     # Process inputs
 
     next_phase = self.survivor_window.process_inputs(
-      self.mouse_x, self.mouse_y, self.mouse_click
+      self.mouse_x, self.mouse_y, self.mouse_click, properties.SCAVENGE_COST
     )
 
     # Go back to menu if ESC pressed
@@ -766,18 +778,13 @@ class Engine:
       self.menu_en = False
       self.cam_en  = True
 
-      # Transfer loot to expedition
+      # Transfer loot to expedition and subtract scavenge cost from
+      # stamina (only if selecting from menu, if exploring, scavenge for
+      # free).
 
-      self.event_window.commit()
+      self.event_window.commit( self.explored )
 
-      # Subtract scavenge cost from stamina (only if selecting from
-      # menu, if exploring, scavenge for free)
-
-      if self.explored:
-        self.explored = False
-      else:
-        for _survivor in self.active_expedition.survivors:
-          _survivor.stamina -= properties.SCAVENGE_COST
+      self.explored = False
 
   #.......................................................................
   # Heal survivors in rest phase
@@ -857,6 +864,47 @@ class Engine:
       self.heal_survivors( self.survivor_window.survivors )
 
   #.......................................................................
+  # PHASE_CRAFT Handling
+  #.......................................................................
+  # Phase for crafting items
+
+  def handle_phase_craft( self ):
+
+    # Process inputs
+
+    next_phase = self.craft_window.process_inputs(
+      self.mouse_x, self.mouse_y, self.mouse_click, properties.CRAFT_COST
+    )
+
+    # Go back to menu if ESC pressed
+
+    if self.key_esc:
+
+      if self.craft_window.selected:
+        self.craft_window.half_reset()
+
+      else:
+        self.phase   = PHASE_FREE
+        self.menu_en = True
+        self.cam_en  = False
+
+    # Reset phase if clicked outside of context
+
+    elif self.mouse_click \
+      and not self.craft_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
+
+      self.phase   = PHASE_FREE
+      self.menu_en = False
+      self.cam_en  = True
+
+    # Craft item if necessary requirements met
+
+    elif next_phase:
+
+      self.craft_window.commit()
+
+  #.......................................................................
   # PHASE_STATUS Handling
   #.......................................................................
   # Phase for displaying details about expedition
@@ -915,6 +963,8 @@ class Engine:
       self.survivor_window.update()
     elif self.phase == PHASE_SCAVENGE1:
       self.event_window.update()
+    elif self.phase == PHASE_CRAFT:
+      self.craft_window.update()
     elif self.phase == PHASE_REST:
       self.survivor_window.update()
     elif self.phase == PHASE_STATUS:
@@ -953,6 +1003,8 @@ class Engine:
       rect_updates += self.survivor_window.draw( self.screen )
     elif self.phase == PHASE_SCAVENGE1:
       rect_updates += self.event_window.draw( self.screen )
+    elif self.phase == PHASE_CRAFT:
+      rect_updates += self.craft_window.draw( self.screen )
     elif self.phase == PHASE_REST:
       rect_updates += self.survivor_window.draw( self.screen )
     elif self.phase == PHASE_STATUS:

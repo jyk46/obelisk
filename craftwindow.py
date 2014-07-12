@@ -1,7 +1,7 @@
 #=========================================================================
-# inventorywindow.py
+# craftwindow.py
 #=========================================================================
-# Extended window class for handling inventory selection
+# Extended window class for handling survivor/inventory selection
 
 import pygame, sys, os
 from pygame.locals import *
@@ -14,6 +14,7 @@ import infotextbox
 import button
 import tile
 import expedition
+import survivor
 import inventory
 import item
 
@@ -37,7 +38,7 @@ BUTTON_Y_OFFSET = properties.ACTION_HEIGHT - 16 - properties.MENU_HEIGHT
 # Main Class
 #-------------------------------------------------------------------------
 
-class InventoryWindow( window.Window ):
+class CraftWindow( window.Window ):
 
   # Constructor
 
@@ -48,8 +49,17 @@ class InventoryWindow( window.Window ):
     # Member variables
 
     self._expedition = None
-    self._inventory  = inventory.Inventory()
+    self.survivors   = []
     self._item       = None
+    self.selected    = False
+
+    # Construct list of craftable items
+
+    self.items = []
+
+    for name, info in item.item_table.iteritems():
+      if info[9]:
+        self.items.append( item.Item( name ) )
 
     # Initialize sub-windows
 
@@ -75,29 +85,38 @@ class InventoryWindow( window.Window ):
     )
 
     self.old_label_surface, self.old_label_rect = utils.gen_text_pos(
-      'INVENTORY', 16,
+      'ITEM TO CRAFT', 16,
       OLD_X_OFFSET, OLD_Y_OFFSET - properties.TEXT_HEIGHT + properties.TEXT_Y_OFFSET,
       utils.BLACK, True
     )
 
     self.new_label_surface, self.new_label_rect = utils.gen_text_pos(
-      'SELECTED', 16,
+      'SURVIVORS', 16,
       NEW_X_OFFSET, NEW_Y_OFFSET - properties.TEXT_HEIGHT + properties.TEXT_Y_OFFSET,
       utils.BLACK, True
     )
 
-    # Initialize next button
+    # Initialize craft button
 
     self.button_group = pygame.sprite.RenderUpdates()
-    self.button_group.add( button.Button( 'NEXT', BUTTON_X_OFFSET, BUTTON_Y_OFFSET ) )
+    self.button_group.add( button.Button( 'CRAFT', BUTTON_X_OFFSET, BUTTON_Y_OFFSET ) )
 
-  # Free up inventory when canceling selection
+  # Commit selected survivors and cost for crafting
 
-  def free( self ):
+  def commit( self ):
 
-    if self._expedition != None:
-      self._expedition._inventory.merge_resources( self._inventory )
-      self._expedition.free_inventory()
+    assert( self._expedition != None )
+
+    self._expedition._inventory.items.append( item.Item( self._item.name ) )
+
+    self._expedition._inventory.wood  -= self._item.wood_cost
+    self._expedition._inventory.metal -= self._item.metal_cost
+
+    for _survivor in self.survivors:
+      _survivor.free     = False
+      _survivor.stamina -= properties.CRAFT_COST
+
+    self.survivors = []
 
   # Reset scroll positions of text boxes
 
@@ -106,110 +125,96 @@ class InventoryWindow( window.Window ):
     self.old_tbox.scroll_y = 0
     self.new_tbox.scroll_y = 0
 
+  # Reset survivor selection
+
+  def half_reset( self ):
+
+    self.survivors = []
+    self._item     = None
+    self.selected  = False
+
   # Reset expedition to clean state
 
   def reset( self ):
 
-    self.free()
-
     self._expedition = None
-    self._inventory  = inventory.Inventory()
+    self.survivors   = []
     self._item       = None
+    self.selected    = False
 
     self.reset_scroll()
+
+  # Get total mental bonus of currently selected survivors. Each survivor
+  # adds one to the total by default.
+
+  def get_current_mental( self ):
+
+    mental = len( self.survivors )
+
+    for _survivor in self.survivors:
+      mental += _survivor.get_mental_bonus()
+
+    return mental
+
+  # Check if costs and requirements for item have been met
+
+  def check_cost( self ):
+
+    wood_check   = self._expedition._inventory.wood >= self._item.wood_cost
+    metal_check  = self._expedition._inventory.metal >= self._item.metal_cost
+    mental_check = self.get_current_mental() >= self._item.mental_req
+
+    return wood_check and metal_check and mental_check
 
   # Process inputs. Return true if next button is clicked and at least
   # one survivor was selected.
 
-  def process_inputs( self, mouse_x, mouse_y, mouse_click ):
+  def process_inputs( self, mouse_x, mouse_y, mouse_click, cost=0 ):
 
-    self._item = None
+    # Clear item info box if still selecting item to craft
 
-    # Determine free item info to display
+    if not self.selected:
+      self._item = None
 
-    items = [ 'Food', 'Wood', 'Metal', 'Ammo', ] \
-          + self._expedition._inventory.get_free()
+    # Display list of craftable items
 
-    for _item, rect in zip( items, self.old_tbox.rect_matrix[0] ):
-
-      # Determine if mouse is hovering over item
+    for _item, rect in zip( self.items, self.old_tbox.rect_matrix[0] ):
 
       if rect.collidepoint( mouse_x, mouse_y ) \
         and self.old_tbox.rect.move( self.rect.left, self.rect.top ).collidepoint( mouse_x, mouse_y ):
 
-        if type( _item ) != str:
+        # Only do hover display if item is not selected already
+
+        if not self.selected:
           self._item = _item
 
-        # Transfer items if mouse is clicked
+        # Select survivors once an item to craft is selected
 
         if mouse_click:
 
-          if _item == 'Food':
-            if self._expedition._inventory.food > 0:
-              self._expedition._inventory.food -= 1
-              self._inventory.food             += 1
-
-          elif _item == 'Wood':
-            if self._expedition._inventory.wood > 0:
-              self._expedition._inventory.wood -= 1
-              self._inventory.wood             += 1
-
-          elif _item == 'Metal':
-            if self._expedition._inventory.metal > 0:
-              self._expedition._inventory.metal -= 1
-              self._inventory.metal             += 1
-
-          elif _item == 'Ammo':
-            if self._expedition._inventory.ammo > 0:
-              self._expedition._inventory.ammo -= 1
-              self._inventory.ammo             += 1
+          if self.selected and ( _item == self._item ):
+            self.half_reset()
 
           else:
-            _item.free = False
-            self._inventory.items.append( _item )
+            self._item     = _item
+            self.survivors = []
+            self.selected  = True
 
-    # Determine selected item info to display
+    # Display list of survivors available for crafting once item is chosen
 
-    items = [ 'Food', 'Wood', 'Metal', 'Ammo', ] \
-          + self._inventory.items
+    if self.selected:
 
-    for _item, rect in zip( items, self.new_tbox.rect_matrix[0] ):
+      for _survivor, rect in zip( self._expedition.get_free(), self.new_tbox.rect_matrix[0] ):
 
-      # Determine if mouse is hovering over item
+        # Highlight selected survivors to update cost/req
 
-      if rect.collidepoint( mouse_x, mouse_y ) \
-        and self.new_tbox.rect.move( self.rect.left, self.rect.top ).collidepoint( mouse_x, mouse_y ):
+        if mouse_click and rect.collidepoint( mouse_x, mouse_y ) \
+          and self.new_tbox.rect.move( self.rect.left, self.rect.top ).collidepoint( mouse_x, mouse_y ):
 
-        if type( _item ) != str:
-          self._item = _item
-
-        # Transfer items if mouse is clicked
-
-        if mouse_click:
-
-          if _item == 'Food':
-            if self._inventory.food > 0:
-              self._expedition._inventory.food += 1
-              self._inventory.food             -= 1
-
-          elif _item == 'Wood':
-            if self._inventory.wood > 0:
-              self._expedition._inventory.wood += 1
-              self._inventory.wood             -= 1
-
-          elif _item == 'Metal':
-            if self._inventory.metal > 0:
-              self._expedition._inventory.metal += 1
-              self._inventory.metal             -= 1
-
-          elif _item == 'Ammo':
-            if self._inventory.ammo > 0:
-              self._expedition._inventory.ammo += 1
-              self._inventory.ammo             -= 1
-
-          else:
-            _item.free = True
-            self._inventory.items.remove( _item )
+          if _survivor in self.survivors:
+            self.survivors.remove( _survivor )
+          elif _survivor.stamina > cost:
+            self.survivors.append( _survivor )
 
     # Scroll text boxes if necessary
 
@@ -222,24 +227,45 @@ class InventoryWindow( window.Window ):
 
     # Check for valid button click
 
-    if mouse_click and rect.collidepoint( mouse_x, mouse_y ):
+    if mouse_click and rect.collidepoint( mouse_x, mouse_y ) \
+      and self.selected and self.check_cost():
       return True
     else:
       return False
 
   # Generate text matrices for scrollable text boxes
 
-  def get_text( self, _inventory, items ):
+  def get_survivors_text( self, survivors ):
 
-    text_col = [
-      'Food (' + str( _inventory.food ) + ')',
-      'Wood (' + str( _inventory.wood ) + ')',
-      'Metal (' + str( _inventory.metal ) + ')',
-      'Ammo (' + str( _inventory.ammo ) + ')',
-    ]
+    text_col = []
+
+    for _survivor in survivors:
+
+      survivor_text = _survivor.name + ' '
+
+      if _survivor in self.survivors:
+        survivor_text = '\G' + survivor_text
+
+      bonus = 1 + _survivor.get_mental_bonus()
+
+      if bonus >= 0:
+        survivor_text += '+'
+
+      survivor_text += str( bonus )
+
+      text_col.append( survivor_text )
+
+    return [ text_col ]
+
+  def get_items_text( self, items ):
+
+    text_col = []
 
     for _item in items:
-      text_col.append( _item.name )
+      if self.selected and ( _item == self._item ):
+        text_col.append( '\G' + _item.name )
+      else:
+        text_col.append( _item.name )
 
     return [ text_col ]
 
@@ -250,18 +276,24 @@ class InventoryWindow( window.Window ):
     # Populate information text box if necessary
 
     if self._item != None:
-      self.info_tbox.set_item( self._item )
+      self.info_tbox.set_craft(
+        self._item, self.survivors, self._expedition._inventory, self.get_current_mental()
+      )
     else:
       self.info_tbox.update()
 
-    # Populate old/new text boxes if a valid expedition is assigned
+    # Populate old text box if valid expedition is assigned
 
     if self._expedition != None:
-      self.old_tbox.update( self.get_text( self._expedition._inventory, self._expedition._inventory.get_free() ) )
-      self.new_tbox.update( self.get_text( self._inventory, self._inventory.items ) )
-
+      self.old_tbox.update( self.get_items_text( self.items ) )
     else:
       self.old_tbox.update()
+
+    # Populate new text box if ready to select survivors
+
+    if self.selected:
+      self.new_tbox.update( self.get_survivors_text( self._expedition.get_free() ) )
+    else:
       self.new_tbox.update()
 
   # Draw information onto window
@@ -280,7 +312,7 @@ class InventoryWindow( window.Window ):
     rect_updates += [ self.image.blit( self.old_label_surface, self.old_label_rect ) ]
     rect_updates += [ self.image.blit( self.new_label_surface, self.new_label_rect ) ]
 
-    # Draw next button
+    # Draw craft button
 
     rect_updates += self.button_group.draw( self.image )
 

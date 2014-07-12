@@ -108,17 +108,18 @@ class SurvivorWindow( window.Window ):
 
   def reset( self ):
 
+    self.free()
+
     self._expedition = None
     self.survivors   = []
     self._survivor   = None
 
-    self.free()
     self.reset_scroll()
 
   # Process inputs. Return true if next button is clicked and at least
   # one survivor was selected.
 
-  def process_inputs( self, mouse_x, mouse_y, mouse_click ):
+  def process_inputs( self, mouse_x, mouse_y, mouse_click, cost=0 ):
 
     self._survivor = None
 
@@ -135,7 +136,7 @@ class SurvivorWindow( window.Window ):
 
         # Move selected survivors to selected column
 
-        if mouse_click:
+        if mouse_click and ( _survivor.stamina > cost ):
           _survivor.free = False
           self.survivors.append( _survivor )
 

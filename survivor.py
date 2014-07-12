@@ -31,7 +31,7 @@ name_table = [
   'Alyssa Chapman',
   'Ashley Dougherty',
   'Stephanie Griffin',
-  'Janus Worthington',
+  'Janus Worthing',
   'Hyun-woo Kim',
   'Seo-yeon Lee',
   'Wei Wang',

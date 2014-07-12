@@ -42,7 +42,7 @@ class InfoTextBox( textbox.TextBox ):
       'YIELD: ' + _tile.get_yield(),
     ] )
 
-    # Draw rest of survivor information
+    # Draw text box
 
     self.update( text_matrix )
 
@@ -62,7 +62,7 @@ class InfoTextBox( textbox.TextBox ):
       'AMMO: ' + str( _expedition._inventory.ammo ),
     ] )
 
-    # Draw rest of survivor information
+    # Draw text box
 
     self.update( text_matrix )
 
@@ -91,11 +91,12 @@ class InfoTextBox( textbox.TextBox ):
 
     text_matrix.append( attributes_col )
 
-    # Draw rest of survivor information
+    # Draw text box
 
     self.update( text_matrix )
 
-  # Set item to display information about
+  # Set item to display information about. Optionally display cost and
+  # crafting requirements.
 
   def set_item( self, _item ):
 
@@ -118,6 +119,62 @@ class InfoTextBox( textbox.TextBox ):
 
     text_matrix.append( info_col )
 
-    # Draw rest of survivor information
+    # Draw text box
+
+    self.update( text_matrix )
+
+  # Display crafting requirements for a given item with current
+  # resources. By default this information is displayed on the right half
+  # of the inforamtion text box and is intended to be used in conjunction
+  # with the set_items() function above.
+
+  def set_craft( self, _item, survivors, inventory, mental ):
+
+    text_matrix = []
+
+    # Item information
+
+    info_col = [ '**' + str( _item.name ) ]
+
+    if _item.type == 'Weapon':
+      info_col.append( 'DMG: ' + str( _item.dmg_min ) + '-' + str( _item.dmg_max ) )
+      info_col.append( 'AMMO: ' + str( _item.ammo_cost ) )
+
+    elif _item.type == 'Armor':
+      info_col.append( 'ARM: ' + str( _item.armor ) )
+
+    else:
+      info_col.append( 'EFFECT:' )
+      info_col += _item.effect
+
+    text_matrix.append( info_col )
+
+    # Resources cost
+
+    info_col = []
+
+    current_wood  = str( inventory.wood )
+    current_metal = str( inventory.metal )
+
+    if inventory.wood < _item.wood_cost:
+      current_wood = '\R' + current_wood
+    if inventory.metal < _item.metal_cost:
+      current_metal = '\R' + current_metal
+
+    info_col.append( 'WOOD: ' + current_wood + '/' + str( _item.wood_cost ) )
+    info_col.append( 'METAL: ' + current_metal + '/' + str( _item.metal_cost ) )
+
+    # Mental requirement
+
+    current_mental = str( mental )
+
+    if mental < _item.mental_req:
+      current_mental = '\R' + current_mental
+
+    info_col.append( 'MENTAL: ' + current_mental + '/' + str( _item.mental_req ) )
+
+    text_matrix.append( info_col )
+
+    # Draw text box
 
     self.update( text_matrix )
