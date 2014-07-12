@@ -318,32 +318,41 @@ class Engine:
 
           # Reset all window state
 
-          self.survivor_window.reset()
-          self.inventory_window.reset()
-          self.event_window.reset()
-          self.craft_window.reset()
-          self.status_window.reset()
+          if self.phase == PHASE_EXPLORE0:
+            self.survivor_window.free()
+          elif self.phase == PHASE_EXPLORE1:
+            self.survivor_window.free()
+            self.inventory_window.reset()
+          elif self.phase == PHASE_SCAVENGE0:
+            self.survivor_window.free()
+          elif self.phase == PHASE_REST:
+            self.survivor_window.free()
 
           # Phase transition based on button click
 
-          if button.text == 'EXPLORE':
+          if button.text == 'EXPLORE' and ( len( self.active_expedition.get_free() ) > 0 ):
             self.phase                       = PHASE_EXPLORE0
+            self.survivor_window.reset()
             self.survivor_window._expedition = self.active_expedition
 
-          elif button.text == 'SCAVENGE':
+          elif button.text == 'SCAVENGE' and ( len( self.active_expedition.get_free() ) > 0 ):
             self.phase                       = PHASE_SCAVENGE0
+            self.survivor_window.reset()
             self.survivor_window._expedition = self.active_expedition
 
-          elif button.text == 'CRAFT':
+          elif button.text == 'CRAFT' and ( len( self.active_expedition.get_free() ) > 0 ):
             self.phase                    = PHASE_CRAFT
+            self.craft_window.reset()
             self.craft_window._expedition = self.active_expedition
 
-          elif button.text == 'REST':
+          elif button.text == 'REST' and ( len( self.active_expedition.get_free() ) > 0 ):
             self.phase                       = PHASE_REST
+            self.survivor_window.reset()
             self.survivor_window._expedition = self.active_expedition
 
           elif button.text == 'STATUS':
             self.phase                     = PHASE_STATUS
+            self.status_window.reset()
             self.status_window._expedition = self.active_expedition
 
           return True
@@ -615,8 +624,11 @@ class Engine:
 
           # Keep old expedition's image if all survivors exploring
 
+          all_explore = False
+
           if len( self.active_expedition.survivors ) == len( self.survivor_window.survivors ):
-            img_idx = self.active_expedition.img_roll
+            all_explore = True
+            img_idx     = self.active_expedition.img_roll
           else:
             img_idx = -1
 
@@ -644,7 +656,7 @@ class Engine:
           self.active_expedition.unhighlight_range()
           self.active_expedition.commit()
 
-          if len( self.active_expedition.survivors ) == len( self.survivor_window.survivors ):
+          if all_explore:
             self.active_expedition.kill()
             self.expeditions.remove( self.active_expedition )
 

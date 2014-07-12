@@ -11,6 +11,7 @@ import utils
 import window
 import textbox
 import infotextbox
+import survivortextbox
 import button
 import tile
 import expedition
@@ -57,12 +58,12 @@ class SurvivorWindow( window.Window ):
       INFO_X_OFFSET, INFO_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
     )
 
-    self.old_tbox = textbox.TextBox(
+    self.old_tbox = survivortextbox.SurvivorTextBox(
       properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT,
       OLD_X_OFFSET, OLD_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
     )
 
-    self.new_tbox = textbox.TextBox(
+    self.new_tbox = survivortextbox.SurvivorTextBox(
       properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT,
       NEW_X_OFFSET, NEW_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
     )
@@ -107,8 +108,6 @@ class SurvivorWindow( window.Window ):
   # Reset expedition to clean state
 
   def reset( self ):
-
-    self.free()
 
     self._expedition = None
     self.survivors   = []
@@ -185,6 +184,17 @@ class SurvivorWindow( window.Window ):
 
     return [ text_col ]
 
+  # Generate health ratios for text boxes
+
+  def get_health( self, survivors ):
+
+    health_col = []
+
+    for _survivor in survivors:
+      health_col.append( float( _survivor.stamina ) / _survivor.max_stamina )
+
+    return [ health_col ]
+
   # Update graphics
 
   def update( self ):
@@ -199,8 +209,14 @@ class SurvivorWindow( window.Window ):
     # Populate old/new text boxes if a valid expedition is assigned
 
     if self._expedition != None:
-      self.old_tbox.update( self.get_text( self._expedition.get_free() ) )
-      self.new_tbox.update( self.get_text( self.survivors ) )
+      self.old_tbox.update(
+        self.get_text( self._expedition.get_free() ),
+        self.get_health( self._expedition.get_free() )
+      )
+      self.new_tbox.update(
+        self.get_text( self.survivors ),
+        self.get_health( self.survivors )
+      )
 
     else:
       self.old_tbox.update()

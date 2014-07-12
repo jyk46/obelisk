@@ -86,7 +86,7 @@ class EventWindow( window.Window ):
     self._expedition._inventory.ammo  += self.ammo
 
     if self._item != None:
-      self._expedition._invenetory.items.append( self._item )
+      self._expedition._inventory.items.append( self._item )
 
     # Do not subtract stamina cost if scavenging at the end of explore
 

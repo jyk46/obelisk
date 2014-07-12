@@ -110,8 +110,6 @@ class InventoryWindow( window.Window ):
 
   def reset( self ):
 
-    self.free()
-
     self._expedition = None
     self._inventory  = inventory.Inventory()
     self._item       = None

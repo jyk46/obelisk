@@ -11,6 +11,7 @@ import utils
 import window
 import textbox
 import infotextbox
+import survivortextbox
 import button
 import expedition
 
@@ -55,7 +56,7 @@ class StatusWindow( window.Window ):
       INFO_X_OFFSET, INFO_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
     )
 
-    self.old_tbox = textbox.TextBox(
+    self.old_tbox = survivortextbox.SurvivorTextBox(
       properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT,
       OLD_X_OFFSET, OLD_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
     )
@@ -153,6 +154,17 @@ class StatusWindow( window.Window ):
 
     return [ text_col ]
 
+  # Generate health ratios for text boxes
+
+  def get_health( self, survivors ):
+
+    health_col = []
+
+    for _survivor in survivors:
+      health_col.append( float( _survivor.stamina ) / _survivor.max_stamina )
+
+    return [ health_col ]
+
   # Update graphics
 
   def update( self ):
@@ -169,7 +181,10 @@ class StatusWindow( window.Window ):
     # Populate old/new text boxes if a valid expedition is assigned
 
     if self._expedition != None:
-      self.old_tbox.update( self.get_text( self._expedition.survivors ) )
+      self.old_tbox.update(
+        self.get_text( self._expedition.survivors ),
+        self.get_health( self._expedition.survivors )
+      )
       self.new_tbox.update( self.get_text( self._expedition._inventory.items ) )
 
     else:
