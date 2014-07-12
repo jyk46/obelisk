@@ -268,27 +268,31 @@ class Engine:
 
   def scroll_camera( self ):
 
-    # Scroll x-axis
+    # Only scroll if within camera window
 
-    if ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.SCROLL_WIDTH ) \
-      and ( self.cam_x > 0 ):
-      self.cam_x -= properties.SCROLL_SPEED
+    if self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
-    elif ( self.mouse_x >= ( properties.CAMERA_WIDTH - properties.SCROLL_WIDTH ) ) \
-      and ( self.mouse_x < properties.CAMERA_WIDTH ) \
-      and ( ( self.cam_x + properties.CAMERA_WIDTH ) < properties.MAP_WIDTH ):
-      self.cam_x += properties.SCROLL_SPEED
+      # Scroll x-axis
 
-    # Scroll y-axis
+      if ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.SCROLL_WIDTH ) \
+        and ( self.cam_x > 0 ):
+        self.cam_x -= properties.SCROLL_SPEED
 
-    if ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.SCROLL_WIDTH ) \
-      and ( self.cam_y > 0 ):
-      self.cam_y -= properties.SCROLL_SPEED
+      elif ( self.mouse_x >= ( properties.CAMERA_WIDTH - properties.SCROLL_WIDTH ) ) \
+        and ( self.mouse_x < properties.CAMERA_WIDTH ) \
+        and ( ( self.cam_x + properties.CAMERA_WIDTH ) < properties.MAP_WIDTH ):
+        self.cam_x += properties.SCROLL_SPEED
 
-    elif ( self.mouse_y >= ( properties.CAMERA_HEIGHT - properties.SCROLL_WIDTH ) ) \
-      and ( self.mouse_y < properties.CAMERA_HEIGHT ) \
-      and ( ( self.cam_y + properties.CAMERA_HEIGHT ) < properties.MAP_HEIGHT ):
-      self.cam_y += properties.SCROLL_SPEED
+      # Scroll y-axis
+
+      if ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.SCROLL_WIDTH ) \
+        and ( self.cam_y > 0 ):
+        self.cam_y -= properties.SCROLL_SPEED
+
+      elif ( self.mouse_y >= ( properties.CAMERA_HEIGHT - properties.SCROLL_WIDTH ) ) \
+        and ( self.mouse_y < properties.CAMERA_HEIGHT ) \
+        and ( ( self.cam_y + properties.CAMERA_HEIGHT ) < properties.MAP_HEIGHT ):
+        self.cam_y += properties.SCROLL_SPEED
 
   #.......................................................................
   # Menu selection handler
@@ -382,8 +386,7 @@ class Engine:
 
     if ( context_x >= 0 ) and ( context_x < properties.MAP_SIZE ) \
       and ( context_y >= 0 ) and ( context_y < properties.MAP_SIZE ) \
-      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
-      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
+      and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
       context_tile = self.map[context_x][context_y]
 
@@ -429,8 +432,7 @@ class Engine:
     # Check for mouse click
 
     elif self.mouse_click \
-      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
-      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
+      and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
       # Enable menu if expedition is clicked
 
@@ -468,8 +470,7 @@ class Engine:
 
     elif self.mouse_click \
       and not self.survivor_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
-      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
+      and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
       self.phase   = PHASE_FREE
       self.menu_en = False
@@ -528,8 +529,7 @@ class Engine:
 
     elif self.mouse_click \
       and not self.inventory_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
-      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
+      and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
       self.phase   = PHASE_FREE
       self.menu_en = False
@@ -563,8 +563,7 @@ class Engine:
 
     if ( context_x >= 0 ) and ( context_x < properties.MAP_SIZE ) \
       and ( context_y >= 0 ) and ( context_y < properties.MAP_SIZE ) \
-      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
-      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
+      and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
       context_tile = self.map[context_x][context_y]
 
@@ -724,8 +723,7 @@ class Engine:
 
     elif self.mouse_click \
       and not self.survivor_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
-      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
+      and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
       self.phase   = PHASE_FREE
       self.menu_en = False
@@ -838,8 +836,7 @@ class Engine:
 
     elif self.mouse_click \
       and not self.survivor_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
-      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
+      and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
       self.phase   = PHASE_FREE
       self.menu_en = False
@@ -884,8 +881,7 @@ class Engine:
 
     elif self.mouse_click \
       and not self.status_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
-      and ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.CAMERA_WIDTH ) \
-      and ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.CAMERA_HEIGHT ):
+      and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
       self.phase   = PHASE_FREE
       self.menu_en = False
