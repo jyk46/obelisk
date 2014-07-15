@@ -1094,6 +1094,7 @@ class Engine:
       self.phase                    = PHASE_DEFEND2
       self.equip_window.reset()
       self.equip_window._expedition = self.active_expedition
+      self.equip_window.survivors   = self.survivor_window.survivors
 
   #.......................................................................
   # PHASE_DEFEND2 Handling
@@ -1112,8 +1113,12 @@ class Engine:
 
     if self.key_esc:
 
-      self.phase = PHASE_DEFEND1
-      self.equip_window.free()
+      if self.equip_window.selected:
+        self.equip_window.half_reset()
+
+      else:
+        self.phase = PHASE_DEFEND1
+        self.equip_window.free()
 
     # Reset phase if clicked outside of context
 
@@ -1163,6 +1168,15 @@ class Engine:
       self.phase   = PHASE_LOOK
       self.menu_en = False
       self.cam_en  = True
+
+      # Free up inventory and equip state
+
+      self.inventory_window.free()
+      self.equip_window.free()
+
+      # Remaining survivors that didn't defend rest
+
+      self.heal_survivors( self.active_expedition.get_free() )
 
   #.......................................................................
   # Update all sprites

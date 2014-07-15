@@ -181,7 +181,7 @@ class InfoTextBox( textbox.TextBox ):
 
   # Show more defense info for survivors
 
-  def set_defender( self, _survivor, weapon=None, armor=None ):
+  def set_defender( self, _survivor, _item=None ):
 
     # Text to display
 
@@ -193,10 +193,11 @@ class InfoTextBox( textbox.TextBox ):
 
     # Handle weapon damage
 
-    if ( weapon != None ) and ( _survivor.weapon != weapon ):
+    if ( _item != None ) and ( _item.type == 'Weapon' ) \
+      and ( _survivor.weapon != _item ):
 
       old_dmg = _survivor.calc_avg_dmg()
-      new_dmg = _survivor.calc_avg_dmg( weapon )
+      new_dmg = _survivor.calc_avg_dmg( _item )
 
       if new_dmg > old_dmg:
         color = '\G'
@@ -205,7 +206,7 @@ class InfoTextBox( textbox.TextBox ):
       else:
         color = ''
 
-      text_col.append( color + 'WEAPON: ' + weapon.name )
+      text_col.append( color + 'WEAPON: ' + _item.name )
       text_col.append( color + 'DMG: ' + '%.1f' % new_dmg )
 
     else:
@@ -214,10 +215,11 @@ class InfoTextBox( textbox.TextBox ):
 
     # Handle armor defense
 
-    if ( armor != None ) and ( _survivor.armor != armor ):
+    if ( _item != None ) and ( _item.type == 'Armor' ) \
+      and ( _survivor.armor != _item ):
 
       old_def = _survivor.armor.armor
-      new_def = armor.armor
+      new_def = _item.armor
 
       if new_def > old_def:
         color = '\G'
@@ -226,7 +228,7 @@ class InfoTextBox( textbox.TextBox ):
       else:
         color = ''
 
-      text_col.append( color + 'ARMOR: ' + armor.name )
+      text_col.append( color + 'ARMOR: ' + _item.name )
       text_col.append( color + 'DMG: ' + str( new_def ) )
 
     else:

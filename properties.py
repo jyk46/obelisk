@@ -15,7 +15,7 @@ FRAME_SWITCH = FPS / SPS # number of frames to hold one animation frame
 # Survivors
 #-------------------------------------------------------------------------
 
-NUM_START_SURVIVORS = 5
+NUM_START_SURVIVORS = 3
 
 START_FOOD  = 10
 START_WOOD  = 5

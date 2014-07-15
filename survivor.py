@@ -189,14 +189,14 @@ class Survivor:
 
   # Calculate average damage based on equipped weapon
 
-  def calc_avg_dmg( self, check_weapon=None ):
+  def calc_avg_dmg( self, _item=None ):
 
     weapon = self.weapon
 
     # Compute hypothetical damage if other weapon specified
 
-    if check_weapon != None:
-      weapon = check_weapon
+    if _item != None:
+      weapon = _item
 
     base_dmg = weapon.get_avg_dmg()
 
