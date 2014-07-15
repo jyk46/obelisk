@@ -111,7 +111,7 @@ class InfoTextBox( textbox.TextBox ):
       info_col.append( 'AMMO: ' + str( _item.ammo_cost ) )
 
     elif _item.type == 'Armor':
-      info_col.append( 'ARM: ' + str( _item.armor ) )
+      info_col.append( 'DEF: ' + str( _item.armor ) )
 
     else:
       info_col.append( 'EFFECT:' )
@@ -141,7 +141,7 @@ class InfoTextBox( textbox.TextBox ):
       info_col.append( 'AMMO: ' + str( _item.ammo_cost ) )
 
     elif _item.type == 'Armor':
-      info_col.append( 'ARM: ' + str( _item.armor ) )
+      info_col.append( 'DEF: ' + str( _item.armor ) )
 
     else:
       info_col.append( 'EFFECT:' )
@@ -174,6 +174,75 @@ class InfoTextBox( textbox.TextBox ):
     info_col.append( 'MENTAL: ' + current_mental + '/' + str( _item.mental_req ) )
 
     text_matrix.append( info_col )
+
+    # Draw text box
+
+    self.update( text_matrix )
+
+  # Show more defense info for survivors
+
+  def set_defender( self, _survivor, weapon=None, armor=None ):
+
+    # Text to display
+
+    text_matrix = []
+
+    text_col = [
+      '**' + str( _survivor.name ),
+    ]
+
+    # Handle weapon damage
+
+    if ( weapon != None ) and ( _survivor.weapon != weapon ):
+
+      old_dmg = _survivor.calc_avg_dmg()
+      new_dmg = _survivor.calc_avg_dmg( weapon )
+
+      if new_dmg > old_dmg:
+        color = '\G'
+      elif new_dmg < old_dmg:
+        color = '\R'
+      else:
+        color = ''
+
+      text_col.append( color + 'WEAPON: ' + weapon.name )
+      text_col.append( color + 'DMG: ' + '%.1f' % new_dmg )
+
+    else:
+      text_col.append( 'WEAPON: ' + _survivor.weapon.name )
+      text_col.append( 'DMG: ' + '%.1f' % _survivor.calc_avg_dmg() )
+
+    # Handle armor defense
+
+    if ( armor != None ) and ( _survivor.armor != armor ):
+
+      old_def = _survivor.armor.armor
+      new_def = armor.armor
+
+      if new_def > old_def:
+        color = '\G'
+      elif new_def < old_def:
+        color = '\R'
+      else:
+        color = ''
+
+      text_col.append( color + 'ARMOR: ' + armor.name )
+      text_col.append( color + 'DMG: ' + str( new_def ) )
+
+    else:
+      text_col.append( 'ARMOR: ' + _survivor.armor.name )
+      text_col.append( 'DEF: ' + str( _survivor.armor.armor ) )
+
+    text_matrix.append( text_col )
+
+    # Text for survivor attributes
+
+    attributes_col = [ '', 'ATTRIBUTES:' ]
+
+    for _attribute in _survivor.attributes:
+      attributes_col.append( '* ' + _attribute.name )
+
+    text_matrix.append( attributes_col )
 
     # Draw text box
 

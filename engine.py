@@ -17,6 +17,8 @@ import costbox
 import eventwindow
 import craftwindow
 import statuswindow
+import equipwindow
+import defendwindow
 import mapgen
 import button
 import tile
@@ -31,10 +33,11 @@ import item
 # Properties
 #-------------------------------------------------------------------------
 
-PHASE_FREE, PHASE_SCAVENGE0, PHASE_SCAVENGE1, \
+PHASE_LOOK, PHASE_SCAVENGE0, PHASE_SCAVENGE1, \
 PHASE_EXPLORE0, PHASE_EXPLORE1, PHASE_EXPLORE2, PHASE_EXPLORE3, \
 PHASE_CRAFT, PHASE_REST, PHASE_STATUS, \
-PHASE_NIGHT, PHASE_TRANSITION  = range( 12 )
+PHASE_TRANSITION, \
+PHASE_DEFEND0, PHASE_DEFEND1, PHASE_DEFEND2, PHASE_DEFEND3, = range( 15 )
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -51,7 +54,7 @@ class Engine:
     # Initialize engine utility variables
 
     self.done        = False
-    self.phase       = PHASE_FREE
+    self.phase       = PHASE_LOOK
     self.expeditions = []
 
     self.cam_en      = True
@@ -66,6 +69,7 @@ class Engine:
 
     # Phase-specific variables
 
+    self.day_en            = True
     self.menu_en           = False
     self.active_expedition = None
     self.explored          = False
@@ -74,18 +78,27 @@ class Engine:
 
     self.map_group         = pygame.sprite.RenderUpdates()
     self.expeditions_group = pygame.sprite.RenderUpdates()
-    self.menu_group        = pygame.sprite.RenderUpdates()
+    self.day_menu_group    = pygame.sprite.RenderUpdates()
+    self.night_menu_group  = pygame.sprite.RenderUpdates()
 
     # Assign default groups to sprite classes
 
     expedition.Expedition.groups = self.expeditions_group
 
-    # Initialize menu graphics
+    # Initialize day menu graphics
 
     menu_pos_y = properties.MENU_OFFSET_Y
 
-    for text in properties.MENU_TEXT:
-      self.menu_group.add( [ button.Button( text, properties.MENU_OFFSET_X, menu_pos_y ) ] )
+    for text in properties.DAY_MENU_TEXT:
+      self.day_menu_group.add( [ button.Button( text, properties.MENU_OFFSET_X, menu_pos_y ) ] )
+      menu_pos_y += properties.MENU_HEIGHT + properties.MENU_PADDING
+
+    # Initialize night menu graphics
+
+    menu_pos_y = properties.MENU_OFFSET_Y
+
+    for text in properties.NIGHT_MENU_TEXT:
+      self.night_menu_group.add( [ button.Button( text, properties.MENU_OFFSET_X, menu_pos_y ) ] )
       menu_pos_y += properties.MENU_HEIGHT + properties.MENU_PADDING
 
     # Initialize window surfaces
@@ -133,6 +146,19 @@ class Engine:
       properties.ACTION_WIDTH, properties.ACTION_HEIGHT,
       properties.MENU_WIDTH + 32, 32,
       properties.ACTION_PATH + 'action_bg.png'
+    )
+
+    self.equip_window = equipwindow.EquipWindow(
+      properties.ACTION_WIDTH, properties.ACTION_HEIGHT,
+      properties.MENU_WIDTH + 32, 32,
+      properties.ACTION_PATH + 'action_bg.png'
+    )
+
+    self.defend_window = defendwindow.DefendWindow(
+      properties.EVENT_WIDTH, properties.EVENT_HEIGHT,
+      properties.MENU_WIDTH + 32,
+      properties.CAMERA_HEIGHT / 2 - properties.EVENT_HEIGHT / 2,
+      properties.EVENT_PATH + 'event_bg.png'
     )
 
     # Initialize cost box for movement
@@ -307,9 +333,18 @@ class Engine:
 
   def handle_menu( self ):
 
+    # Change menu buttons based on day or night
+
+    if self.day_en:
+      menu_group = self.day_menu_group
+    else:
+      menu_group = self.night_menu_group
+
+    # Check for valid button press
+
     if self.mouse_click:
 
-      for button in self.menu_group:
+      for button in menu_group:
         if button.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
           # Assign active terrain to display on sidebar
@@ -327,6 +362,15 @@ class Engine:
             self.survivor_window.free()
           elif self.phase == PHASE_REST:
             self.survivor_window.free()
+          elif self.phase == PHASE_DEFEND0:
+            self.inventory_window.free()
+          elif self.phase == PHASE_DEFEND1:
+            self.inventory_window.free()
+            self.survivor_window.free()
+          elif self.phase == PHASE_DEFEND2:
+            self.inventory_window.free()
+            self.survivor_window.free()
+            self.equip_window.free()
 
           # Phase transition based on button click
 
@@ -355,6 +399,11 @@ class Engine:
             self.status_window.reset()
             self.status_window._expedition = self.active_expedition
 
+          elif button.text == 'DEFEND':
+            self.phase                        = PHASE_DEFEND0
+            self.inventory_window.reset( 'Defense', properties.DEFENSE_LIMIT )
+            self.inventory_window._expedition = self.active_expedition
+
           return True
 
     return False
@@ -374,15 +423,24 @@ class Engine:
     # Move onto night phase if done button is clicked in the free look
     # phase and there are no more free survivors.
 
-    if next_phase and ( self.phase == PHASE_FREE ):
+    if next_phase and ( self.phase == PHASE_LOOK ):
 
-      self.phase     = PHASE_FREE
+      self.phase     = PHASE_LOOK
       self.menu_en   = False
       self.cam_en    = True
 
-      # Increment day counter
+      # Switch to night if in day phase
 
-      self.sidebar_window.time_count += 1
+      if self.day_en:
+        self.day_en                = False
+        self.sidebar_window.day_en = False
+
+      # Increment time counter if in night phase
+
+      else:
+        self.day_en                     = True
+        self.sidebar_window.day_en      = True
+        self.sidebar_window.time_count += 1
 
       # Reset all survivors to be free
 
@@ -394,11 +452,11 @@ class Engine:
     return False
 
   #.......................................................................
-  # PHASE_FREE Handling
+  # PHASE_LOOK Handling
   #.......................................................................
   # Default free-look phase
 
-  def handle_phase_free( self ):
+  def handle_phase_look( self ):
 
     # Calculate current tile mouse is hovering over
 
@@ -482,7 +540,7 @@ class Engine:
 
     if self.key_esc:
 
-      self.phase   = PHASE_FREE
+      self.phase   = PHASE_LOOK
       self.menu_en = True
       self.cam_en  = False
       self.survivor_window.free()
@@ -493,7 +551,7 @@ class Engine:
       and not self.survivor_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
       and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
-      self.phase   = PHASE_FREE
+      self.phase   = PHASE_LOOK
       self.menu_en = False
       self.cam_en  = True
       self.survivor_window.free()
@@ -552,7 +610,7 @@ class Engine:
       and not self.inventory_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
       and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
-      self.phase   = PHASE_FREE
+      self.phase   = PHASE_LOOK
       self.menu_en = False
       self.cam_en  = True
       self.survivor_window.free()
@@ -738,7 +796,7 @@ class Engine:
 
     if self.key_esc:
 
-      self.phase   = PHASE_FREE
+      self.phase   = PHASE_LOOK
       self.menu_en = True
       self.cam_en  = False
       self.survivor_window.free()
@@ -749,7 +807,7 @@ class Engine:
       and not self.survivor_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
       and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
-      self.phase   = PHASE_FREE
+      self.phase   = PHASE_LOOK
       self.menu_en = False
       self.cam_en  = True
       self.survivor_window.free()
@@ -786,7 +844,7 @@ class Engine:
 
     if self.key_esc or next_phase:
 
-      self.phase   = PHASE_FREE
+      self.phase   = PHASE_LOOK
       self.menu_en = False
       self.cam_en  = True
 
@@ -846,7 +904,7 @@ class Engine:
 
     if self.key_esc:
 
-      self.phase   = PHASE_FREE
+      self.phase   = PHASE_LOOK
       self.menu_en = True
       self.cam_en  = False
       self.survivor_window.free()
@@ -857,7 +915,7 @@ class Engine:
       and not self.survivor_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
       and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
-      self.phase   = PHASE_FREE
+      self.phase   = PHASE_LOOK
       self.menu_en = False
       self.cam_en  = True
       self.survivor_window.free()
@@ -867,7 +925,7 @@ class Engine:
 
     elif next_phase:
 
-      self.phase   = PHASE_FREE
+      self.phase   = PHASE_LOOK
       self.menu_en = False
       self.cam_en  = True
 
@@ -896,7 +954,7 @@ class Engine:
         self.craft_window.half_reset()
 
       else:
-        self.phase   = PHASE_FREE
+        self.phase   = PHASE_LOOK
         self.menu_en = True
         self.cam_en  = False
 
@@ -906,7 +964,7 @@ class Engine:
       and not self.craft_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
       and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
-      self.phase   = PHASE_FREE
+      self.phase   = PHASE_LOOK
       self.menu_en = False
       self.cam_en  = True
 
@@ -933,7 +991,7 @@ class Engine:
 
     if self.key_esc:
 
-      self.phase   = PHASE_FREE
+      self.phase   = PHASE_LOOK
       self.menu_en = True
       self.cam_en  = False
 
@@ -943,7 +1001,7 @@ class Engine:
       and not self.status_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
       and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
-      self.phase   = PHASE_FREE
+      self.phase   = PHASE_LOOK
       self.menu_en = False
       self.cam_en  = True
 
@@ -951,9 +1009,160 @@ class Engine:
 
     elif next_phase:
 
-      self.phase   = PHASE_FREE
+      self.phase   = PHASE_LOOK
       self.menu_en = True
       self.cam_en  = False
+
+  #.......................................................................
+  # PHASE_DEFEND0 Handling
+  #.......................................................................
+  # Phase for selecting defenses for fighting enemies at night
+
+  def handle_phase_defend0( self ):
+
+    # Process inputs
+
+    next_phase = self.inventory_window.process_inputs(
+      self.mouse_x, self.mouse_y, self.mouse_click
+    )
+
+    # Go back to menu if ESC pressed
+
+    if self.key_esc:
+
+      self.phase   = PHASE_LOOK
+      self.menu_en = True
+      self.cam_en  = False
+      self.inventory_window.free()
+
+    # Reset phase if clicked outside of context
+
+    elif self.mouse_click \
+      and not self.inventory_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
+
+      self.phase   = PHASE_LOOK
+      self.menu_en = False
+      self.cam_en  = True
+      self.inventory_window.free()
+
+    # Move to next phase if next button is clicked
+
+    elif next_phase:
+
+      self.phase                       = PHASE_DEFEND1
+      self.survivor_window.reset( properties.DEFENDER_LIMIT )
+      self.survivor_window._expedition = self.active_expedition
+
+  #.......................................................................
+  # PHASE_DEFEND1 Handling
+  #.......................................................................
+  # Phase for selecting survivors to defend against enemies
+
+  def handle_phase_defend1( self ):
+
+    # Process inputs
+
+    next_phase = self.survivor_window.process_inputs(
+      self.mouse_x, self.mouse_y, self.mouse_click, 1
+    )
+
+    # Go back to menu if ESC pressed
+
+    if self.key_esc:
+
+      self.phase = PHASE_DEFEND0
+      self.survivor_window.free()
+
+    # Reset phase if clicked outside of context
+
+    elif self.mouse_click \
+      and not self.survivor_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
+
+      self.phase   = PHASE_LOOK
+      self.menu_en = False
+      self.cam_en  = True
+      self.inventory_window.free()
+      self.survivor_window.free()
+
+    # Move to next phase if next button is clicked and at least one
+    # survivor was chosen.
+
+    elif next_phase:
+
+      self.phase                    = PHASE_DEFEND2
+      self.equip_window.reset()
+      self.equip_window._expedition = self.active_expedition
+
+  #.......................................................................
+  # PHASE_DEFEND2 Handling
+  #.......................................................................
+  # Phase for equipping defenders
+
+  def handle_phase_defend2( self ):
+
+    # Process inputs
+
+    next_phase = self.equip_window.process_inputs(
+      self.mouse_x, self.mouse_y, self.mouse_click
+    )
+
+    # Go back to menu if ESC pressed
+
+    if self.key_esc:
+
+      self.phase = PHASE_DEFEND1
+      self.equip_window.free()
+
+    # Reset phase if clicked outside of context
+
+    elif self.mouse_click \
+      and not self.equip_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
+      and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
+
+      self.phase   = PHASE_LOOK
+      self.menu_en = False
+      self.cam_en  = True
+      self.inventory_window.free()
+      self.survivor_window.free()
+      self.equip_window.free()
+
+    # Move to next phase if next button is clicked
+
+    elif next_phase:
+
+      self.phase                     = PHASE_DEFEND3
+      self.defend_window.reset()
+      self.defend_window._expedition = self.active_expedition
+      self.defend_window.survivors   = self.survivor_window.survivors
+      self.defend_window.defenses    = self.inventory_window._inventory.items
+      self.defend_window._tile       = self.active_expedition.pos_tile
+
+      # Roll for enemy
+
+      self.defend_window.roll_enemy()
+
+  #.......................................................................
+  # PHASE_DEFEND3 Handling
+  #.......................................................................
+  # Phase for displaying defense against enemy
+
+  def handle_phase_defend3( self ):
+
+    # Process inputs
+
+    next_phase = self.defend_window.process_inputs(
+      self.mouse_x, self.mouse_y, self.mouse_click
+    )
+
+    # Reset to free phase once okay button is clicked and fighting is over
+
+    if next_phase:
+
+      self.phase   = PHASE_LOOK
+      self.menu_en = False
+      self.cam_en  = True
 
   #.......................................................................
   # Update all sprites
@@ -981,6 +1190,14 @@ class Engine:
       self.survivor_window.update()
     elif self.phase == PHASE_STATUS:
       self.status_window.update()
+    elif self.phase == PHASE_DEFEND0:
+      self.inventory_window.update()
+    elif self.phase == PHASE_DEFEND1:
+      self.survivor_window.update()
+    elif self.phase == PHASE_DEFEND2:
+      self.equip_window.update()
+    elif self.phase == PHASE_DEFEND3:
+      self.defend_window.update()
 
   #.......................................................................
   # Draw all sprites
@@ -996,7 +1213,10 @@ class Engine:
     # Draw menu if enabled
 
     if self.menu_en:
-      rect_updates += self.menu_group.draw( self.camera_window.image )
+      if self.day_en:
+        rect_updates += self.day_menu_group.draw( self.camera_window.image )
+      else:
+        rect_updates += self.night_menu_group.draw( self.camera_window.image )
 
     # Draw all windows onto main screen
 
@@ -1021,6 +1241,14 @@ class Engine:
       rect_updates += self.survivor_window.draw( self.screen )
     elif self.phase == PHASE_STATUS:
       rect_updates += self.status_window.draw( self.screen )
+    elif self.phase == PHASE_DEFEND0:
+      rect_updates += self.inventory_window.draw( self.screen )
+    elif self.phase == PHASE_DEFEND1:
+      rect_updates += self.survivor_window.draw( self.screen )
+    elif self.phase == PHASE_DEFEND2:
+      rect_updates += self.equip_window.draw( self.screen )
+    elif self.phase == PHASE_DEFEND3:
+      rect_updates += self.defend_window.draw( self.screen )
 
     # Update the display
 
@@ -1073,8 +1301,8 @@ class Engine:
 
       if not done_used and not menu_used:
 
-        if self.phase == PHASE_FREE:
-          self.handle_phase_free()
+        if self.phase == PHASE_LOOK:
+          self.handle_phase_look()
 
         elif self.phase == PHASE_EXPLORE0:
           self.handle_phase_explore0()
@@ -1102,6 +1330,18 @@ class Engine:
 
         elif self.phase == PHASE_STATUS:
           self.handle_phase_status()
+
+        elif self.phase == PHASE_DEFEND0:
+          self.handle_phase_defend0()
+
+        elif self.phase == PHASE_DEFEND1:
+          self.handle_phase_defend1()
+
+        elif self.phase == PHASE_DEFEND2:
+          self.handle_phase_defend2()
+
+        elif self.phase == PHASE_DEFEND3:
+          self.handle_phase_defend3()
 
       # Update graphics
 

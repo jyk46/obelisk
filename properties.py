@@ -38,6 +38,9 @@ SICK_HEAL_MULT = 0.5
 HEALTH_WIDTH  = 200
 HEALTH_HEIGHT = 4
 
+DEFENSE_LIMIT  = 3
+DEFENDER_LIMIT = 4
+
 #-------------------------------------------------------------------------
 # Map
 #-------------------------------------------------------------------------
@@ -71,12 +74,17 @@ FACILITY_RATE    = 0.4 #0.25
 # Menu
 #-------------------------------------------------------------------------
 
-MENU_TEXT = [
- 'EXPLORE',
- 'SCAVENGE',
- 'CRAFT',
- 'REST',
- 'STATUS',
+DAY_MENU_TEXT = [
+  'EXPLORE',
+  'SCAVENGE',
+  'CRAFT',
+  'REST',
+  'STATUS',
+]
+
+NIGHT_MENU_TEXT = [
+  'DEFEND',
+  'STATUS',
 ]
 
 MENU_OFFSET_X = 16

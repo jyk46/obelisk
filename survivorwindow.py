@@ -41,7 +41,7 @@ class SurvivorWindow( window.Window ):
 
   # Constructor
 
-  def __init__( self, width, height, pos_x, pos_y, bg_path ):
+  def __init__( self, width, height, pos_x, pos_y, bg_path, limit=99 ):
 
     window.Window.__init__( self, width, height, pos_x, pos_y, bg_path )
 
@@ -50,6 +50,7 @@ class SurvivorWindow( window.Window ):
     self._expedition = None
     self.survivors   = []
     self._survivor   = None
+    self.limit       = limit
 
     # Initialize sub-windows
 
@@ -107,11 +108,12 @@ class SurvivorWindow( window.Window ):
 
   # Reset expedition to clean state
 
-  def reset( self ):
+  def reset( self, limit=99 ):
 
     self._expedition = None
     self.survivors   = []
     self._survivor   = None
+    self.limit       = limit
 
     self.reset_scroll()
 
@@ -135,7 +137,8 @@ class SurvivorWindow( window.Window ):
 
         # Move selected survivors to selected column
 
-        if mouse_click and ( _survivor.stamina > cost ):
+        if mouse_click and ( _survivor.stamina > cost ) \
+          and ( len( self.survivors ) < self.limit ):
           _survivor.free = False
           self.survivors.append( _survivor )
 

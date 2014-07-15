@@ -118,6 +118,7 @@ item_table = {
   'Barricade'      : [  4,  0,  4,  0,  0,  0,  0,  0, 'Defense', True  ],
   'Barbed Fence'   : [  2,  2,  8,  0,  0,  0,  0,  0, 'Defense', True  ],
 
+  'Unarmed'        : [ 99, 99, 99,  1,  3,  0,  0,  0, 'Weapon',  False ],
   'Knife'          : [  0,  1,  1,  2,  5,  0,  0,  0, 'Weapon',  True  ],
   'Spear'          : [  1,  1,  2,  3,  6,  0,  0,  0, 'Weapon',  True  ],
   'Axe'            : [  2,  1,  4,  2, 10,  0,  0,  0, 'Weapon',  True  ],
@@ -131,6 +132,7 @@ item_table = {
   'Infernal Skull' : [ 99, 99, 99, 14, 20,  0,  2,  0, 'Weapon',  False ],
   'Soul Scepter'   : [ 99, 99, 99, 20, 20,  0,  4,  0, 'Weapon',  False ],
 
+  'Clothes'        : [ 99, 99, 99,  0,  0,  0,  0,  0, 'Armor',   False ],
   'Wooden Shield'  : [  1,  0,  1,  0,  0,  0,  0,  1, 'Armor',   True  ],
   'Tribal Garb'    : [  1,  1,  2,  0,  0,  0,  0,  2, 'Armor',   True  ],
   'C. Fiber Vest'  : [  0,  4,  6,  0,  0,  0,  0,  3, 'Armor',   True  ],
@@ -173,11 +175,17 @@ class Item:
     if self.name in effect_table:
       self.effect = effect_table[self.name]
 
+  # Return average damage
+
+  def get_avg_dmg( self ):
+
+    return ( self.dmg_min + self.dmg_max ) / 2.0
+
   # Print debug information
 
   def debug( self ):
 
     print self.name, str( self.dmg_min ) + '-' + str( self.dmg_max ) + 'DMG', \
-          str( self.armor ) + 'ARM', \
+          str( self.armor ) + 'DEF', \
           '(' + str( self.wood_cost ) + ',' + str( self.metal_cost ) + ')', \
           '(' + str( self.ammo_cost ) + ',' + str( self.stam_cost ) + ')'

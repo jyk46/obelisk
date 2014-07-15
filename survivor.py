@@ -10,6 +10,7 @@ import random
 import properties
 import utils
 import attribute
+import item
 
 #-------------------------------------------------------------------------
 # Utility Tables
@@ -130,6 +131,9 @@ class Survivor:
     self.free        = True
     self.sick        = False
 
+    self.weapon      = item.Item( 'Unarmed' )
+    self.armor       = item.Item( 'Clothes' )
+
     # Text graphics
 
     self.text_surface, self.text_rect = utils.gen_text_pos( self.name, 14, 0, 0, utils.WHITE )
@@ -176,6 +180,41 @@ class Survivor:
   def get_mental_bonus( self ):
 
     return ( self.mental - 10 ) / 2
+
+  # Return speed based on both bonuses
+
+  def get_speed( self ):
+
+    return self.get_physical_bonus() + self.get_mental_bonus()
+
+  # Calculate average damage based on equipped weapon
+
+  def calc_avg_dmg( self, check_weapon=None ):
+
+    weapon = self.weapon
+
+    # Compute hypothetical damage if other weapon specified
+
+    if check_weapon != None:
+      weapon = check_weapon
+
+    base_dmg = weapon.get_avg_dmg()
+
+    # Use mental bonus for cursed weapons
+
+    if weapon.stam_cost > 0:
+      bonus = self.get_mental_bonus()
+    else:
+      bonus = self.get_physical_bonus()
+
+    # Compute total damage with bonus
+
+    tot_dmg = base_dmg + bonus
+
+    if tot_dmg < 0:
+      tot_dmg = 1
+
+    return tot_dmg
 
   # Return combined stats bonuses from all attributes
 

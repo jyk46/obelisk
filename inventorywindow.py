@@ -41,7 +41,7 @@ class InventoryWindow( window.Window ):
 
   # Constructor
 
-  def __init__( self, width, height, pos_x, pos_y, bg_path ):
+  def __init__( self, width, height, pos_x, pos_y, bg_path, type='All', limit=99 ):
 
     window.Window.__init__( self, width, height, pos_x, pos_y, bg_path )
 
@@ -50,6 +50,8 @@ class InventoryWindow( window.Window ):
     self._expedition = None
     self._inventory  = inventory.Inventory()
     self._item       = None
+    self.type        = type
+    self.limit       = limit
 
     # Initialize sub-windows
 
@@ -108,11 +110,13 @@ class InventoryWindow( window.Window ):
 
   # Reset expedition to clean state
 
-  def reset( self ):
+  def reset( self, type='All', limit=99 ):
 
     self._expedition = None
     self._inventory  = inventory.Inventory()
     self._item       = None
+    self.type        = type
+    self.limit       = limit
 
     self.reset_scroll()
 
@@ -125,8 +129,18 @@ class InventoryWindow( window.Window ):
 
     # Determine free item info to display
 
-    items = [ 'Food', 'Wood', 'Metal', 'Ammo', ] \
-          + self._expedition._inventory.get_free()
+    if self.type == 'All':
+
+      items = [ 'Food', 'Wood', 'Metal', 'Ammo', ] \
+            + self._expedition._inventory.get_free()
+
+    else:
+
+      items = []
+
+      for _item in self._expedition._inventory.get_free():
+        if _item.type == self.type:
+          items.append( _item )
 
     for _item, rect in zip( items, self.old_tbox.rect_matrix[0] ):
 
@@ -162,14 +176,16 @@ class InventoryWindow( window.Window ):
               self._expedition._inventory.ammo -= 1
               self._inventory.ammo             += 1
 
-          else:
+          elif len( self._inventory.items ) < self.limit:
             _item.free = False
             self._inventory.items.append( _item )
 
     # Determine selected item info to display
 
-    items = [ 'Food', 'Wood', 'Metal', 'Ammo', ] \
-          + self._inventory.items
+    items = self._inventory.items
+
+    if self.type == 'All':
+      items = [ 'Food', 'Wood', 'Metal', 'Ammo', ] + items
 
     for _item, rect in zip( items, self.new_tbox.rect_matrix[0] ):
 
@@ -229,15 +245,21 @@ class InventoryWindow( window.Window ):
 
   def get_text( self, _inventory, items ):
 
-    text_col = [
-      'Food (' + str( _inventory.food ) + ')',
-      'Wood (' + str( _inventory.wood ) + ')',
-      'Metal (' + str( _inventory.metal ) + ')',
-      'Ammo (' + str( _inventory.ammo ) + ')',
-    ]
+    if self.type == 'All':
+
+      text_col = [
+        'Food (' + str( _inventory.food ) + ')',
+        'Wood (' + str( _inventory.wood ) + ')',
+        'Metal (' + str( _inventory.metal ) + ')',
+        'Ammo (' + str( _inventory.ammo ) + ')',
+      ]
+
+    else:
+      text_col = []
 
     for _item in items:
-      text_col.append( _item.name )
+      if ( self.type == 'All' ) or ( _item.type == self.type ):
+        text_col.append( _item.name )
 
     return [ text_col ]
 
