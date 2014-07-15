@@ -155,10 +155,8 @@ class Engine:
     )
 
     self.defend_window = defendwindow.DefendWindow(
-      properties.EVENT_WIDTH, properties.EVENT_HEIGHT,
-      properties.MENU_WIDTH + 32,
-      properties.CAMERA_HEIGHT / 2 - properties.EVENT_HEIGHT / 2,
-      properties.EVENT_PATH + 'event_bg.png'
+      properties.DEFEND_WIDTH, properties.DEFEND_HEIGHT,
+      64, 128, properties.EVENT_PATH + 'action_bg.png'
     )
 
     # Initialize cost box for movement

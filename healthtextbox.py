@@ -1,7 +1,7 @@
 #=========================================================================
-# survivortextbox.py
+# healthtextbox.py
 #=========================================================================
-# Extended text box to display survivor health below names.
+# Extended text box to display health below names.
 
 import pygame, sys, os
 from pygame.locals import *
@@ -14,7 +14,7 @@ import textbox
 # Main Class
 #-------------------------------------------------------------------------
 
-class SurvivorTextBox( textbox.TextBox ):
+class HealthTextBox( textbox.TextBox ):
 
   # Constructor
 

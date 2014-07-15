@@ -11,7 +11,7 @@ import utils
 import window
 import textbox
 import infotextbox
-import survivortextbox
+import healthtextbox
 import button
 import tile
 import expedition
@@ -62,7 +62,7 @@ class EquipWindow( window.Window ):
       INFO_X_OFFSET, INFO_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
     )
 
-    self.old_tbox = survivortextbox.SurvivorTextBox(
+    self.old_tbox = healthtextbox.HealthTextBox(
       properties.ACTION_SUB_WIDTH, properties.ACTION_SUB_HEIGHT,
       OLD_X_OFFSET, OLD_Y_OFFSET, pos_x, pos_y, 14, utils.WHITE
     )
