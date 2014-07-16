@@ -11,6 +11,7 @@ import random
 import copy
 import properties
 import item
+import enemy
 
 #-------------------------------------------------------------------------
 # Utility Tables
@@ -29,7 +30,7 @@ terrain_table = {
       [ 0.40, 'Wolf Pack' ],
       [ 0.20, 'Bee Swarm' ],
       [ 0.10, 'Panther'   ],
-      [ 0.30, 'None'      ],
+      [ 0.30, 'Native'    ],
     ],
 
     [
@@ -55,7 +56,6 @@ terrain_table = {
       [ 0.10, 'Panther'   ],
       [ 0.10, 'Gorilla'   ],
       [ 0.20, 'Native'    ],
-      [ 0.20, 'None'      ],
     ],
 
     [
@@ -87,7 +87,6 @@ terrain_table = {
       [ 0.20, 'Native'      ],
       [ 0.10, 'Cultist'     ],
       [ 0.01, 'Apparition'  ],
-      [ 0.05, 'None'        ],
     ],
 
     [
@@ -121,7 +120,6 @@ terrain_table = {
       [ 0.10, 'Bee Swarm' ],
       [ 0.20, 'Native'    ],
       [ 0.30, 'Giant'     ],
-      [ 0.10, 'None'      ],
     ],
 
     [
@@ -150,7 +148,6 @@ terrain_table = {
       [ 0.20, 'Anaconda' ],
       [ 0.20, 'Native'   ],
       [ 0.20, 'Giant'    ],
-      [ 0.40, 'None'     ],
     ],
 
     [
@@ -181,7 +178,6 @@ terrain_table = {
       [ 0.20, 'Mudman'   ],
       [ 0.20, 'Native'   ],
       [ 0.10, 'Deep One' ],
-      [ 0.10, 'None'     ],
     ],
 
     [
@@ -211,7 +207,6 @@ terrain_table = {
       [ 0.40, 'Wolf Pack'  ],
       [ 0.20, 'Native'     ],
       [ 0.20, 'Apparition' ],
-      [ 0.20, 'None'       ],
     ],
 
     [
@@ -243,7 +238,6 @@ terrain_table = {
       [ 0.25, 'Cultist'       ],
       [ 0.20, 'Apparition'    ],
       [ 0.05, 'Dim. Shambler' ],
-      [ 0.20, 'None'          ],
     ],
 
     [
@@ -305,7 +299,6 @@ terrain_table = {
       # prob  enemy
       [ 0.05, 'Dim. Shambler'   ],
       [ 0.01, 'The Unspeakable' ],
-      [ 0.94, 'None'            ],
     ],
 
     [
@@ -352,6 +345,8 @@ class Tile( pygame.sprite.Sprite ):
     self.abs_y        = self.pos_y * properties.TILE_HEIGHT
     self.rect.topleft = self.abs_x, self.abs_y
 
+    self.bg_path      = properties.BG_PATH + terrain_table[self.terrain][0]
+
     # Terrain-specific information
 
     self.move_cost   = terrain_table[self.terrain][1]
@@ -380,6 +375,23 @@ class Tile( pygame.sprite.Sprite ):
     self.fog_surface      = pygame.image.load( properties.TILE_PATH + 'black.png' )
     self.fog_rect         = self.fog_surface.get_rect()
     self.fog_rect.topleft = 0, 0
+
+  # Roll for enemy spawned during defend phase. Currently only one enemy
+  # is spawned per encounter. If no enemy is spawned, None is returned.
+
+  def roll_enemy( self ):
+
+    roll = random.random()
+    prob = 0.0
+
+    for _enemy in self.enemy_rates:
+
+      prob += _enemy[0]
+
+      if roll < prob:
+        return enemy.Enemy( _enemy[1] )
+
+    return None
 
   # Roll for resources. One try per survivor who is in the scavenge
   # party. The base scavenge probability for each resource is modified by
@@ -431,12 +443,12 @@ class Tile( pygame.sprite.Sprite ):
       item_roll = random.random()
       item_prob = 0.0
 
-      for it in self.item_rates:
+      for _item in self.item_rates:
 
-        item_prob += it[0]
+        item_prob += _item[0]
 
         if item_roll < item_prob:
-          return item.Item( it[1] )
+          return item.Item( _item[1] )
 
     return None
 

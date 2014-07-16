@@ -100,45 +100,45 @@ effect_table = {
 
 item_table = {
 
-  # name              wco mco men min max amm sta arm  type       craft
+  # name              wco mco men min max amm sta arm  diff  type       craft
 
-  'Binoculars'     : [ 99, 99, 99,  0,  0,  0,  0,  0, 'Tool',    False ],
-  'First Aid'      : [ 99, 99, 99,  0,  0,  0,  0,  0, 'Tool',    False ],
-  'Antibiotics'    : [ 99, 99, 99,  0,  0,  0,  0,  0, 'Tool',    False ],
-  'Analyzer'       : [ 99, 99, 99,  0,  0,  0,  0,  0, 'Tool',    False ],
-  'Energy Drain'   : [ 99, 99, 99,  0,  0,  0,  0,  0, 'Tool',    False ],
-  'Elder Sign'     : [ 99, 99, 99,  0,  0,  0,  0,  0, 'Tool',    False ],
+  'Binoculars'     : [ 99, 99, 99,  0,  0,  0,  0,  0,  0.0, 'Tool',    False ],
+  'First Aid'      : [ 99, 99, 99,  0,  0,  0,  0,  0,  0.0, 'Tool',    False ],
+  'Antibiotics'    : [ 99, 99, 99,  0,  0,  0,  0,  0,  0.0, 'Tool',    False ],
+  'Analyzer'       : [ 99, 99, 99,  0,  0,  0,  0,  0,  0.0, 'Tool',    False ],
+  'Energy Drain'   : [ 99, 99, 99,  0,  0,  0,  0,  0,  0.0, 'Tool',    False ],
+  'Elder Sign'     : [ 99, 99, 99,  0,  0,  0,  0,  0,  0.0, 'Tool',    False ],
 
-  'Pit Trap'       : [  2,  0,  2,  0,  0,  0,  0,  0, 'Defense', True  ],
-  'Spike Trap'     : [  1,  1,  4,  0,  0,  0,  0,  0, 'Defense', True  ],
-  'Explosive Trap' : [  2,  2,  8,  0,  0,  0,  0,  0, 'Defense', True  ],
-  'Camouflage'     : [  2,  0,  2,  0,  0,  0,  0,  0, 'Defense', True  ],
-  'Bone Ward'      : [ 99, 99, 99,  0,  0,  0,  0,  0, 'Defense', False ],
-  'Flashbang'      : [ 99, 99, 99,  0,  0,  0,  0,  0, 'Defense', False ],
-  'Barricade'      : [  4,  0,  4,  0,  0,  0,  0,  0, 'Defense', True  ],
-  'Barbed Fence'   : [  2,  2,  8,  0,  0,  0,  0,  0, 'Defense', True  ],
+  'Pit Trap'       : [  2,  0,  2,  0,  0,  0,  0,  0,  0.0, 'Defense', True  ],
+  'Spike Trap'     : [  1,  1,  4,  0,  0,  0,  0,  0,  0.0, 'Defense', True  ],
+  'Explosive Trap' : [  2,  2,  8,  0,  0,  0,  0,  0,  0.0, 'Defense', True  ],
+  'Camouflage'     : [  2,  0,  2,  0,  0,  0,  0,  0,  0.0, 'Defense', True  ],
+  'Bone Ward'      : [ 99, 99, 99,  0,  0,  0,  0,  0,  0.0, 'Defense', False ],
+  'Flashbang'      : [ 99, 99, 99,  0,  0,  0,  0,  0,  0.0, 'Defense', False ],
+  'Barricade'      : [  4,  0,  4,  0,  0,  0,  0,  0,  0.0, 'Defense', True  ],
+  'Barbed Fence'   : [  2,  2,  8,  0,  0,  0,  0,  0,  0.0, 'Defense', True  ],
 
-  'Unarmed'        : [ 99, 99, 99,  1,  3,  0,  0,  0, 'Weapon',  False ],
-  'Knife'          : [  0,  1,  1,  2,  5,  0,  0,  0, 'Weapon',  True  ],
-  'Spear'          : [  1,  1,  2,  3,  6,  0,  0,  0, 'Weapon',  True  ],
-  'Axe'            : [  2,  1,  4,  2, 10,  0,  0,  0, 'Weapon',  True  ],
-  'Machete'        : [  1,  2,  4,  4,  7,  0,  0,  0, 'Weapon',  True  ],
-  'Pistol'         : [  0,  2, 10,  5,  8,  1,  0,  0, 'Weapon',  True  ],
-  'Rifle'          : [  0,  4, 20,  6, 12,  2,  0,  0, 'Weapon',  True  ],
-  'Flame Thrower'  : [  0,  6, 40,  8, 14,  4,  0,  0, 'Weapon',  True  ],
-  'Machine Gun'    : [  0,  8, 40,  6, 18,  4,  0,  0, 'Weapon',  True  ],
-  'Jabberwocky'    : [ 99, 99, 99,  8, 14,  0,  0,  0, 'Weapon',  False ],
-  'Eldritch Staff' : [ 99, 99, 99, 10, 16,  0,  1,  0, 'Weapon',  False ],
-  'Infernal Skull' : [ 99, 99, 99, 14, 20,  0,  2,  0, 'Weapon',  False ],
-  'Soul Scepter'   : [ 99, 99, 99, 20, 20,  0,  4,  0, 'Weapon',  False ],
+  'Unarmed'        : [ 99, 99, 99,  1,  3,  0,  0,  0,  0.5, 'Weapon',  False ],
+  'Knife'          : [  0,  1,  1,  2,  5,  0,  0,  0, 0.75, 'Weapon',  True  ],
+  'Spear'          : [  1,  1,  2,  3,  6,  0,  0,  0,  0.6, 'Weapon',  True  ],
+  'Axe'            : [  2,  1,  4,  2, 10,  0,  0,  0,  0.8, 'Weapon',  True  ],
+  'Machete'        : [  1,  2,  4,  4,  7,  0,  0,  0,  0.7, 'Weapon',  True  ],
+  'Pistol'         : [  0,  2, 10,  5,  8,  1,  0,  0,  0.9, 'Weapon',  True  ],
+  'Rifle'          : [  0,  4, 20,  6, 12,  2,  0,  0,  0.8, 'Weapon',  True  ],
+  'Flame Thrower'  : [  0,  6, 40,  8, 14,  4,  0,  0,  0.5, 'Weapon',  True  ],
+  'Machine Gun'    : [  0,  8, 40,  6, 18,  4,  0,  0,  0.6, 'Weapon',  True  ],
+  'Jabberwocky'    : [ 99, 99, 99,  8, 14,  0,  0,  0,  0.7, 'Weapon',  False ],
+  'Eldritch Staff' : [ 99, 99, 99, 10, 16,  0,  1,  0,  0.8, 'Weapon',  False ],
+  'Infernal Skull' : [ 99, 99, 99, 14, 20,  0,  2,  0,  0.6, 'Weapon',  False ],
+  'Soul Scepter'   : [ 99, 99, 99, 20, 20,  0,  4,  0,  0.5, 'Weapon',  False ],
 
-  'Clothes'        : [ 99, 99, 99,  0,  0,  0,  0,  0, 'Armor',   False ],
-  'Wooden Shield'  : [  1,  0,  1,  0,  0,  0,  0,  1, 'Armor',   True  ],
-  'Tribal Garb'    : [  1,  1,  2,  0,  0,  0,  0,  2, 'Armor',   True  ],
-  'C. Fiber Vest'  : [  0,  4,  6,  0,  0,  0,  0,  3, 'Armor',   True  ],
-  'Body Armor'     : [  0,  8,  8,  0,  0,  0,  0,  4, 'Armor',   True  ],
-  'Shaman Charm'   : [ 99, 99, 99,  0,  0,  0,  0,  5, 'Armor',   False ],
-  'Yuggoth Cloak'  : [ 99, 99, 99,  0,  0,  0,  0, 10, 'Armor',   False ],
+  'Clothes'        : [ 99, 99, 99,  0,  0,  0,  0,  0,  0.0, 'Armor',   False ],
+  'Wooden Shield'  : [  1,  0,  1,  0,  0,  0,  0,  1,  0.0, 'Armor',   True  ],
+  'Tribal Garb'    : [  1,  1,  2,  0,  0,  0,  0,  2,  0.0, 'Armor',   True  ],
+  'C. Fiber Vest'  : [  0,  4,  6,  0,  0,  0,  0,  3,  0.0, 'Armor',   True  ],
+  'Body Armor'     : [  0,  8,  8,  0,  0,  0,  0,  4,  0.0, 'Armor',   True  ],
+  'Shaman Charm'   : [ 99, 99, 99,  0,  0,  0,  0,  5,  0.0, 'Armor',   False ],
+  'Yuggoth Cloak'  : [ 99, 99, 99,  0,  0,  0,  0, 10,  0.0, 'Armor',   False ],
 
 }
 
@@ -164,8 +164,9 @@ class Item:
     self.ammo_cost  = item_table[self.name][5]
     self.stam_cost  = item_table[self.name][6]
     self.armor      = item_table[self.name][7]
-    self.type       = item_table[self.name][8]
-    self.craftable  = item_table[self.name][9]
+    self.difficulty = item_table[self.name][8]
+    self.type       = item_table[self.name][9]
+    self.craftable  = item_table[self.name][10]
     self.free       = True
 
     # Assign effect text

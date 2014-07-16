@@ -15,7 +15,7 @@ FRAME_SWITCH = FPS / SPS # number of frames to hold one animation frame
 # Survivors
 #-------------------------------------------------------------------------
 
-NUM_START_SURVIVORS = 3
+NUM_START_SURVIVORS = 4
 
 START_FOOD  = 10
 START_WOOD  = 5
@@ -140,6 +140,8 @@ DEFEND_PIC_HEIGHT = 192
 DEFEND_HIT_WIDTH  = 32
 DEFEND_HIT_HEIGHT = 192
 
+DEFEND_HIT_SPACE = 4
+
 CARD_WIDTH  = 160
 CARD_HEIGHT = 128
 
@@ -167,3 +169,6 @@ SIDEBAR_PATH = 'images/sidebar/'
 BUTTON_PATH  = 'images/menu/menu_bar.png'
 ACTION_PATH  = 'images/action/'
 EVENT_PATH   = 'images/event/'
+DEFEND_PATH  = 'images/defend/'
+ENEMY_PATH   = 'images/enemy/'
+BG_PATH      = 'images/bg/'

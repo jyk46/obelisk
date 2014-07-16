@@ -156,7 +156,7 @@ class Engine:
 
     self.defend_window = defendwindow.DefendWindow(
       properties.DEFEND_WIDTH, properties.DEFEND_HEIGHT,
-      64, 128, properties.EVENT_PATH + 'action_bg.png'
+      128, 64, properties.DEFEND_PATH + 'defend_bg.png'
     )
 
     # Initialize cost box for movement
@@ -397,7 +397,7 @@ class Engine:
             self.status_window.reset()
             self.status_window._expedition = self.active_expedition
 
-          elif button.text == 'DEFEND':
+          elif button.text == 'DEFEND' and ( len( self.active_expedition.get_free() ) > 0 ):
             self.phase                        = PHASE_DEFEND0
             self.inventory_window.reset( 'Defense', properties.DEFENSE_LIMIT )
             self.inventory_window._expedition = self.active_expedition
@@ -1136,15 +1136,16 @@ class Engine:
     elif next_phase:
 
       self.phase                     = PHASE_DEFEND3
+      self.menu_en                   = False
       self.defend_window.reset()
       self.defend_window._expedition = self.active_expedition
       self.defend_window.survivors   = self.survivor_window.survivors
       self.defend_window.defenses    = self.inventory_window._inventory.items
       self.defend_window._tile       = self.active_expedition.pos_tile
 
-      # Roll for enemy
+      # Initialize new encounter
 
-      self.defend_window.roll_enemy()
+      self.defend_window.init()
 
   #.......................................................................
   # PHASE_DEFEND3 Handling

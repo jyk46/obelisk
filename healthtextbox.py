@@ -54,7 +54,7 @@ class HealthTextBox( textbox.TextBox ):
 
         # Create max health bar overlay
 
-        max_surface      = pygame.Surface( ( properties.HEALTH_WIDTH, properties.HEALTH_HEIGHT ) )
+        max_surface      = pygame.Surface( ( self.rect.width - 8, properties.HEALTH_HEIGHT ) )
         max_rect         = max_surface.get_rect()
         max_rect.topleft = text[1].left, text[1].bottom + 2
         max_surface.fill( utils.WHITE )
@@ -63,7 +63,7 @@ class HealthTextBox( textbox.TextBox ):
 
         # Create current health overlay
 
-        current_width        = int( health * properties.HEALTH_WIDTH )
+        current_width        = int( health * ( self.rect.width - 8 ) )
         current_surface      = pygame.Surface( ( current_width, properties.HEALTH_HEIGHT ) )
         current_rect         = current_surface.get_rect()
         current_rect.topleft = text[1].left, text[1].bottom + 2
