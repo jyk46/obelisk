@@ -71,6 +71,9 @@ class Enemy:
 
     _survivor = random.choice( survivors )
 
+    while _survivor.stamina == 0:
+      _survivor = random.choice( survivors )
+
     # Calculate damage
 
     raw_dmg = random.randint( self.min_dmg, self.max_dmg )

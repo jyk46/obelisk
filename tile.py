@@ -30,7 +30,6 @@ terrain_table = {
       [ 0.40, 'Wolf Pack' ],
       [ 0.20, 'Bee Swarm' ],
       [ 0.10, 'Panther'   ],
-      [ 0.30, 'Native'    ],
     ],
 
     [

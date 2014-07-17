@@ -1072,7 +1072,7 @@ class Engine:
     # Process inputs
 
     next_phase = self.survivor_window.process_inputs(
-      self.mouse_x, self.mouse_y, self.mouse_click, 1
+      self.mouse_x, self.mouse_y, self.mouse_click
     )
 
     # Go back to menu if ESC pressed

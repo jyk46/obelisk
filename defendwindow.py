@@ -43,11 +43,12 @@ CARD_Y_OFFSET = properties.CAMERA_HEIGHT - properties.CARD_HEIGHT
 # Properties
 #-------------------------------------------------------------------------
 
-PHASE_START, PHASE_DEFENSE, PHASE_ENEMY, PHASE_PLAYER, PHASE_DONE = range( 5 )
+PHASE_START, PHASE_DEFENSE, PHASE_ENEMY, PHASE_PLAYER, PHASE_WIN, PHASE_LOSE = range( 6 )
 
 DAMAGED_TIME = 300
 DAMAGE_SPEED = 1
 HIT_SPEED    = 0.05
+WIN_SPEED    = 8
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -243,7 +244,9 @@ class DefendWindow( window.Window ):
 
     # Reset to start phase
 
-    self.phase = PHASE_START
+    self.phase    = PHASE_START
+    self.do_draw  = True
+    self.turn_idx = 0
 
     # Roll for enemy and determine turn order if valid enemy
 
@@ -277,6 +280,18 @@ class DefendWindow( window.Window ):
       self.cards.append( defendcard.DefendCard( _survivor, x_offset, CARD_Y_OFFSET ) )
       x_offset += properties.CARD_WIDTH
 
+  # Commit dead survivors
+
+  def commit( self ):
+
+    survivors = []
+
+    for _survivor in self._expedition.survivors:
+      if _survivor.stamina > 0:
+        survivors.append( _survivor )
+
+    self._expedition.survivors = survivors
+
   # Reset to clean slate
 
   def reset( self ):
@@ -306,6 +321,11 @@ class DefendWindow( window.Window ):
       # Start phase
 
       if self.phase == PHASE_START:
+
+        # If no enemy spawned, exit phase
+
+        if self._enemy == None:
+          return True
 
         # First turn to enemy
 
@@ -348,7 +368,8 @@ class DefendWindow( window.Window ):
 
           if self.check_dead():
 
-            self.phase = PHASE_DONE
+            self.phase   = PHASE_LOSE
+            self.do_draw = True
 
           # Otherwise move onto the next unit's turn
 
@@ -418,7 +439,7 @@ class DefendWindow( window.Window ):
               if self.no_ammo:
                 text = 'No ammo! ' + text
               elif self.no_stamina:
-                text = 'Curse is too much... ' + text
+                text = 'Ugh... ' + text
 
               self.msg_tbox.update( [[ text ]] )
 
@@ -452,7 +473,9 @@ class DefendWindow( window.Window ):
 
           if self._enemy.stamina == 0:
 
-            self.phase = PHASE_DONE
+            self.phase            = PHASE_WIN
+            self.do_draw          = True
+            self.animation_active = True
 
           # Otherwise move onto the next unit's turn
 
@@ -482,6 +505,16 @@ class DefendWindow( window.Window ):
             self.hit_active      = True
             self.hit_bar_ratio   = 0.00
             self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
+
+      # Done phases
+
+      elif ( self.phase == PHASE_WIN ) or ( self.phase == PHASE_LOSE ):
+
+        # Complete defend phase when animation is done
+
+        if not self.animation_active:
+          self.commit()
+          return True
 
     return False
 
@@ -571,7 +604,7 @@ class DefendWindow( window.Window ):
         if self.no_ammo:
           text = 'No ammo! ' + text
         elif self.no_stamina:
-          text = 'Curse is too much... ' + text
+          text = 'Ugh... ' + text
         elif self.target_survivor.stamina > self.curse_stamina:
           text += ' CURSED!'
 
@@ -631,6 +664,33 @@ class DefendWindow( window.Window ):
           self.animation_active = False
           self.increment_turn()
 
+    # Win phase
+
+    elif self.phase == PHASE_WIN:
+
+      self.msg_tbox.update( [[
+        self._enemy.name + ' was defeated!'
+      ]] )
+
+      if self.pic_enemy_rect.top < properties.DEFEND_PIC_HEIGHT:
+
+        self.do_draw = True
+
+        self.pic_enemy_rect.top += WIN_SPEED
+
+        # Mark animation as done
+
+        if self.pic_enemy_rect.top >= properties.DEFEND_PIC_HEIGHT:
+          self.animation_active = False
+
+    # Lose phase
+
+    elif self.phase == PHASE_LOSE:
+
+      self.msg_tbox.update( [[
+        'Defenders were annihilated!'
+      ]] )
+
     # Always update defender cards
 
     for card in self.cards:
@@ -652,7 +712,9 @@ class DefendWindow( window.Window ):
     if self.enemy_damaged:
       self.pic_surface.fill( utils.RED )
 
-    rect_updates += [ self.pic_surface.blit( self.pic_enemy_surface, self.pic_enemy_rect ) ]
+    if self._enemy != None:
+      rect_updates += [ self.pic_surface.blit( self.pic_enemy_surface, self.pic_enemy_rect ) ]
+
     rect_updates += [ self.image.blit( self.pic_surface, self.pic_rect ) ]
 
     # Draw hit bar

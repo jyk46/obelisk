@@ -81,7 +81,7 @@ def main():
   survivors[1].weapon = item.Item( 'Rifle' )
   survivors[3].weapon = item.Item( 'Infernal Skull' )
 
-  _tile       = tile.Tile( 'Field', 0, 0 )
+  _tile       = tile.Tile( 'Ritual Site', 0, 0 )
   _inventory  = inventory.Inventory( 10, 10, 10, 3 )
   _expedition = expedition.Expedition( _tile, survivors, _inventory, map )
 
