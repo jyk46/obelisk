@@ -82,7 +82,9 @@ def main():
   survivors[3].weapon = item.Item( 'Infernal Skull' )
 
   _tile       = tile.Tile( 'Ritual Site', 0, 0 )
-  _inventory  = inventory.Inventory( 10, 10, 10, 3 )
+  _inventory  = inventory.Inventory( 10, 10, 10, 3, [
+    item.Item( 'Flashbang' ), item.Item( 'Barricade' ), item.Item( 'Spike Trap' ),
+  ] )
   _expedition = expedition.Expedition( _tile, survivors, _inventory, map )
 
   defend_window._expedition = _expedition

@@ -1187,6 +1187,14 @@ class Engine:
 
       self.heal_survivors( self.active_expedition.get_free() )
 
+      # Delete expedition if all survivors dead
+
+      if len( self.active_expedition.survivors ) == 0:
+        self.active_expedition.kill()
+        self.expeditions.remove( self.active_expedition )
+
+      # PUT GAME OVER TRANSITION HERE
+
   #.......................................................................
   # Update all sprites
   #.......................................................................

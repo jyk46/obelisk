@@ -115,8 +115,8 @@ item_table = {
   'Camouflage'     : [  2,  0,  2,  0,  0,  0,  0,  0,  0.0, 'Defense', True  ],
   'Bone Ward'      : [ 99, 99, 99,  0,  0,  0,  0,  0,  0.0, 'Defense', False ],
   'Flashbang'      : [ 99, 99, 99,  0,  0,  0,  0,  0,  0.0, 'Defense', False ],
-  'Barricade'      : [  4,  0,  4,  0,  0,  0,  0,  0,  0.0, 'Defense', True  ],
-  'Barbed Fence'   : [  2,  2,  8,  0,  0,  0,  0,  0,  0.0, 'Defense', True  ],
+  'Barricade'      : [  4,  0,  4,  0,  0,  0,  0,  2,  0.0, 'Defense', True  ],
+  'Barbed Fence'   : [  2,  2,  8,  0,  0,  0,  0,  4,  0.0, 'Defense', True  ],
 
   'Unarmed'        : [ 99, 99, 99,  1,  3,  0,  0,  0,  0.8, 'Weapon',  False ],
   'Knife'          : [  0,  1,  1,  2,  5,  0,  0,  0,  0.9, 'Weapon',  True  ],

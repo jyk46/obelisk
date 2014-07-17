@@ -96,6 +96,11 @@ class DefendWindow( window.Window ):
     self.no_stamina      = False
     self.curse_stamina   = 0
 
+    self.defense_dmg     = 0.0
+    self.defense_spawn   = 1.0
+    self.defense_stun    = 0
+    self.defense_armor   = 0
+
     # Initialize sub-windows
 
     self.enemy_tbox = healthtextbox.HealthTextBox(
@@ -248,9 +253,39 @@ class DefendWindow( window.Window ):
     self.do_draw  = True
     self.turn_idx = 0
 
+    # Register defenses
+
+    self.defense_dmg   = 0.0
+    self.defense_spawn = 1.0
+    self.defense_stun  = 0
+    self.defense_armor = 0
+
+    for defense in self.defenses:
+
+      if defense.name == 'Pit Trap':
+        self.defense_dmg += 0.25
+
+      elif defense.name == 'Spike Trap':
+        self.defense_dmg += 0.50
+
+      elif defense.name == 'Explosive Trap':
+        self.defense_dmg += 0.75
+
+      elif defense.name == 'Camouflage':
+        self.defense_spawn = min( 0.5, self.defense_spawn )
+
+      elif defense.name == 'Bone Ward':
+        self.defense_spawn = min( 0.01, self.defense_spawn )
+
+      elif defense.name == 'Flashbang':
+        self.defense_stun += 1
+
+      elif ( defense.name == 'Barricade' ) or ( defense.name == 'Barbed Fence' ):
+        self.defense_armor = defense.armor
+
     # Roll for enemy and determine turn order if valid enemy
 
-    self._enemy = self._tile.roll_enemy()
+    self._enemy = self._tile.roll_enemy( self.defense_spawn )
 
     if self._enemy != None:
       self.calc_turn_order()
@@ -327,21 +362,58 @@ class DefendWindow( window.Window ):
         if self._enemy == None:
           return True
 
+        # If traps set, trigger them
+
+        if self.defense_dmg > 0.0:
+
+          self.phase            = PHASE_DEFENSE
+          self.do_draw          = True
+
+          self.target_dmg       = int( self.defense_dmg * self._enemy.max_stamina )
+          self.target_stamina   = max( self._enemy.stamina - self.target_dmg, 0 )
+          self.enemy_damaged    = True
+          self.animation_active = True
+          self.timer            = pygame.time.get_ticks()
+
         # First turn to enemy
 
-        if self.turn_order[self.turn_idx] == self._enemy:
+        elif self.turn_order[self.turn_idx] == self._enemy:
 
           self.phase           = PHASE_ENEMY
           self.do_draw         = True
 
           attack_info              = self._enemy.attack( self.survivors )
           self.target_survivor     = attack_info[0]
-          self.target_dmg          = attack_info[1]
+          self.target_dmg          = max( attack_info[1] - self.defense_armor, 0 )
           self.target_stamina      = max( self.target_survivor.stamina - self.target_dmg, 0 )
           self.set_target_card()
-          self.target_card.damaged = True
-          self.animation_active    = True
-          self.timer               = pygame.time.get_ticks()
+
+          # No animation for 0 damage
+
+          if self.target_dmg == 0:
+
+            self.animation_active = False
+            self.increment_turn()
+
+            self.msg_tbox.update( [[
+              self._enemy.name + ' did no damage!'
+            ]] )
+
+          # Enemy is stunned
+
+          elif self.defense_stun > 0:
+
+            self.target_stamina   = self.target_survivor.stamina
+            self.animation_active = False
+            self.increment_turn()
+
+          # Otherwise show damage animation
+
+          else:
+
+            self.target_card.damaged = True
+            self.animation_active    = True
+            self.timer               = pygame.time.get_ticks()
 
         # First turn to survivor
 
@@ -355,6 +427,75 @@ class DefendWindow( window.Window ):
           self.hit_active      = True
           self.hit_bar_ratio   = 0.00
           self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
+
+      # Defense phase
+
+      elif self.phase == PHASE_DEFENSE:
+
+        # Wait for animation to finish
+
+        if not self.animation_active:
+
+          # Check if enemy is dead
+
+          if self._enemy.stamina == 0:
+
+            self.phase            = PHASE_WIN
+            self.do_draw          = True
+            self.animation_active = True
+
+          # Otherwise move onto the next unit's turn
+
+          elif self.turn_order[self.turn_idx] == self._enemy:
+
+            self.phase           = PHASE_ENEMY
+            self.do_draw         = True
+
+            attack_info              = self._enemy.attack( self.survivors )
+            self.target_survivor     = attack_info[0]
+            self.target_dmg          = max( attack_info[1] - self.defense_armor, 0 )
+            self.target_stamina      = max( self.target_survivor.stamina - self.target_dmg, 0 )
+            self.set_target_card()
+
+            # No animation for 0 damage
+
+            if self.target_dmg == 0:
+
+              self.animation_active = False
+              self.increment_turn()
+
+              self.msg_tbox.update( [[
+                self._enemy.name + ' did no damage!'
+              ]] )
+
+            # Enemy is stunned
+
+            elif self.defense_stun > 0:
+
+              self.target_stamina   = self.target_survivor.stamina
+              self.animation_active = False
+              self.increment_turn()
+
+            # Otherwise show damage animation
+
+            else:
+
+              self.target_card.damaged = True
+              self.animation_active    = True
+              self.timer               = pygame.time.get_ticks()
+              self.hit_bar_ratio       = 0.00
+              self.scale_hit_bar()
+
+          else:
+
+            self.phase           = PHASE_PLAYER
+            self.do_draw         = True
+            self.target_survivor = self.turn_order[self.turn_idx]
+            self.set_target_card()
+            self.target_card.activate()
+            self.hit_active      = True
+            self.hit_bar_ratio   = 0.00
+            self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
 
       # Enemy phase
 
@@ -431,6 +572,7 @@ class DefendWindow( window.Window ):
 
             if self.target_dmg == 0:
 
+              self.curse_stamina    = self.target_survivor.stamina
               self.animation_active = False
               self.increment_turn()
 
@@ -456,6 +598,7 @@ class DefendWindow( window.Window ):
           else:
 
             self.target_stamina   = self._enemy.stamina
+            self.curse_stamina    = self.target_survivor.stamina
             self.animation_active = False
             self.increment_turn()
 
@@ -486,14 +629,38 @@ class DefendWindow( window.Window ):
 
             attack_info              = self._enemy.attack( self.survivors )
             self.target_survivor     = attack_info[0]
-            self.target_dmg          = attack_info[1]
+            self.target_dmg          = max( attack_info[1] - self.defense_armor, 0 )
             self.target_stamina      = max( self.target_survivor.stamina - self.target_dmg, 0 )
             self.set_target_card()
-            self.target_card.damaged = True
-            self.animation_active    = True
-            self.timer               = pygame.time.get_ticks()
-            self.hit_bar_ratio       = 0.00
-            self.scale_hit_bar()
+
+            # No animation for 0 damage
+
+            if self.target_dmg == 0:
+
+              self.animation_active = False
+              self.increment_turn()
+
+              self.msg_tbox.update( [[
+                self._enemy.name + ' did no damage!'
+              ]] )
+
+            # Enemy is stunned
+
+            elif self.defense_stun > 0:
+
+              self.target_stamina   = self.target_survivor.stamina
+              self.animation_active = False
+              self.increment_turn()
+
+            # Otherwise show damage animation
+
+            else:
+
+              self.target_card.damaged = True
+              self.animation_active    = True
+              self.timer               = pygame.time.get_ticks()
+              self.hit_bar_ratio       = 0.00
+              self.scale_hit_bar()
 
           else:
 
@@ -538,19 +705,67 @@ class DefendWindow( window.Window ):
       self.enemy_tbox.update( enemy_text, enemy_health )
       self.msg_tbox.update( msg_text )
 
+    # Defense phase
+
+    elif self.phase == PHASE_DEFENSE:
+
+      self.msg_tbox.update( [[
+        'Traps deal ' + str( self.target_dmg ) + ' damage!'
+      ]] )
+
+      # Show red background for damaged enemy
+
+      if self.enemy_damaged:
+
+        timestamp = pygame.time.get_ticks()
+
+        if ( timestamp - self.timer ) >= DAMAGED_TIME:
+          self.do_draw       = True
+          self.enemy_damaged = False
+          self.step_count    = 0
+
+      # Rolling stamina damage animation
+
+      elif self._enemy.stamina > self.target_stamina:
+
+        self.do_draw = True
+
+        if self.step_count == 0:
+          self._enemy.stamina -= 1
+
+        self.step_count += 1
+
+        if self.step_count == DAMAGE_SPEED:
+          self.step_count = 0
+
+        # Mark animation as done and update turn order
+
+        if self._enemy.stamina == self.target_stamina:
+          self.animation_active = False
+
+        self.enemy_tbox.update( [[ self._enemy.name ]], [[ float( self._enemy.stamina ) / self._enemy.max_stamina ]] )
+
     # Enemy phase
 
     elif self.phase == PHASE_ENEMY:
 
-      self.msg_tbox.update( [[
-        self._enemy.name + ' deals ' + str( self.target_dmg ) + ' damage!'
-      ]] )
+      if self.defense_stun > 0:
+
+        self.defense_stun -= 1
+
+        self.msg_tbox.update( [[ self._enemy.name + ' is stunned!' ]] )
+
+      else:
+
+        self.msg_tbox.update( [[
+          self._enemy.name + ' deals ' + str( self.target_dmg ) + ' damage!'
+        ]] )
 
       # Show red background for damaged defender card
 
-      timestamp = pygame.time.get_ticks()
-
       if self.target_card.damaged:
+
+        timestamp = pygame.time.get_ticks()
 
         if ( timestamp - self.timer ) >= DAMAGED_TIME:
           self.do_draw             = True

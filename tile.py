@@ -378,14 +378,14 @@ class Tile( pygame.sprite.Sprite ):
   # Roll for enemy spawned during defend phase. Currently only one enemy
   # is spawned per encounter. If no enemy is spawned, None is returned.
 
-  def roll_enemy( self ):
+  def roll_enemy( self, bonus ):
 
     roll = random.random()
     prob = 0.0
 
     for _enemy in self.enemy_rates:
 
-      prob += _enemy[0]
+      prob += _enemy[0] * bonus
 
       if roll < prob:
         return enemy.Enemy( _enemy[1] )
