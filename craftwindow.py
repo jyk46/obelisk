@@ -59,7 +59,7 @@ class CraftWindow( window.Window ):
     self.items = []
 
     for name, info in item.item_table.iteritems():
-      if info[9]:
+      if info[10]:
         self.items.append( item.Item( name ) )
 
     # Initialize sub-windows

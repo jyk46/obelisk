@@ -464,6 +464,8 @@ class Engine:
 
   def handle_phase_look( self ):
 
+    cam_moved = False
+
     # Calculate current tile mouse is hovering over
 
     context_x = ( self.cam_x + self.mouse_x ) / properties.TILE_WIDTH
@@ -508,6 +510,7 @@ class Engine:
 
       if next_expedition != None:
         self.center_camera( next_expedition.pos_tile )
+        cam_moved = True
 
     # Escape menu if ESC key pressed
 
@@ -530,6 +533,8 @@ class Engine:
         self.active_expedition = active_expedition
         self.menu_en           = True
         self.cam_en            = False
+
+    return cam_moved
 
   #.......................................................................
   # PHASE_EXPLORE0 Handling
@@ -1348,7 +1353,7 @@ class Engine:
       if not done_used and not menu_used:
 
         if self.phase == PHASE_LOOK:
-          self.handle_phase_look()
+          cam_moved |= self.handle_phase_look()
 
         elif self.phase == PHASE_EXPLORE0:
           self.handle_phase_explore0()
