@@ -301,6 +301,8 @@ class Engine:
 
     # Only scroll if within camera window
 
+    cam_moved = False
+
     if self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
       # Scroll x-axis
@@ -308,22 +310,28 @@ class Engine:
       if ( self.mouse_x >= 0 ) and ( self.mouse_x < properties.SCROLL_WIDTH ) \
         and ( self.cam_x > 0 ):
         self.cam_x -= properties.SCROLL_SPEED
+        cam_moved = True
 
       elif ( self.mouse_x >= ( properties.CAMERA_WIDTH - properties.SCROLL_WIDTH ) ) \
         and ( self.mouse_x < properties.CAMERA_WIDTH ) \
         and ( ( self.cam_x + properties.CAMERA_WIDTH ) < properties.MAP_WIDTH ):
         self.cam_x += properties.SCROLL_SPEED
+        cam_moved = True
 
       # Scroll y-axis
 
       if ( self.mouse_y >= 0 ) and ( self.mouse_y < properties.SCROLL_WIDTH ) \
         and ( self.cam_y > 0 ):
         self.cam_y -= properties.SCROLL_SPEED
+        cam_moved = True
 
       elif ( self.mouse_y >= ( properties.CAMERA_HEIGHT - properties.SCROLL_WIDTH ) ) \
         and ( self.mouse_y < properties.CAMERA_HEIGHT ) \
         and ( ( self.cam_y + properties.CAMERA_HEIGHT ) < properties.MAP_HEIGHT ):
         self.cam_y += properties.SCROLL_SPEED
+        cam_moved = True
+
+    return cam_moved
 
   #.......................................................................
   # Menu selection handler
@@ -471,6 +479,8 @@ class Engine:
 
       if not context_tile.fog:
         self.sidebar_window._tile = context_tile
+      else:
+        self.sidebar_window._tile = None
 
       # Sidebar expedition information (only when menu is disabled)
 
@@ -1216,11 +1226,18 @@ class Engine:
   # Draw all sprites
   #.......................................................................
 
-  def draw_all( self ):
+  def draw_all( self, cam_moved ):
+
+    rect_updates = []
 
     # Draw map and associated markers
 
-    rect_updates =  self.map_group.draw( self.camera_window.image )
+    if cam_moved or ( self.phase == PHASE_EXPLORE2 ) or ( self.phase == PHASE_EXPLORE3 ):
+      for _tile in self.map_group.sprites():
+        if _tile.rect.colliderect( self.camera_window.rect ):
+          rect_updates += _tile.draw( self.camera_window.bg_image )
+
+    rect_updates += self.camera_window.draw_background()
     rect_updates += self.expeditions_group.draw( self.camera_window.image )
 
     # Draw menu if enabled
@@ -1288,6 +1305,8 @@ class Engine:
 
     # Main game loop
 
+    init_bg = True
+
     while not self.done:
 
       # Process inputs
@@ -1296,8 +1315,14 @@ class Engine:
 
       # Handle camera scrolling
 
+      cam_moved = False
+
       if self.cam_en:
-        self.scroll_camera()
+        cam_moved = self.scroll_camera()
+
+      if init_bg:
+        cam_moved = True
+        init_bg   = False
 
       # Handle done selection
 
@@ -1359,7 +1384,7 @@ class Engine:
       # Update graphics
 
       self.update_all()
-      self.draw_all()
+      self.draw_all( cam_moved )
 
       # Increment clock
 

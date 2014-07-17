@@ -87,7 +87,7 @@ class DefendCard:
 
     # Create max health bar overlay
 
-    self.max_surface      = pygame.Surface( ( self.rect.width - 8, properties.HEALTH_HEIGHT ) )
+    self.max_surface      = pygame.Surface( ( self.rect.width - 16, properties.HEALTH_HEIGHT ) )
     self.max_rect         = self.max_surface.get_rect()
     self.max_rect.topleft = name_rect.left, name_rect.bottom + 2
     self.max_surface.fill( utils.WHITE )
@@ -95,7 +95,7 @@ class DefendCard:
     # Create current health overlay
 
     health                    = float( self._survivor.stamina ) / self._survivor.max_stamina
-    current_width             = int( health * ( self.rect.width - 8 ) )
+    current_width             = int( health * ( self.rect.width - 16 ) )
     self.current_surface      = pygame.Surface( ( current_width, properties.HEALTH_HEIGHT ) )
     self.current_rect         = self.current_surface.get_rect()
     self.current_rect.topleft = name_rect.left, name_rect.bottom + 2

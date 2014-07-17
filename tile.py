@@ -474,23 +474,34 @@ class Tile( pygame.sprite.Sprite ):
     self.rect.top  = self.abs_y - cam_y
     self.rect.left = self.abs_x - cam_x
 
-    # Draw overlays if necessary
+
+  # Draw overlays if necessary
+
+  def draw_overlay( self ):
+
+    rect_updates = []
 
     self.image = self.surface.convert()
 
     if self.fog:
-      self.image.blit( self.fog_surface, self.fog_rect )
+      rect_updates += [ self.image.blit( self.fog_surface, self.fog_rect ) ]
 
     if self.moveable:
       if self.selected:
-        self.image.blit( self.sel_surface, self.sel_rect )
+        rect_updates += [ self.image.blit( self.sel_surface, self.sel_rect ) ]
       else:
-        self.image.blit( self.move_surface, self.move_rect )
+        rect_updates += [ self.image.blit( self.move_surface, self.move_rect ) ]
 
-  # Overload hash operator to allow Tile objects to be used in dictionaries
+    return rect_updates
 
-#  def __hash__( self ):
-#    return hash( ( self.pos_x, self.pos_y ) )
+  # Draw graphics
+
+  def draw( self, surface ):
+
+    rect_updates  = self.draw_overlay()
+    rect_updates += [ surface.blit( self.image, self.rect ) ]
+
+    return rect_updates
 
   # Overload == operator to return true if position matches
 

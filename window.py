@@ -26,18 +26,22 @@ class Window:
 
     self.bg_path      = bg_path
 
+    if bg_path == None:
+      self.bg_image = pygame.Surface( ( width, height ) )
+    else:
+      self.bg_image = pygame.image.load( self.bg_path )
+
+    self.bg_rect      = self.bg_image.get_rect( topleft = ( 0, 0 ) )
+
   # Fill background with specified image
 
   def draw_background( self ):
 
     rect_updates = []
 
-    bg_image = pygame.image.load( self.bg_path )
-    bg_rect  = bg_image.get_rect()
-
-    for i in range( int( math.ceil( self.rect.width / float( bg_rect.width ) ) ) ):
-      for j in range( int( math.ceil( self.rect.height / float( bg_rect.height ) ) ) ):
-        rect_updates.append( self.image.blit( bg_image, ( i * bg_rect.width, j * bg_rect.height ) ) )
+    for i in range( int( math.ceil( self.rect.width / float( self.bg_rect.width ) ) ) ):
+      for j in range( int( math.ceil( self.rect.height / float( self.bg_rect.height ) ) ) ):
+        rect_updates.append( self.image.blit( self.bg_image, ( i * self.bg_rect.width, j * self.bg_rect.height ) ) )
 
     return rect_updates
 
