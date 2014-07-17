@@ -27,6 +27,9 @@ PIC_Y_OFFSET = ENEMY_Y_OFFSET + 32 + 16
 HIT_X_OFFSET = PIC_X_OFFSET + properties.DEFEND_PIC_WIDTH + 32
 HIT_Y_OFFSET = PIC_Y_OFFSET + properties.DEFEND_HIT_HEIGHT
 
+LIMIT_X_OFFSET = HIT_X_OFFSET + properties.DEFEND_HIT_WIDTH + 2
+LIMIT_Y_OFFSET = HIT_Y_OFFSET - properties.DEFEND_HIT_SPACE
+
 MSG_X_OFFSET = 16
 MSG_Y_OFFSET = PIC_Y_OFFSET + properties.DEFEND_PIC_HEIGHT + 16
 
@@ -42,8 +45,9 @@ CARD_Y_OFFSET = properties.CAMERA_HEIGHT - properties.CARD_HEIGHT
 
 PHASE_START, PHASE_DEFENSE, PHASE_ENEMY, PHASE_PLAYER, PHASE_DONE = range( 5 )
 
-DAMAGED_TIME = 500
+DAMAGED_TIME = 300
 DAMAGE_SPEED = 1
+HIT_SPEED    = 0.05
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -74,12 +78,19 @@ class DefendWindow( window.Window ):
     self.timer            = 0
     self.step_count       = 0
 
-    # Enemy phase variables
+    # Phase variables
 
     self.target_survivor = None
     self.target_dmg      = 0
     self.target_stamina  = 0
     self.target_card     = None
+
+    self.hit_active      = False
+    self.hit_bar_ratio   = 0.00
+    self.hit_bar_speed   = HIT_SPEED
+    self.hit_bar_limit   = 0.00
+
+    self.enemy_damaged   = False
 
     # Initialize sub-windows
 
@@ -100,7 +111,20 @@ class DefendWindow( window.Window ):
                                                      properties.DEFEND_HIT_HEIGHT - 2 * properties.DEFEND_HIT_SPACE ) )
     self.hit_bar_rect            = self.hit_bar_surface.get_rect()
     self.hit_bar_rect.bottomleft = HIT_X_OFFSET + properties.DEFEND_HIT_SPACE, HIT_Y_OFFSET - properties.DEFEND_HIT_SPACE
-    self.hit_bar_surface.fill( utils.RED )
+
+    self.hit_og_surface          = pygame.Surface( ( properties.DEFEND_HIT_WIDTH - 2 * properties.DEFEND_HIT_SPACE,
+                                                     properties.DEFEND_HIT_HEIGHT - 2 * properties.DEFEND_HIT_SPACE ) )
+    self.hit_og_surface.fill( utils.RED )
+
+    self.hit_limit_surface      = pygame.Surface( ( properties.DEFEND_HIT_WIDTH, 3 ) )
+    self.hit_limit_rect         = self.hit_limit_surface.get_rect()
+    self.hit_limit_rect.left    = HIT_X_OFFSET
+    self.hit_limit_rect.centery = LIMIT_Y_OFFSET
+    self.hit_limit_surface.fill( utils.RED )
+
+    self.hit_text_surface, self.hit_text_rect = utils.gen_text_pos(
+      'HIT', 14, LIMIT_X_OFFSET, LIMIT_Y_OFFSET, utils.RED, True
+    )
 
     self.msg_tbox = textbox.TextBox(
       properties.DEFEND_WIDTH - 32, 32,
@@ -158,18 +182,59 @@ class DefendWindow( window.Window ):
       if self.turn_idx == len( self.turn_order ):
         self.turn_idx = 0
 
+  # Set target survivor card
+
+  def set_target_card( self ):
+
+    for card in self.cards:
+      if card._survivor == self.target_survivor:
+        self.target_card = card
+        break
+
   # Scale hit bar to specified ratio
 
-  def scale_hit_bar( self, ratio ):
+  def scale_hit_bar( self ):
 
     self.hit_bar_surface = pygame.transform.scale(
-      self.hit_bar_surface,
+      self.hit_og_surface,
       ( properties.DEFEND_HIT_WIDTH - 2 * properties.DEFEND_HIT_SPACE,
-        int( ratio * ( properties.DEFEND_HIT_HEIGHT - 2 * properties.DEFEND_HIT_SPACE ) ) )
+        int( self.hit_bar_ratio * ( properties.DEFEND_HIT_HEIGHT - 2 * properties.DEFEND_HIT_SPACE ) ) )
     )
 
     self.hit_bar_rect            = self.hit_bar_surface.get_rect()
     self.hit_bar_rect.bottomleft = HIT_X_OFFSET + properties.DEFEND_HIT_SPACE, HIT_Y_OFFSET - properties.DEFEND_HIT_SPACE
+
+    red   = 255 * ( 1.00 - max( ( self.hit_bar_ratio - 0.6 ) / 0.6, 0.0 ) )
+    green = 255 * min( self.hit_bar_ratio / 0.8, 1.0 )
+
+    self.hit_bar_surface.fill( ( red, green, 0 ) )
+
+  # Oscillate hit bar for player attack
+
+  def increment_hit_bar( self ):
+
+    if self.hit_bar_ratio == 1.00:
+      self.hit_bar_ratio = 0.00
+
+    else:
+
+      self.hit_bar_ratio += self.hit_bar_speed
+
+      if self.hit_bar_ratio > 1.00:
+        self.hit_bar_ratio = 1.00
+
+  # Adjust position of hit limit indicator
+
+  def set_hit_bar_limit( self, limit ):
+
+    # Mental bonus of survivor wielding weapon lowers limit
+
+    self.hit_bar_limit = limit - ( self.target_survivor.get_mental_bonus() * 0.02 )
+
+    self.hit_limit_rect.centery = LIMIT_Y_OFFSET \
+      - int( limit * ( properties.DEFEND_HIT_HEIGHT - 2 * properties.DEFEND_HIT_SPACE ) )
+
+    self.hit_text_rect.top = self.hit_limit_rect.centery
 
   # Initialize with new enemy and turn order for a new encounter
 
@@ -186,6 +251,7 @@ class DefendWindow( window.Window ):
     if self._enemy != None:
       self.calc_turn_order()
       self.pic_enemy_surface = pygame.image.load( self._enemy.img_path )
+      self.hit_bar_speed     = HIT_SPEED + ( self._enemy.speed * 0.02 )
     else:
       self.pic_enemy_surface = pygame.Surface( ( 1, 1 ) )
 
@@ -197,7 +263,8 @@ class DefendWindow( window.Window ):
     self.pic_enemy_surface.set_colorkey( self.pic_enemy_surface.get_at( ( 0, 0 ) ), RLEACCEL )
     self.pic_enemy_rect    = self.pic_enemy_surface.get_rect( center = self.pic_bg_rect.center )
 
-    self.scale_hit_bar( 1.0 )
+    self.hit_bar_ratio     = 0.00
+    self.scale_hit_bar()
 
     # Initialize defender cards
 
@@ -246,25 +313,27 @@ class DefendWindow( window.Window ):
           self.phase           = PHASE_ENEMY
           self.do_draw         = True
 
-          attack_info          = self._enemy.attack( self.survivors )
-          self.target_survivor = attack_info[0]
-          self.target_dmg      = attack_info[1]
-          self.target_stamina  = max( self.target_survivor.stamina - self.target_dmg, 0 )
-
-          for card in self.cards:
-            if card._survivor == self.target_survivor:
-              self.target_card = card
-              card.damaged     = True
-              break
-
-          self.animation_active = True
-          self.timer            = pygame.time.get_ticks()
+          attack_info              = self._enemy.attack( self.survivors )
+          self.target_survivor     = attack_info[0]
+          self.target_dmg          = attack_info[1]
+          self.target_stamina      = max( self.target_survivor.stamina - self.target_dmg, 0 )
+          self.set_target_card()
+          self.target_card.damaged = True
+          self.animation_active    = True
+          self.timer               = pygame.time.get_ticks()
 
         # First turn to survivor
 
         else:
 
-          self.phase = PHASE_PLAYER
+          self.phase           = PHASE_PLAYER
+          self.do_draw         = True
+          self.target_survivor = self.turn_order[self.turn_idx]
+          self.set_target_card()
+          self.target_card.activate()
+          self.hit_active      = True
+          self.hit_bar_ratio   = 0.00
+          self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
 
       # Enemy phase
 
@@ -277,11 +346,115 @@ class DefendWindow( window.Window ):
           # All defenders are dead, end phase
 
           if self.check_dead():
+
             self.phase = PHASE_DONE
 
           # Otherwise move onto the next unit's turn
 
-          self.phase = PHASE_PLAYER
+          else:
+
+            self.phase           = PHASE_PLAYER
+            self.do_draw         = True
+            self.target_survivor = self.turn_order[self.turn_idx]
+            self.set_target_card()
+            self.target_card.activate()
+            self.hit_active      = True
+            self.hit_bar_ratio   = 0.00
+            self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
+
+      # Player phase
+
+      elif self.phase == PHASE_PLAYER:
+
+        # Handle hit bar detection
+
+        if self.hit_active:
+
+          self.hit_active = False
+          self.do_draw    = True
+
+          # Direct hit to enemy
+
+          if self.hit_bar_ratio >= self.hit_bar_limit:
+
+            critical = False
+            if self.hit_bar_ratio == 1.00:
+              critical = True
+
+            self.target_dmg     = self.target_survivor.attack( self._enemy, critical )
+            self.target_stamina = max( self._enemy.stamina - self.target_dmg, 0 )
+
+            # No animation for 0 damage
+
+            if self.target_dmg == 0:
+
+              self.animation_active = False
+              self.increment_turn()
+
+              self.msg_tbox.update( [[
+                self.target_survivor.name.split()[0] + ' did no damage!'
+              ]] )
+
+            # Otherwise show damage animation
+
+            else:
+
+              self.enemy_damaged    = True
+              self.animation_active = True
+              self.timer            = pygame.time.get_ticks()
+
+          # Missed the enemy
+
+          else:
+
+            self.target_stamina   = self._enemy.stamina
+            self.animation_active = False
+            self.increment_turn()
+
+            self.msg_tbox.update( [[
+              self.target_survivor.name.split()[0] + ' misses!'
+            ]] )
+
+        # Wait for animation to finish
+
+        elif not self.animation_active:
+
+          self.target_card.deactivate()
+
+          # Check if enemy is dead
+
+          if self._enemy.stamina == 0:
+
+            self.phase = PHASE_DONE
+
+          # Otherwise move onto the next unit's turn
+
+          elif self.turn_order[self.turn_idx] == self._enemy:
+
+            self.phase           = PHASE_ENEMY
+            self.do_draw         = True
+
+            attack_info              = self._enemy.attack( self.survivors )
+            self.target_survivor     = attack_info[0]
+            self.target_dmg          = attack_info[1]
+            self.target_stamina      = max( self.target_survivor.stamina - self.target_dmg, 0 )
+            self.set_target_card()
+            self.target_card.damaged = True
+            self.animation_active    = True
+            self.timer               = pygame.time.get_ticks()
+            self.hit_bar_ratio       = 0.00
+            self.scale_hit_bar()
+
+          else:
+
+            self.phase           = PHASE_PLAYER
+            self.do_draw         = True
+            self.target_survivor = self.turn_order[self.turn_idx]
+            self.set_target_card()
+            self.target_card.activate()
+            self.hit_active      = True
+            self.hit_bar_ratio   = 0.00
+            self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
 
     return False
 
@@ -289,27 +462,20 @@ class DefendWindow( window.Window ):
 
   def update( self ):
 
-    # Always update enemy health box
-
-    if self._enemy == None:
-      enemy_text   = [[ '' ]]
-      enemy_health = [[ 0.0 ]]
-
-    else:
-      enemy_text   = [[ self._enemy.name ]]
-      enemy_health = [[ 1.0 ]]
-
-    self.enemy_tbox.update( enemy_text, enemy_health )
-
     # Start phase
 
     if self.phase == PHASE_START:
 
       if self._enemy == None:
-        msg_text = [[ 'The night passes peacefully...' ]]
+        enemy_text   = [[ '' ]]
+        enemy_health = [[ 0.0 ]]
+        msg_text     = [[ 'The night passes peacefully...' ]]
       else:
-        msg_text = [[ self._enemy.name + ' appears!' ]]
+        enemy_text   = [[ self._enemy.name ]]
+        enemy_health = [[ 1.0 ]]
+        msg_text     = [[ self._enemy.name + ' appears!' ]]
 
+      self.enemy_tbox.update( enemy_text, enemy_health )
       self.msg_tbox.update( msg_text )
 
     # Enemy phase
@@ -317,8 +483,7 @@ class DefendWindow( window.Window ):
     elif self.phase == PHASE_ENEMY:
 
       self.msg_tbox.update( [[
-        self._enemy.name + ' attacks ' + self.target_survivor.name.split()[0] \
-      + ' for ' + str( self.target_dmg ) + ' damage!'
+        self._enemy.name + ' deals ' + str( self.target_dmg ) + ' damage!'
       ]] )
 
       # Show red background for damaged defender card
@@ -353,6 +518,63 @@ class DefendWindow( window.Window ):
           self.animation_active = False
           self.increment_turn()
 
+    # Player phase
+
+    elif self.phase == PHASE_PLAYER:
+
+      # Handle hit bar detection
+
+      if self.hit_active:
+
+        self.do_draw = True
+
+        self.msg_tbox.update( [[
+          self.target_survivor.name.split()[0] + '\'s turn to attack!'
+        ]] )
+
+        self.increment_hit_bar()
+        self.scale_hit_bar()
+
+      # Handle player attack animation
+
+      elif self.enemy_damaged:
+
+        self.msg_tbox.update( [[
+          self.target_survivor.name.split()[0] + ' deals ' + str( self.target_dmg ) + ' damage!'
+        ]] )
+
+        # Show red background for damaged enemy
+
+        timestamp = pygame.time.get_ticks()
+
+        if ( timestamp - self.timer ) >= DAMAGED_TIME:
+          self.do_draw       = True
+          self.enemy_damaged = False
+          self.step_count    = 0
+
+      # Rolling stamina damage animation
+
+      elif ( self._enemy.stamina > self.target_stamina ):
+
+        self.do_draw = True
+
+        if self.step_count == 0:
+          self._enemy.stamina -= 1
+
+        self.step_count += 1
+
+        if self.step_count == DAMAGE_SPEED:
+          self.step_count = 0
+
+        # Mark animation as done and update turn order
+
+        if self._enemy.stamina == self.target_stamina:
+
+          self.animation_active = False
+          self.increment_turn()
+
+        self.enemy_tbox.update( [[ self._enemy.name ]], [[ float( self._enemy.stamina ) / self._enemy.max_stamina ]] )
+
     # Always update defender cards
 
     for card in self.cards:
@@ -370,6 +592,10 @@ class DefendWindow( window.Window ):
     # Draw enemy picture
 
     rect_updates += [ self.pic_surface.blit( self.pic_bg_surface, self.pic_bg_rect ) ]
+
+    if self.enemy_damaged:
+      self.pic_surface.fill( utils.RED )
+
     rect_updates += [ self.pic_surface.blit( self.pic_enemy_surface, self.pic_enemy_rect ) ]
     rect_updates += [ self.image.blit( self.pic_surface, self.pic_rect ) ]
 
@@ -377,6 +603,10 @@ class DefendWindow( window.Window ):
 
     rect_updates += [ self.image.blit( self.hit_surface, self.hit_rect ) ]
     rect_updates += [ self.image.blit( self.hit_bar_surface, self.hit_bar_rect ) ]
+
+    if ( self.phase == PHASE_PLAYER ):
+      rect_updates += [ self.image.blit( self.hit_limit_surface, self.hit_limit_rect ) ]
+      rect_updates += [ self.image.blit( self.hit_text_surface, self.hit_text_rect ) ]
 
     # Draw labels
 

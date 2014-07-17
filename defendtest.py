@@ -7,10 +7,12 @@ import pygame, sys, os
 from pygame.locals import *
 
 import properties
+import utils
 import defendwindow
 import tile
 import survivor
 import inventory
+import item
 import expedition
 
 #-------------------------------------------------------------------------
@@ -75,6 +77,10 @@ def main():
   for i in range( 4 ):
     survivors.append( survivor.Survivor() )
 
+  survivors[0].weapon = item.Item( 'Knife' )
+  survivors[1].weapon = item.Item( 'Rifle' )
+  survivors[3].weapon = item.Item( 'Flame Thrower' )
+
   _tile       = tile.Tile( 'Field', 0, 0 )
   _inventory  = inventory.Inventory( 10, 10, 10, 10 )
   _expedition = expedition.Expedition( _tile, survivors, _inventory, map )
@@ -108,6 +114,8 @@ def main():
     )
 
     defend_window.update()
+
+    screen.fill( utils.BLACK )
     defend_window.draw( screen )
 
     pygame.display.update()

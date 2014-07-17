@@ -7,7 +7,7 @@
 # Performance
 #-------------------------------------------------------------------------
 
-FPS          = 16
+FPS          = 20
 SPS          = 4         # steps or animation frames per second
 FRAME_SWITCH = FPS / SPS # number of frames to hold one animation frame
 

@@ -187,6 +187,32 @@ class Survivor:
 
     return self.get_physical_bonus() + self.get_mental_bonus()
 
+  # Determine damage done to enemy with currently equipped weapon
+
+  def attack( self, _enemy, critical=False ):
+
+    # Roll raw damage of weapon
+
+    if critical:
+      raw_dmg = self.weapon.dmg_max
+    else:
+      raw_dmg = random.randint( self.weapon.dmg_min, self.weapon.dmg_max )
+
+    # Get mental bonus for cursed weapons
+
+    if self.weapon.stam_cost > 0:
+      bonus = self.get_mental_bonus()
+    else:
+      bonus = self.get_physical_bonus()
+
+    tot_dmg = raw_dmg + bonus
+
+    # Adjust for enemy armor
+
+    dmg = max( tot_dmg - _enemy.armor, 0 )
+
+    return dmg
+
   # Calculate average damage based on equipped weapon
 
   def calc_avg_dmg( self, _item=None ):
