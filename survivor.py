@@ -189,18 +189,25 @@ class Survivor:
 
   # Determine damage done to enemy with currently equipped weapon
 
-  def attack( self, _enemy, critical=False ):
+  def attack( self, _enemy, critical=False, unarmed=False ):
+
+    # If not enough ammo, roll damage for unarmed
+
+    weapon = self.weapon
+
+    if unarmed:
+      weapon = item.Item( 'Unarmed' )
 
     # Roll raw damage of weapon
 
     if critical:
-      raw_dmg = self.weapon.dmg_max
+      raw_dmg = weapon.dmg_max
     else:
-      raw_dmg = random.randint( self.weapon.dmg_min, self.weapon.dmg_max )
+      raw_dmg = random.randint( weapon.dmg_min, weapon.dmg_max )
 
     # Get mental bonus for cursed weapons
 
-    if self.weapon.stam_cost > 0:
+    if weapon.stam_cost > 0:
       bonus = self.get_mental_bonus()
     else:
       bonus = self.get_physical_bonus()

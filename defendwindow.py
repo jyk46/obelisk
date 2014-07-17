@@ -91,6 +91,9 @@ class DefendWindow( window.Window ):
     self.hit_bar_limit   = 0.00
 
     self.enemy_damaged   = False
+    self.no_ammo         = False
+    self.no_stamina      = False
+    self.curse_stamina   = 0
 
     # Initialize sub-windows
 
@@ -159,15 +162,13 @@ class DefendWindow( window.Window ):
     assert( len( self.survivors ) > 0 )
     assert( self._enemy != None )
 
-    self.turn_order = [ self._enemy ] + self.survivors
+    self.turn_order = self.survivors + [ self._enemy ]
 
-#    self.turn_order = self.survivors + [ self._enemy ]
-#
-#    # Sort both enemy and survivors in order of decreasing speed
-#
-#    self.turn_order = sorted(
-#      self.turn_order, key=lambda unit: unit.get_speed(), reverse=True
-#    )
+    # Sort both enemy and survivors in order of decreasing speed
+
+    self.turn_order = sorted(
+      self.turn_order, key=lambda unit: unit.get_speed(), reverse=True
+    )
 
   # Increment turn index to the next living unit
 
@@ -373,6 +374,27 @@ class DefendWindow( window.Window ):
           self.hit_active = False
           self.do_draw    = True
 
+          # Consume ammo if using a gun
+
+          self.no_ammo = False
+
+          if self._expedition._inventory.ammo < self.target_survivor.weapon.ammo_cost:
+            self.no_ammo = True
+
+          elif self.target_survivor.weapon.ammo_cost > 0:
+            self._expedition._inventory.ammo -= self.target_survivor.weapon.ammo_cost
+
+          # Consume stamina if using cursed weapon
+
+          self.no_stamina    = False
+          self.curse_stamina = self.target_survivor.stamina
+
+          if self.target_survivor.stamina <= self.target_survivor.weapon.stam_cost:
+            self.no_stamina = True
+
+          elif self.target_survivor.weapon.stam_cost > 0:
+            self.curse_stamina -= self.target_survivor.weapon.stam_cost
+
           # Direct hit to enemy
 
           if self.hit_bar_ratio >= self.hit_bar_limit:
@@ -381,7 +403,7 @@ class DefendWindow( window.Window ):
             if self.hit_bar_ratio == 1.00:
               critical = True
 
-            self.target_dmg     = self.target_survivor.attack( self._enemy, critical )
+            self.target_dmg     = self.target_survivor.attack( self._enemy, critical, self.no_ammo or self.no_stamina )
             self.target_stamina = max( self._enemy.stamina - self.target_dmg, 0 )
 
             # No animation for 0 damage
@@ -391,9 +413,14 @@ class DefendWindow( window.Window ):
               self.animation_active = False
               self.increment_turn()
 
-              self.msg_tbox.update( [[
-                self.target_survivor.name.split()[0] + ' did no damage!'
-              ]] )
+              text = self.target_survivor.name.split()[0] + ' did no damage!'
+
+              if self.no_ammo:
+                text = 'No ammo! ' + text
+              elif self.no_stamina:
+                text = 'Curse is too much... ' + text
+
+              self.msg_tbox.update( [[ text ]] )
 
             # Otherwise show damage animation
 
@@ -539,9 +566,16 @@ class DefendWindow( window.Window ):
 
       elif self.enemy_damaged:
 
-        self.msg_tbox.update( [[
-          self.target_survivor.name.split()[0] + ' deals ' + str( self.target_dmg ) + ' damage!'
-        ]] )
+        text = self.target_survivor.name.split()[0] + ' deals ' + str( self.target_dmg ) + ' damage!'
+
+        if self.no_ammo:
+          text = 'No ammo! ' + text
+        elif self.no_stamina:
+          text = 'Curse is too much... ' + text
+        elif self.target_survivor.stamina > self.curse_stamina:
+          text += ' CURSED!'
+
+        self.msg_tbox.update( [[ text ]] )
 
         # Show red background for damaged enemy
 
@@ -554,7 +588,7 @@ class DefendWindow( window.Window ):
 
       # Rolling stamina damage animation
 
-      elif ( self._enemy.stamina > self.target_stamina ):
+      elif self._enemy.stamina > self.target_stamina:
 
         self.do_draw = True
 
@@ -568,12 +602,34 @@ class DefendWindow( window.Window ):
 
         # Mark animation as done and update turn order
 
-        if self._enemy.stamina == self.target_stamina:
+        if ( self._enemy.stamina == self.target_stamina ) \
+          and ( self.target_survivor.stamina == self.curse_stamina ):
 
           self.animation_active = False
           self.increment_turn()
 
         self.enemy_tbox.update( [[ self._enemy.name ]], [[ float( self._enemy.stamina ) / self._enemy.max_stamina ]] )
+
+      # Animate curse damage
+
+      elif self.target_survivor.stamina > self.curse_stamina:
+
+        self.do_draw = True
+
+        if self.step_count == 0:
+          self.target_survivor.stamina -= 1
+
+        self.step_count += 1
+
+        if self.step_count == DAMAGE_SPEED:
+          self.step_count = 0
+
+        # Mark animation as done and update turn order
+
+        if self.target_survivor.stamina == self.curse_stamina:
+
+          self.animation_active = False
+          self.increment_turn()
 
     # Always update defender cards
 

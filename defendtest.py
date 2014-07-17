@@ -79,10 +79,10 @@ def main():
 
   survivors[0].weapon = item.Item( 'Knife' )
   survivors[1].weapon = item.Item( 'Rifle' )
-  survivors[3].weapon = item.Item( 'Flame Thrower' )
+  survivors[3].weapon = item.Item( 'Infernal Skull' )
 
   _tile       = tile.Tile( 'Field', 0, 0 )
-  _inventory  = inventory.Inventory( 10, 10, 10, 10 )
+  _inventory  = inventory.Inventory( 10, 10, 10, 3 )
   _expedition = expedition.Expedition( _tile, survivors, _inventory, map )
 
   defend_window._expedition = _expedition
