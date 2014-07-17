@@ -40,8 +40,10 @@ CARD_Y_OFFSET = properties.CAMERA_HEIGHT - properties.CARD_HEIGHT
 # Properties
 #-------------------------------------------------------------------------
 
-PHASE_START, PHASE_DEFENSE, PHASE_ENEMY, PHASE_PLAYER0, \
-PHASE_PLAYER1, PHASE_DONE = range( 6 )
+PHASE_START, PHASE_DEFENSE, PHASE_ENEMY, PHASE_PLAYER, PHASE_DONE = range( 5 )
+
+DAMAGED_TIME = 500
+DAMAGE_SPEED = 1
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -66,6 +68,18 @@ class DefendWindow( window.Window ):
     self.turn_idx    = 0
     self.phase       = PHASE_START
     self.cards       = []
+
+    self.do_draw          = True
+    self.animation_active = False
+    self.timer            = 0
+    self.step_count       = 0
+
+    # Enemy phase variables
+
+    self.target_survivor = None
+    self.target_dmg      = 0
+    self.target_stamina  = 0
+    self.target_card     = None
 
     # Initialize sub-windows
 
@@ -104,6 +118,16 @@ class DefendWindow( window.Window ):
     self.button_group = pygame.sprite.RenderUpdates()
     self.button_group.add( button.Button( 'OKAY', BUTTON_X_OFFSET, BUTTON_Y_OFFSET ) )
 
+  # Check if all survivors are dead
+
+  def check_dead( self ):
+
+    for _survivor in self.survivors:
+      if _survivor.stamina > 0:
+        return False
+
+    return True
+
   # Determine turn order based on speed
 
   def calc_turn_order( self ):
@@ -111,13 +135,28 @@ class DefendWindow( window.Window ):
     assert( len( self.survivors ) > 0 )
     assert( self._enemy != None )
 
-    self.turn_order = self.survivors + [ self._enemy ]
+    self.turn_order = [ self._enemy ] + self.survivors
 
-    # Sort both enemy and survivors in order of decreasing speed
+#    self.turn_order = self.survivors + [ self._enemy ]
+#
+#    # Sort both enemy and survivors in order of decreasing speed
+#
+#    self.turn_order = sorted(
+#      self.turn_order, key=lambda unit: unit.get_speed(), reverse=True
+#    )
 
-    self.turn_order = sorted(
-      self.turn_order, key=lambda unit: unit.get_speed(), reverse=True
-    )
+  # Increment turn index to the next living unit
+
+  def increment_turn( self ):
+
+    self.turn_idx += 1
+    if self.turn_idx == len( self.turn_order ):
+      self.turn_idx = 0
+
+    while self.turn_order[self.turn_idx].stamina == 0:
+      self.turn_idx += 1
+      if self.turn_idx == len( self.turn_order ):
+        self.turn_idx = 0
 
   # Scale hit bar to specified ratio
 
@@ -200,11 +239,49 @@ class DefendWindow( window.Window ):
 
       if self.phase == PHASE_START:
 
+        # First turn to enemy
+
         if self.turn_order[self.turn_idx] == self._enemy:
-          self.phase = PHASE_ENEMY
+
+          self.phase           = PHASE_ENEMY
+          self.do_draw         = True
+
+          attack_info          = self._enemy.attack( self.survivors )
+          self.target_survivor = attack_info[0]
+          self.target_dmg      = attack_info[1]
+          self.target_stamina  = max( self.target_survivor.stamina - self.target_dmg, 0 )
+
+          for card in self.cards:
+            if card._survivor == self.target_survivor:
+              self.target_card = card
+              card.damaged     = True
+              break
+
+          self.animation_active = True
+          self.timer            = pygame.time.get_ticks()
+
+        # First turn to survivor
 
         else:
-          self.phase = PHASE_PLAYER0
+
+          self.phase = PHASE_PLAYER
+
+      # Enemy phase
+
+      elif self.phase == PHASE_ENEMY:
+
+        # Wait for animation to finish
+
+        if not self.animation_active:
+
+          # All defenders are dead, end phase
+
+          if self.check_dead():
+            self.phase = PHASE_DONE
+
+          # Otherwise move onto the next unit's turn
+
+          self.phase = PHASE_PLAYER
 
     return False
 
@@ -212,21 +289,69 @@ class DefendWindow( window.Window ):
 
   def update( self ):
 
+    # Always update enemy health box
+
+    if self._enemy == None:
+      enemy_text   = [[ '' ]]
+      enemy_health = [[ 0.0 ]]
+
+    else:
+      enemy_text   = [[ self._enemy.name ]]
+      enemy_health = [[ 1.0 ]]
+
+    self.enemy_tbox.update( enemy_text, enemy_health )
+
     # Start phase
 
     if self.phase == PHASE_START:
 
       if self._enemy == None:
-        enemy_text   = [[ '' ]]
-        enemy_health = [[ 0.0 ]]
-        msg_text     = [[ 'The night passes peacefully...' ]]
+        msg_text = [[ 'The night passes peacefully...' ]]
       else:
-        enemy_text   = [[ self._enemy.name ]]
-        enemy_health = [[ 1.0 ]]
-        msg_text     = [[ self._enemy.name + ' attacks the survivors!' ]]
+        msg_text = [[ self._enemy.name + ' appears!' ]]
 
-      self.enemy_tbox.update( enemy_text, enemy_health )
       self.msg_tbox.update( msg_text )
+
+    # Enemy phase
+
+    elif self.phase == PHASE_ENEMY:
+
+      self.msg_tbox.update( [[
+        self._enemy.name + ' attacks ' + self.target_survivor.name.split()[0] \
+      + ' for ' + str( self.target_dmg ) + ' damage!'
+      ]] )
+
+      # Show red background for damaged defender card
+
+      timestamp = pygame.time.get_ticks()
+
+      if self.target_card.damaged:
+
+        if ( timestamp - self.timer ) >= DAMAGED_TIME:
+          self.do_draw             = True
+          self.target_card.damaged = False
+          self.step_count          = 0
+
+      # Rolling stamina damage animation
+
+      elif ( self.target_survivor.stamina > self.target_stamina ):
+
+        self.do_draw = True
+
+        if self.step_count == 0:
+          self.target_survivor.stamina -= 1
+
+        self.step_count += 1
+
+        if self.step_count == DAMAGE_SPEED:
+          self.step_count = 0
+
+        # Mark animation as done and update turn order
+
+        if self.target_survivor.stamina == self.target_stamina:
+
+          self.animation_active = False
+          self.increment_turn()
 
     # Always update defender cards
 
@@ -267,8 +392,14 @@ class DefendWindow( window.Window ):
 
   def draw( self, surface ):
 
-    rect_updates  = self.draw_background()
-    rect_updates += self.draw_info()
+    rect_updates = []
+
+    if self.do_draw:
+
+      rect_updates += self.draw_background()
+      rect_updates += self.draw_info()
+
+      self.do_draw = False
 
     for card in self.cards:
       card.draw( surface )

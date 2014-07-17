@@ -3,6 +3,7 @@
 #=========================================================================
 # Class for spawnable enemies with damage, armor, stamina statistics.
 
+import random
 import properties
 
 #-------------------------------------------------------------------------
@@ -59,3 +60,20 @@ class Enemy:
   def get_speed( self ):
 
     return self.speed
+
+  # Determine to which survivor and how much damage the enemy deals
+  # during the defend phase. Enemy-specific AI can be added here, but
+  # currently all enemies attack randomly.
+
+  def attack( self, survivors ):
+
+    # Determine survivor to attack
+
+    _survivor = random.choice( survivors )
+
+    # Calculate damage
+
+    raw_dmg = random.randint( self.min_dmg, self.max_dmg )
+    dmg     = max( raw_dmg - _survivor.armor.armor, 0 )
+
+    return _survivor, dmg

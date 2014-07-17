@@ -27,6 +27,8 @@ class DefendCard:
     self.bg_path     = properties.DEFEND_PATH + 'card_bg.png'
     self.surface_col = []
 
+    self.damaged     = False
+
     # Initialize surface
 
     self.image        = pygame.Surface( ( properties.CARD_WIDTH, properties.CARD_HEIGHT ) )
@@ -116,7 +118,7 @@ class DefendCard:
     for surface, rect in self.surface_col:
       rect_updates += [ self.image.blit( surface, rect ) ]
 
-    rect_updates += [ self.image.blit( self.max_surface, self.max_rect ) ]
+#    rect_updates += [ self.image.blit( self.max_surface, self.max_rect ) ]
     rect_updates += [ self.image.blit( self.current_surface, self.current_rect ) ]
 
     return rect_updates
@@ -128,6 +130,9 @@ class DefendCard:
     bg_image        = pygame.image.load( self.bg_path )
     bg_rect         = bg_image.get_rect()
     bg_rect.topleft = 0, 0
+
+    if self.damaged or ( self._survivor.stamina == 0 ):
+      bg_image.fill( utils.RED )
 
     return [ self.image.blit( bg_image, bg_rect ) ]
 

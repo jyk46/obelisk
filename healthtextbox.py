@@ -88,9 +88,9 @@ class HealthTextBox( textbox.TextBox ):
 
     rect_updates = textbox.TextBox.draw_text( self )
 
-    for max_col in self.max_matrix:
-      for surface, rect in max_col:
-        rect_updates += [ self.image.blit( surface, rect ) ]
+#    for max_col in self.max_matrix:
+#      for surface, rect in max_col:
+#        rect_updates += [ self.image.blit( surface, rect ) ]
 
     for current_col in self.current_matrix:
       for surface, rect in current_col:
