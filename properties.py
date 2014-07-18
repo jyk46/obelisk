@@ -16,6 +16,7 @@ FRAME_SWITCH = FPS / SPS # number of frames to hold one animation frame
 #-------------------------------------------------------------------------
 
 NUM_START_SURVIVORS = 4
+NUM_MAP_SURVIVORS   = 20
 
 START_FOOD  = 10
 START_WOOD  = 5
@@ -71,6 +72,8 @@ SWAMP_RATE       = 0.3 #0.20
 JUNGLE_RATE      = 0.2 #0.10
 DEEP_JUNGLE_RATE = 0.3 #0.25
 FACILITY_RATE    = 0.4 #0.25
+
+NIGHT_ALPHA = 160
 
 #-------------------------------------------------------------------------
 # Menu

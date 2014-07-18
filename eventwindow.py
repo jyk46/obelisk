@@ -213,6 +213,28 @@ class EventWindow( window.Window ):
 
     self.set_food_text()
 
+  # Generate text for new survivor
+
+  def set_survivor_text( self, _survivor ):
+
+    self.text_matrix = []
+
+    self.text_matrix.append( [
+      'Found a new survivor!',
+      '**' + str( _survivor.name ),
+      'AGE: ' + str( _survivor.age ),
+      'STAM: ' + str( _survivor.stamina ) + '/' + str( _survivor.max_stamina ),
+      'PHYS: ' + str( _survivor.physical ),
+      'MENT: ' + str( _survivor.mental ),
+    ] )
+
+    attributes_col = [ '', '', 'ATTRIBUTES:' ]
+
+    for _attribute in _survivor.attributes:
+      attributes_col.append( '* ' + _attribute.name )
+
+    self.text_matrix.append( attributes_col )
+
   # Update graphics
 
   def update( self ):

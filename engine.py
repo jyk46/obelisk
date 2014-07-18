@@ -75,6 +75,8 @@ class Engine:
     self.active_expedition = None
     self.explored          = False
     self.transition_alpha  = 255
+    self.found_survivor    = False
+    self.new_survivor      = None
 
     # Initialize sprite groups
 
@@ -188,7 +190,8 @@ class Engine:
     pos_x = random.randint( 0, properties.MAP_SIZE - 1 )
     pos_y = random.randint( 0, properties.MAP_SIZE - 1 )
 
-    while self.map[pos_x][pos_y].terrain != 'Field':
+    while ( self.map[pos_x][pos_y].terrain != 'Field' ) \
+      or self.map[pos_x][pos_y].has_survivor:
       pos_x = random.randint( 0, properties.MAP_SIZE - 1 )
       pos_y = random.randint( 0, properties.MAP_SIZE - 1 )
 
@@ -793,39 +796,75 @@ class Engine:
 
   def handle_phase_explore3( self ):
 
+    # Only wait for input if rescued survivor
+
+    if self.found_survivor:
+
+      next_phase = self.event_window.process_inputs(
+        self.mouse_x, self.mouse_y, self.mouse_click
+      )
+
+      if next_phase:
+        self.found_survivor = False
+
     # Wait until movement animation is finished (if coming from explore
     # phase). Move to next phase once movement is done to display
     # scavenging results.
 
     if len( self.active_expedition.move_route ) == 0:
 
-      self.phase = PHASE_SCAVENGE1
+      # Add rescued survivors to group if necessary, newly rescued
+      # survivor is not free for this turn and does not add to the
+      # scavenge rate.
 
-      # Configure event window for scavenging event
+      if self.active_expedition.pos_tile.has_survivor:
 
-      self.event_window.reset()
-      self.event_window._expedition = self.active_expedition
-      self.event_window.survivors   = self.active_expedition.survivors
-      self.event_window._tile       = self.active_expedition.pos_tile
+        self.found_survivor                          = True
+        self.new_survivor                            = survivor.Survivor()
+        self.new_survivor.free                       = False
+        self.active_expedition.pos_tile.has_survivor = False
 
-      # Need to set a special flag so the scavenge phase knows not to
-      # charge any stamina when coming from explore phase.
+        self.event_window.reset()
+        self.event_window.set_survivor_text( self.new_survivor )
 
-      self.explored = True
+      # If rescued a survivor, then wait until user confirms, otherwise,
+      # move directly to scavenge phase.
 
-      # Merge expeditions if on same tile
+      elif not self.found_survivor:
 
-      for _expedition in self.expeditions:
-        if ( self.active_expedition != _expedition ) \
-          and ( self.active_expedition.pos_tile == _expedition.pos_tile ):
-          self.active_expedition.merge( _expedition )
-          self.expeditions.remove( _expedition )
-          self.event_window._expedition = self.active_expedition
-          break
+        self.phase = PHASE_SCAVENGE1
 
-      # Roll for scavenging
+        # Configure event window for scavenging event
 
-      self.event_window.scavenge()
+        self.event_window.reset()
+        self.event_window._expedition = self.active_expedition
+        self.event_window.survivors   = self.active_expedition.survivors
+        self.event_window._tile       = self.active_expedition.pos_tile
+
+        # Need to set a special flag so the scavenge phase knows not to
+        # charge any stamina when coming from explore phase.
+
+        self.explored = True
+
+        # Merge expeditions if on same tile
+
+        for _expedition in self.expeditions:
+          if ( self.active_expedition != _expedition ) \
+            and ( self.active_expedition.pos_tile == _expedition.pos_tile ):
+            self.active_expedition.merge( _expedition )
+            self.expeditions.remove( _expedition )
+            self.event_window._expedition = self.active_expedition
+            break
+
+        # Roll for scavenging
+
+        self.event_window.scavenge()
+
+        # Add rescued survivor
+
+        if self.new_survivor != None:
+          self.active_expedition.survivors.append( self.new_survivor )
+          self.new_survivor = None
 
   #.......................................................................
   # PHASE_SCAVENGE0 Handling
@@ -1328,7 +1367,7 @@ class Engine:
     # Switch to night if in day phase, or switch to day and increment
     # time counter if in night phase
 
-    if ( self.day_en and ( self.transition_alpha >= 160 ) ) \
+    if ( self.day_en and ( self.transition_alpha >= properties.NIGHT_ALPHA ) ) \
       or ( not self.day_en and ( self.transition_alpha == 0 ) ):
 
       self.phase     = PHASE_LOOK
@@ -1366,6 +1405,9 @@ class Engine:
       self.inventory_window.update()
     elif self.phase == PHASE_EXPLORE2:
       self.cost_box.update()
+    elif self.phase == PHASE_EXPLORE3:
+      if self.found_survivor:
+        self.event_window.update()
     elif self.phase == PHASE_SCAVENGE0:
       self.survivor_window.update()
     elif self.phase == PHASE_SCAVENGE1:
@@ -1397,7 +1439,12 @@ class Engine:
 
     # Draw map and associated markers
 
-    if cam_moved or ( self.phase == PHASE_EXPLORE2 ) or ( self.phase == PHASE_EXPLORE3 ) or ( self.phase == PHASE_TRANSITION ):
+    if cam_moved or not self.day_en \
+      or ( self.phase == PHASE_EXPLORE1 ) \
+      or ( self.phase == PHASE_EXPLORE2 ) \
+      or ( self.phase == PHASE_EXPLORE3 ) \
+      or ( self.phase == PHASE_TRANSITION ):
+
       for _tile in self.map_group.sprites():
         if _tile.rect.colliderect( self.camera_window.rect ):
           rect_updates += _tile.draw( self.camera_window.bg_image )
@@ -1426,6 +1473,9 @@ class Engine:
       rect_updates += self.inventory_window.draw( self.screen )
     elif self.phase == PHASE_EXPLORE2:
       rect_updates += self.cost_box.draw( self.screen )
+    elif self.phase == PHASE_EXPLORE3:
+      if self.found_survivor:
+        rect_updates += self.event_window.draw( self.screen )
     elif self.phase == PHASE_SCAVENGE0:
       rect_updates += self.survivor_window.draw( self.screen )
     elif self.phase == PHASE_SCAVENGE1:

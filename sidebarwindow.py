@@ -92,8 +92,8 @@ class SidebarWindow( window.Window ):
     count = 0
 
     if len( self.expeditions ) > 0:
-      for expd in self.expeditions:
-        count += len( expd.get_free() )
+      for _expedition in self.expeditions:
+        count += len( _expedition.get_free() )
 
     return count
 

@@ -204,6 +204,23 @@ class MapGen:
     self.gen_random( [ 'Wreckage', 'Ritual Site' ], \
                      [ self.num_wreckage, self.num_ritual_site ] )
 
+    # Populate with rescuable survivors
+
+    placed  = []
+    invalid = [ 'Ritual Site', 'Obelisk' ]
+
+    for i in range( properties.NUM_MAP_SURVIVORS ):
+
+      seed_x = random.randint( 0, self.size - 1 )
+      seed_y = random.randint( 0, self.size - 1 )
+
+      while ( self.map[seed_x][seed_y] in placed ) \
+        or ( self.map[seed_x][seed_y].terrain in invalid ):
+        seed_x = random.randint( 0, self.size - 1 )
+        seed_y = random.randint( 0, self.size - 1 )
+
+      self.map[seed_x][seed_y].has_survivor = True
+
   # Print debug information
 
   def debug( self ):

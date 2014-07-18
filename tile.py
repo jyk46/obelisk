@@ -355,6 +355,8 @@ class Tile( pygame.sprite.Sprite ):
     self.rsrc_rates  = copy.deepcopy( terrain_table[self.terrain][5] )
     self.item_rates  = terrain_table[self.terrain][6]
 
+    self.has_survivor = False
+
     # Overlays for movement
 
     self.moveable = False
@@ -375,6 +377,18 @@ class Tile( pygame.sprite.Sprite ):
     self.fog_rect         = self.fog_surface.get_rect()
     self.fog_rect.topleft = 0, 0
     self.fog_surface.set_alpha( 255 )
+
+    # Overlay for rescuable survivor
+
+    self.step_count = 0
+    self.draw_count = 0
+
+    self.survivor_img_path     = properties.TILE_PATH + 'fire'
+    self.survivor_surface      = pygame.image.load( self.survivor_img_path + '0.png' )
+    self.survivor_surface.set_colorkey( self.survivor_surface.get_at( ( 0, 0 ) ), RLEACCEL )
+    self.survivor_surface      = self.survivor_surface.convert()
+    self.survivor_rect         = self.survivor_surface.get_rect()
+    self.survivor_rect.center  = self.fog_rect.center
 
   # Roll for enemy spawned during defend phase. Currently only one enemy
   # is spawned per encounter. If no enemy is spawned, None is returned.
@@ -474,6 +488,25 @@ class Tile( pygame.sprite.Sprite ):
     self.rect.top  = self.abs_y - cam_y
     self.rect.left = self.abs_x - cam_x
 
+    # Draw campfire if night and there is a rescuable survivor here
+
+    if not self.fog and ( self.fog_surface.get_alpha() > properties.NIGHT_ALPHA - 10 ) \
+      and ( self.fog_surface.get_alpha() < 255 ) and self.has_survivor:
+
+      if self.step_count == properties.FRAME_SWITCH:
+
+        self.survivor_surface = pygame.image.load( self.survivor_img_path + str( self.draw_count ) + '.png' )
+        self.survivor_surface.set_colorkey( self.survivor_surface.get_at( ( 0, 0 ) ), RLEACCEL )
+        self.survivor_surface = self.survivor_surface.convert()
+
+        self.draw_count += 1
+        if self.draw_count > 3:
+          self.draw_count = 0
+
+        self.step_count = 0
+
+      else:
+        self.step_count += 1
 
   # Draw overlays if necessary
 
@@ -491,6 +524,13 @@ class Tile( pygame.sprite.Sprite ):
         rect_updates += [ self.image.blit( self.sel_surface, self.sel_rect ) ]
       else:
         rect_updates += [ self.image.blit( self.move_surface, self.move_rect ) ]
+
+    # Draw campfire if night and there is a rescuable survivor here
+
+    if not self.fog and ( self.fog_surface.get_alpha() > properties.NIGHT_ALPHA - 10 ) \
+      and ( self.fog_surface.get_alpha() < 255 ) and self.has_survivor:
+
+      rect_updates += [ self.image.blit( self.survivor_surface, self.survivor_rect ) ]
 
     return rect_updates
 
