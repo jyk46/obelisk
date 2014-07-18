@@ -136,30 +136,6 @@ class Expedition( pygame.sprite.Sprite ):
 
     self._inventory.free()
 
-  # Commit explore party changes
-
-  def commit( self ):
-
-    # Remove transferred survivors
-
-    tmp_survivors = []
-
-    for _survivor in self.survivors:
-      if _survivor.free:
-        tmp_survivors.append( _survivor )
-
-    self.survivors = tmp_survivors
-
-    # Remove transferred items
-
-    tmp_items = []
-
-    for _item in self._inventory.items:
-      if _item.free:
-        tmp_items.append( _item )
-
-    self._inventory.items = tmp_items
-
   # Set direction for animation
 
   def set_direction( self ):
@@ -388,19 +364,25 @@ class Expedition( pygame.sprite.Sprite ):
 
   def split( self, survivors, _inventory ):
 
-    # Remove survivors and items from parent expedition
+    # Remove transferred survivors
 
-    for new_survivor in survivors:
-      for i, old_survivor in enumerate( self.survivors ):
-        if old_survivor == new_survivor:
-          del self.survivors[i]
-          break
+    tmp_survivors = []
 
-    self._inventory -= _inventory
+    for _survivor in self.survivors:
+      if _survivor not in survivors:
+        tmp_survivors.append( _survivor )
 
-    # Create and return child expedition
+    self.survivors = tmp_survivors
 
-    return Expedition( self.pos_tile, survivors, _inventory )
+    # Remove transferred items
+
+    tmp_items = []
+
+    for _item in self._inventory.items:
+      if _item not in _inventory.items:
+        tmp_items.append( _item )
+
+    self._inventory.items = tmp_items
 
   # Merge expeditions
 

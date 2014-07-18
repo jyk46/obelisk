@@ -27,14 +27,9 @@ class HealthTextBox( textbox.TextBox ):
 
   # Update graphics with health bars as well
 
-  def update( self, text_matrix=[['']], health_matrix=None ):
+  def update( self, text_matrix=[['']], health_matrix=[[0.0]] ):
 
     textbox.TextBox.update( self, text_matrix )
-
-    # Exit if no health matrix is specified
-
-    if health_matrix == None:
-      return
 
     # Pair health bars with respective survivor names
 

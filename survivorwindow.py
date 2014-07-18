@@ -97,7 +97,15 @@ class SurvivorWindow( window.Window ):
   def free( self ):
 
     if self._expedition != None:
-      self._expedition.free_survivors()
+
+      for _survivor in self.survivors:
+        _survivor.free = True
+
+  # Commit changes made to survivors
+
+  def commit( self ):
+
+    self.survivors = []
 
   # Reset scroll positions of text boxes
 

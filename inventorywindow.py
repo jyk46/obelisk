@@ -48,7 +48,7 @@ class InventoryWindow( window.Window ):
     # Member variables
 
     self._expedition = None
-    self._inventory  = inventory.Inventory()
+    self._inventory  = inventory.Inventory( 0, 0, 0, 0, [] )
     self._item       = None
     self.type        = type
     self.limit       = limit
@@ -98,8 +98,15 @@ class InventoryWindow( window.Window ):
   def free( self ):
 
     if self._expedition != None:
+
       self._expedition._inventory.merge_resources( self._inventory )
       self._expedition.free_inventory()
+
+  # Commit changes made to inventory
+
+  def commit( self ):
+
+    self._inventory = inventory.Inventory( 0, 0, 0, 0, [] )
 
   # Reset scroll positions of text boxes
 
@@ -113,7 +120,7 @@ class InventoryWindow( window.Window ):
   def reset( self, type='All', limit=99 ):
 
     self._expedition = None
-    self._inventory  = inventory.Inventory()
+    self._inventory  = inventory.Inventory( 0, 0, 0, 0, [] )
     self._item       = None
     self.type        = type
     self.limit       = limit

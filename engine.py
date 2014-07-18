@@ -725,7 +725,12 @@ class Engine:
           # Finalize changes and delete old expedition if all transferred
 
           self.active_expedition.unhighlight_range()
-          self.active_expedition.commit()
+          self.active_expedition.split(
+            self.survivor_window.survivors, self.inventory_window._inventory
+          )
+
+          self.survivor_window.commit()
+          self.inventory_window.commit()
 
           if all_explore:
             self.active_expedition.kill()
@@ -836,6 +841,8 @@ class Engine:
       self.event_window.survivors   = self.survivor_window.survivors
       self.event_window._tile       = self.active_expedition.pos_tile
 
+      self.survivor_window.commit()
+
       # Roll for scavenging
 
       self.event_window.scavenge()
@@ -941,6 +948,8 @@ class Engine:
       self.phase   = PHASE_LOOK
       self.menu_en = False
       self.cam_en  = True
+
+      self.survivor_window.commit()
 
       # Heal resting survivors based on age
 
@@ -1184,6 +1193,9 @@ class Engine:
       self.cam_en  = True
 
       # Free up inventory and equip state
+
+      self.survivor_window.commit()
+      self.inventory_window.commit()
 
       self.inventory_window.free()
       self.equip_window.free()

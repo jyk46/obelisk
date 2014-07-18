@@ -315,9 +315,11 @@ class DefendWindow( window.Window ):
       self.cards.append( defendcard.DefendCard( _survivor, x_offset, CARD_Y_OFFSET ) )
       x_offset += properties.CARD_WIDTH
 
-  # Commit dead survivors
+  # Commit dead survivors and used up defenses
 
   def commit( self ):
+
+    # Handle dead survivors
 
     survivors = []
 
@@ -326,6 +328,11 @@ class DefendWindow( window.Window ):
         survivors.append( _survivor )
 
     self._expedition.survivors = survivors
+
+    # Handle used up defenses
+
+    for defense in self.defenses:
+      self._expedition._inventory.items.remove( defense )
 
   # Reset to clean slate
 

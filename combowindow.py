@@ -50,7 +50,7 @@ class ComboWindow( window.Window ):
 
     self._expedition = None
     self.survivors   = []
-    self._inventory  = inventory.Inventory()
+    self._inventory  = inventory.Inventory( 0, 0, 0, 0, [] )
     self.start_phase = True
 
     self._survivor   = None
