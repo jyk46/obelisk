@@ -312,7 +312,7 @@ class DefendWindow( window.Window ):
     x_offset = CARD_X_OFFSET
 
     for _survivor in self.survivors:
-      self.cards.append( defendcard.DefendCard( _survivor, x_offset, CARD_Y_OFFSET ) )
+      self.cards.append( defendcard.DefendCard( self._expedition, _survivor, x_offset, CARD_Y_OFFSET ) )
       x_offset += properties.CARD_WIDTH
 
   # Commit dead survivors and used up defenses

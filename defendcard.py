@@ -17,10 +17,11 @@ class DefendCard:
 
   # Constructor
 
-  def __init__( self, _survivor, pos_x, pos_y ):
+  def __init__( self, _expedition, _survivor, pos_x, pos_y ):
 
     # Member variables
 
+    self._expedition = _expedition
     self._survivor   = _survivor
     self.pos_x       = pos_x
     self.pos_y       = pos_y
@@ -56,9 +57,20 @@ class DefendCard:
     text_col = [
       '**' + self._survivor.name.split()[0],
       'STAM: ' + str( self._survivor.stamina ) + '/' + str( self._survivor.max_stamina ),
-      self._survivor.weapon.name,
-      self._survivor.armor.name,
     ]
+
+    weapon_text = self._survivor.weapon.name
+
+    if self._survivor.weapon.ammo_cost > 0:
+
+      weapon_text += ' (' + str( self._survivor.weapon.ammo_cost ) + ')'
+
+      if self._expedition._inventory.ammo < self._survivor.weapon.ammo_cost:
+        weapon_text = '\R' + weapon_text
+
+    text_col.append( weapon_text )
+
+    text_col.append( self._survivor.armor.name )
 
     self.surface_col = []
     row_idx          = 0
@@ -71,11 +83,17 @@ class DefendCard:
         bold = True
         text = text.replace( '**', '' )
 
+      color = utils.WHITE
+
+      if '\R' in text:
+        color = utils.RED
+        text = text.replace( '\R', '' )
+
       surface, rect = utils.gen_text_pos(
         text, 14,
         4 + properties.TEXT_X_OFFSET,
         ( ( properties.TEXT_HEIGHT - 4 ) * row_idx ) + 4 + properties.TEXT_Y_OFFSET,
-        utils.WHITE, bold
+        color, bold
       )
 
       self.surface_col.append( ( surface, rect ) )
