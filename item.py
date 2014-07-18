@@ -190,3 +190,6 @@ class Item:
           str( self.armor ) + 'DEF', \
           '(' + str( self.wood_cost ) + ',' + str( self.metal_cost ) + ')', \
           '(' + str( self.ammo_cost ) + ',' + str( self.stam_cost ) + ')'
+
+    if self.free:
+      print 'FREE'

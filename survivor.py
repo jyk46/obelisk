@@ -163,6 +163,11 @@ class Survivor:
 
         self.attributes.append( attr )
 
+  # Overload hash operator to index dictionaries
+
+  def __hash__( self ):
+    return hash( self.name )
+
   # Overload == operator to return true if names match (assume only
   # unique names per play-through)
 

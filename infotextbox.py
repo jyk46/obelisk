@@ -62,6 +62,9 @@ class InfoTextBox( textbox.TextBox ):
       'AMMO: ' + str( _expedition._inventory.ammo ),
     ] )
 
+    if _expedition._inventory.food < len( _expedition.survivors ):
+      text_matrix[0][1] = '\R' + text_matrix[0][1]
+
     # Draw text box
 
     self.update( text_matrix )

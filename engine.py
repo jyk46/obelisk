@@ -8,6 +8,7 @@ import pygame, sys, os
 from pygame.locals import *
 
 import random
+import copy
 import properties
 import window
 import sidebarwindow
@@ -36,8 +37,8 @@ import item
 PHASE_LOOK, PHASE_SCAVENGE0, PHASE_SCAVENGE1, \
 PHASE_EXPLORE0, PHASE_EXPLORE1, PHASE_EXPLORE2, PHASE_EXPLORE3, \
 PHASE_CRAFT, PHASE_REST, PHASE_STATUS, \
-PHASE_TRANSITION, \
-PHASE_DEFEND0, PHASE_DEFEND1, PHASE_DEFEND2, PHASE_DEFEND3, = range( 15 )
+PHASE_TRANSITION, PHASE_FOOD, \
+PHASE_DEFEND0, PHASE_DEFEND1, PHASE_DEFEND2, PHASE_DEFEND3, = range( 16 )
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -427,16 +428,62 @@ class Engine:
       self.mouse_x, self.mouse_y, self.mouse_click
     )
 
-    # Move onto night phase if done button is clicked in the free look
+    # Move onto day/night if done button is clicked in the free look
     # phase and there are no more free survivors.
 
     if next_phase and ( self.phase == PHASE_LOOK ):
 
-      self.phase     = PHASE_TRANSITION
-      self.menu_en   = False
-      self.cam_en    = False
+      # Food is subtracted at the end of the day phase, if there is not
+      # enough food for every survivor, show event window with any
+      # casualties due to starving.
 
-      return True
+      if self.day_en:
+
+        # Check if at least one expedition starved
+
+        starved = False
+
+        for _expedition in self.expeditions:
+          if _expedition._inventory.food < len( _expedition.survivors ):
+            starved = True
+            self.active_expedition = _expedition
+            break
+
+        # Subtract food only if nobody starved, otherwise handle this in
+        # the food phase. Move onto night phase.
+
+        if not starved:
+
+          for _expedition in self.expeditions:
+            _expedition._inventory.food -= len( _expedition.survivors )
+
+          self.phase     = PHASE_TRANSITION
+          self.menu_en   = False
+          self.cam_en    = False
+
+          return True
+
+        # Move to food handling phase if at least one expedition starved
+
+        else:
+
+          self.phase   = PHASE_FOOD
+          self.menu_en = False
+          self.cam_en  = False
+
+          self.event_window.reset()
+          self.event_window._expedition = self.active_expedition
+          self.event_window.check_food()
+
+      # Just transition to day phase at end of night phase
+
+      else:
+
+        self.phase     = PHASE_TRANSITION
+        self.menu_en   = False
+        self.cam_en    = False
+
+        return True
 
     return False
 
@@ -568,7 +615,7 @@ class Engine:
         self.cam_en                       = True
         self.inventory_window.reset()
         self.inventory_window._expedition = self.active_expedition
-        self.inventory_window._inventory  = self.active_expedition._inventory
+        self.inventory_window._inventory  = copy.deepcopy( self.active_expedition._inventory )
         self.active_expedition.calc_range( self.survivor_window.survivors )
         self.active_expedition.highlight_range()
 
@@ -855,7 +902,7 @@ class Engine:
       # stamina (only if selecting from menu, if exploring, scavenge for
       # free).
 
-      self.event_window.commit( self.explored )
+      self.event_window.commit_scavenge( self.explored )
 
       self.explored = False
 
@@ -1187,6 +1234,9 @@ class Engine:
 
       self.heal_survivors( self.active_expedition.get_free() )
 
+      for _survivor in self.active_expedition.get_free():
+        _survivor.free = False
+
       # Delete expedition if all survivors dead
 
       if len( self.active_expedition.survivors ) == 0:
@@ -1194,6 +1244,66 @@ class Engine:
         self.expeditions.remove( self.active_expedition )
 
       # PUT GAME OVER TRANSITION HERE
+
+      if len( self.expeditions ) == 0:
+        print 'GAME OVER!'
+
+  #.......................................................................
+  # PHASE_FOOD Handling
+  #.......................................................................
+  # Phase for accounting for food for survivors at end of day
+
+  def handle_phase_food( self ):
+
+    # Process inputs
+
+    next_phase = self.event_window.process_inputs(
+      self.mouse_x, self.mouse_y, self.mouse_click
+    )
+
+    # Check for confirmation button press
+
+    if next_phase:
+
+      # Commit dead survivors and remove expedition if all survivors are
+      # dead from starvation.
+
+      self.event_window.commit_food()
+
+      if len( self.active_expedition.survivors ) == 0:
+        self.active_expedition.kill()
+        self.expeditions.remove( self.active_expedition )
+
+      # PUT GAME OVER TRANSITION HERE
+
+      if len( self.expeditions ) == 0:
+        print 'GAME OVER!'
+
+      # Check for any remaining expeditions with starvation, return to
+      # this phase for the next starving expedition.
+
+      for _expedition in self.expeditions:
+
+        if ( _expedition._inventory.food < len( _expedition.survivors ) ) \
+          and ( _expedition._inventory.food > 0 ):
+
+          self.active_expedition        = _expedition
+          self.event_window.reset()
+          self.event_window._expedition = self.active_expedition
+          self.event_window.check_food()
+
+          return
+
+      # If all starving expeditions are handled, subtract food for
+      # non-starving expeditions then transition to night phase
+
+      for _expedition in self.expeditions:
+        if _expedition._inventory.food > 0:
+          _expedition._inventory.food -= len( _expedition.survivors )
+
+      self.phase     = PHASE_TRANSITION
+      self.menu_en   = False
+      self.cam_en    = False
 
   #.......................................................................
   # PHASE_TRANSITION Handling
@@ -1274,6 +1384,8 @@ class Engine:
       self.equip_window.update()
     elif self.phase == PHASE_DEFEND3:
       self.defend_window.update()
+    elif self.phase == PHASE_FOOD:
+      self.event_window.update()
 
   #.......................................................................
   # Draw all sprites
@@ -1332,6 +1444,8 @@ class Engine:
       rect_updates += self.equip_window.draw( self.screen )
     elif self.phase == PHASE_DEFEND3:
       rect_updates += self.defend_window.draw( self.screen )
+    elif self.phase == PHASE_FOOD:
+      rect_updates += self.event_window.draw( self.screen )
 
     # Update the display
 
@@ -1433,6 +1547,9 @@ class Engine:
 
         elif self.phase == PHASE_DEFEND3:
           self.handle_phase_defend3()
+
+        elif self.phase == PHASE_FOOD:
+          self.handle_phase_food()
 
         elif self.phase == PHASE_TRANSITION:
           self.handle_phase_transition()

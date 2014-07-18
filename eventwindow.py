@@ -6,6 +6,7 @@
 import pygame, sys, os
 from pygame.locals import *
 
+import random
 import properties
 import utils
 import window
@@ -44,6 +45,10 @@ class EventWindow( window.Window ):
     self.metal       = 0
     self.ammo        = 0
     self._item       = None
+    self.starved     = {}
+
+    self.text_matrix = [['']]
+
 
     # Initialize sub-windows
 
@@ -63,20 +68,9 @@ class EventWindow( window.Window ):
     self.button_group = pygame.sprite.RenderUpdates()
     self.button_group.add( button.Button( 'OKAY', BUTTON_X_OFFSET, BUTTON_Y_OFFSET ) )
 
-  # Roll for scavenge event
-
-  def scavenge( self ):
-
-    assert( self._tile != None )
-
-    self.food, self.wood, self.metal, self.ammo \
-      = self._tile.roll_resources( self.survivors )
-
-    self._item = self._tile.roll_items( self.survivors )
-
   # Actually transfer rolled loot to expedition
 
-  def commit( self, explored ):
+  def commit_scavenge( self, explored ):
 
     assert( self._expedition != None )
 
@@ -94,6 +88,19 @@ class EventWindow( window.Window ):
       for _survivor in self.survivors:
         _survivor.stamina -= properties.SCAVENGE_COST
 
+  # Commit dead survivor due to starvation
+
+  def commit_food( self ):
+
+    self._expedition._inventory.food -= len( self._expedition.survivors )
+
+    if self._expedition._inventory.food < 0:
+      self._expedition._inventory.food = 0
+
+    for _survivor in self.starved:
+      if _survivor.stamina == 0:
+        self._expedition.survivors.remove( _survivor )
+
   # Reset expedition to clean state
 
   def reset( self ):
@@ -106,6 +113,9 @@ class EventWindow( window.Window ):
     self.metal       = 0
     self.ammo        = 0
     self._item       = None
+    self.starved     = {}
+
+    self.text_matrix = [['']]
 
   # Process inputs. Return true if okay button is clicked.
 
@@ -122,9 +132,9 @@ class EventWindow( window.Window ):
     else:
       return False
 
-  # Generate text matrices for scrollable text boxes
+  # Generate text for scavenge
 
-  def get_text( self ):
+  def set_scavenge_text( self ):
 
     text_col = [
       'The expedition found:',
@@ -137,7 +147,71 @@ class EventWindow( window.Window ):
     if self._item != None:
       text_col.append( '  ' + self._item.name )
 
-    return [ text_col ]
+    self.text_matrix = [ text_col ]
+
+  # Roll for scavenge event
+
+  def scavenge( self ):
+
+    assert( self._tile != None )
+
+    self.food, self.wood, self.metal, self.ammo \
+      = self._tile.roll_resources( self.survivors )
+
+    self._item = self._tile.roll_items( self.survivors )
+
+    self.set_scavenge_text()
+
+  # Generate text for starvation
+
+  def set_food_text( self ):
+
+    text_col = []
+
+    for _survivor, dmg in self.starved.iteritems():
+
+      text = _survivor.name.split()[0]
+
+      if _survivor.stamina == 0:
+        text += ' starved to death!'
+      else:
+        text += ' starved for ' + str( dmg ) + ' damage...'
+
+      text_col.append( text )
+
+    self.text_matrix = [ text_col ]
+
+  # Check if anyone starved in expedition
+
+  def check_food( self ):
+
+    assert( self._expedition._inventory.food < len( self._expedition.survivors ) )
+
+    self.starved = {}
+
+    num_starved = len( self._expedition.survivors ) - self._expedition._inventory.food
+
+    # Randomly roll which survivors starved this turn
+
+    for i in range( num_starved ):
+
+      _survivor = random.choice( self._expedition.survivors )
+
+      while _survivor in self.starved:
+        _survivor = random.choice( self._expedition.survivors )
+
+      # Calculate starvation damage as a percent of the max stamina
+
+      dmg = int( properties.STARVE_RATE * _survivor.max_stamina )
+
+      self.starved[_survivor] = dmg
+
+      _survivor.stamina -= dmg
+
+      if _survivor.stamina < 0:
+        _survivor.stamina = 0
+
+    self.set_food_text()
 
   # Update graphics
 
@@ -145,7 +219,7 @@ class EventWindow( window.Window ):
 
     # Populate information text box if necessary
 
-    self.info_tbox.update( self.get_text() )
+    self.info_tbox.update( self.text_matrix )
 
   # Draw information onto window
 
