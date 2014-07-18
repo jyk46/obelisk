@@ -374,6 +374,7 @@ class Tile( pygame.sprite.Sprite ):
     self.fog_surface      = pygame.image.load( properties.TILE_PATH + 'black.png' )
     self.fog_rect         = self.fog_surface.get_rect()
     self.fog_rect.topleft = 0, 0
+    self.fog_surface.set_alpha( 255 )
 
   # Roll for enemy spawned during defend phase. Currently only one enemy
   # is spawned per encounter. If no enemy is spawned, None is returned.
@@ -482,7 +483,7 @@ class Tile( pygame.sprite.Sprite ):
 
     self.image = self.surface.convert()
 
-    if self.fog:
+    if self.fog or ( self.fog_surface.get_alpha() < 255 ):
       rect_updates += [ self.image.blit( self.fog_surface, self.fog_rect ) ]
 
     if self.moveable:

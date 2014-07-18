@@ -73,6 +73,7 @@ class Engine:
     self.menu_en           = False
     self.active_expedition = None
     self.explored          = False
+    self.transition_alpha  = 255
 
     # Initialize sprite groups
 
@@ -431,27 +432,9 @@ class Engine:
 
     if next_phase and ( self.phase == PHASE_LOOK ):
 
-      self.phase     = PHASE_LOOK
+      self.phase     = PHASE_TRANSITION
       self.menu_en   = False
-      self.cam_en    = True
-
-      # Switch to night if in day phase
-
-      if self.day_en:
-        self.day_en                = False
-        self.sidebar_window.day_en = False
-
-      # Increment time counter if in night phase
-
-      else:
-        self.day_en                     = True
-        self.sidebar_window.day_en      = True
-        self.sidebar_window.time_count += 1
-
-      # Reset all survivors to be free
-
-      for _expedition in self.expeditions:
-        _expedition.free_survivors()
+      self.cam_en    = False
 
       return True
 
@@ -1213,6 +1196,51 @@ class Engine:
       # PUT GAME OVER TRANSITION HERE
 
   #.......................................................................
+  # PHASE_TRANSITION Handling
+  #.......................................................................
+  # Transition animation from day to night and vice versa
+
+  def handle_phase_transition( self ):
+
+    if self.day_en:
+      self.transition_alpha += 8
+    else:
+      self.transition_alpha -= 8
+
+    if self.transition_alpha > 255:
+      self.transition_alpha = 0
+
+    for _tile in self.map_group.sprites():
+      if _tile.rect.colliderect( self.camera_window.rect ):
+        if not _tile.fog:
+          _tile.fog_surface.set_alpha( self.transition_alpha )
+
+    # Switch to night if in day phase, or switch to day and increment
+    # time counter if in night phase
+
+    if ( self.day_en and ( self.transition_alpha >= 160 ) ) \
+      or ( not self.day_en and ( self.transition_alpha == 0 ) ):
+
+      self.phase     = PHASE_LOOK
+      self.menu_en   = False
+      self.cam_en    = True
+
+      if self.day_en:
+        self.day_en                = False
+        self.sidebar_window.day_en = False
+
+      else:
+        self.day_en                     = True
+        self.sidebar_window.day_en      = True
+        self.sidebar_window.time_count += 1
+        self.transition_alpha           = 255
+
+      # Reset all survivors to be free
+
+      for _expedition in self.expeditions:
+        _expedition.free_survivors()
+
+  #.......................................................................
   # Update all sprites
   #.......................................................................
 
@@ -1257,7 +1285,7 @@ class Engine:
 
     # Draw map and associated markers
 
-    if cam_moved or ( self.phase == PHASE_EXPLORE2 ) or ( self.phase == PHASE_EXPLORE3 ):
+    if cam_moved or ( self.phase == PHASE_EXPLORE2 ) or ( self.phase == PHASE_EXPLORE3 ) or ( self.phase == PHASE_TRANSITION ):
       for _tile in self.map_group.sprites():
         if _tile.rect.colliderect( self.camera_window.rect ):
           rect_updates += _tile.draw( self.camera_window.bg_image )
@@ -1405,6 +1433,9 @@ class Engine:
 
         elif self.phase == PHASE_DEFEND3:
           self.handle_phase_defend3()
+
+        elif self.phase == PHASE_TRANSITION:
+          self.handle_phase_transition()
 
       # Update graphics
 
