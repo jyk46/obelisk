@@ -204,15 +204,6 @@ class Engine:
     for i in range( properties.NUM_START_SURVIVORS ):
       survivors.append( survivor.Survivor() )
 
-    survivors[0].attributes = [ attribute.Attribute( survivors[0].age, 'Doctor' ) ]
-    survivors[0].job        = attribute.DOCTOR
-
-    survivors[1].attributes = [ attribute.Attribute( survivors[0].age, 'Engineer' ) ]
-    survivors[1].job        = attribute.ENGINEER
-
-    survivors[2].attributes = [ attribute.Attribute( survivors[0].age, 'Leader' ) ]
-    survivors[2].job        = attribute.LEADER
-
     # Initialize starting inventory
 
     _inventory = inventory.Inventory(
@@ -362,10 +353,15 @@ class Engine:
 
     # Check for valid button press
 
-    if self.mouse_click:
+    for button in menu_group:
 
-      for button in menu_group:
-        if button.rect.collidepoint( self.mouse_x, self.mouse_y ):
+      button.image.set_alpha( 255 )
+
+      if button.rect.collidepoint( self.mouse_x, self.mouse_y ):
+
+        button.image.set_alpha( 200 )
+
+        if self.mouse_click:
 
           # Assign active terrain to display on sidebar
 
@@ -396,12 +392,12 @@ class Engine:
 
           if button.text == 'EXPLORE' and ( len( self.active_expedition.get_free() ) > 0 ):
             self.phase                       = PHASE_EXPLORE0
-            self.survivor_window.reset()
+            self.survivor_window.reset( 'CHOOSE SURVIVORS TO EXPLORE' )
             self.survivor_window._expedition = self.active_expedition
 
           elif button.text == 'SCAVENGE' and ( len( self.active_expedition.get_free() ) > 0 ):
             self.phase                       = PHASE_SCAVENGE0
-            self.survivor_window.reset()
+            self.survivor_window.reset( 'CHOOSE SURVIVORS TO SCAVENGE' )
             self.survivor_window._expedition = self.active_expedition
 
           elif button.text == 'CRAFT' and ( len( self.active_expedition.get_free() ) > 0 ):
@@ -411,7 +407,7 @@ class Engine:
 
           elif button.text == 'REST' and ( len( self.active_expedition.get_free() ) > 0 ):
             self.phase                       = PHASE_REST
-            self.survivor_window.reset()
+            self.survivor_window.reset( 'CHOOSE SURVIVORS TO REST' )
             self.survivor_window._expedition = self.active_expedition
 
           elif button.text == 'STATUS':
@@ -421,7 +417,7 @@ class Engine:
 
           elif button.text == 'DEFEND' and ( len( self.active_expedition.get_free() ) > 0 ):
             self.phase                        = PHASE_DEFEND0
-            self.inventory_window.reset( 'Defense', properties.DEFENSE_LIMIT )
+            self.inventory_window.reset( 'CHOOSE ITEMS FOR DEFENSE', 'Defense', properties.DEFENSE_LIMIT )
             self.inventory_window._expedition = self.active_expedition
 
           return True
@@ -620,12 +616,12 @@ class Engine:
       # automatically transfer all items and resources over to
       # explore party.
 
-      if len( self.survivor_window._expedition.get_free() ) == 0:
+      if len( self.active_expedition.survivors ) == len( self.survivor_window.survivors ):
 
         self.phase                        = PHASE_EXPLORE2
         self.menu_en                      = False
         self.cam_en                       = True
-        self.inventory_window.reset()
+        self.inventory_window.reset( 'CHOOSE ITEMS TO TAKE' )
         self.inventory_window._expedition = self.active_expedition
         self.inventory_window._inventory  = copy.deepcopy( self.active_expedition._inventory )
         self.active_expedition.calc_range( self.survivor_window.survivors )
@@ -636,7 +632,7 @@ class Engine:
       else:
 
         self.phase                        = PHASE_EXPLORE1
-        self.inventory_window.reset()
+        self.inventory_window.reset( 'CHOOSE ITEMS TO TAKE' )
         self.inventory_window._expedition = self.active_expedition
 
   #.......................................................................
@@ -815,10 +811,23 @@ class Engine:
 
     if self.key_esc:
 
-      self.phase   = PHASE_EXPLORE1
-      self.menu_en = True
-      self.cam_en  = False
-      self.active_expedition.unhighlight_range()
+      # If all survivors were chosen go back to survivor select
+
+      if len( self.active_expedition.survivors ) == len( self.survivor_window.survivors ):
+
+        self.phase   = PHASE_EXPLORE0
+        self.menu_en = True
+        self.cam_en  = False
+        self.active_expedition.unhighlight_range()
+
+      # Otherwise go back to inventory select
+
+      else:
+
+        self.phase   = PHASE_EXPLORE1
+        self.menu_en = True
+        self.cam_en  = False
+        self.active_expedition.unhighlight_range()
 
   #.......................................................................
   # PHASE_EXPLORE3 Handling
@@ -1189,7 +1198,7 @@ class Engine:
     elif next_phase:
 
       self.phase                       = PHASE_DEFEND1
-      self.survivor_window.reset( properties.DEFENDER_LIMIT )
+      self.survivor_window.reset( 'CHOOSE SURVIVORS TO DEFEND', properties.DEFENDER_LIMIT )
       self.survivor_window._expedition = self.active_expedition
 
   #.......................................................................
@@ -1487,6 +1496,7 @@ class Engine:
     # Draw map and associated markers
 
     if cam_moved or not self.day_en \
+      or ( self.phase == PHASE_EXPLORE0 ) \
       or ( self.phase == PHASE_EXPLORE1 ) \
       or ( self.phase == PHASE_EXPLORE2 ) \
       or ( self.phase == PHASE_EXPLORE3 ) \

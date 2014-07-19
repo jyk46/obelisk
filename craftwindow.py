@@ -83,7 +83,7 @@ class CraftWindow( window.Window ):
     # Initialize labels for sub-windows
 
     self.info_label_surface, self.info_label_rect = utils.gen_text_pos(
-      'INFORMATION', 16, INFO_X_OFFSET, properties.TEXT_Y_OFFSET, utils.BLACK, True
+      'CHOOSE ITEM TO CRAFT', 16, INFO_X_OFFSET, properties.TEXT_Y_OFFSET, utils.BLACK, True
     )
 
     self.old_label_surface, self.old_label_rect = utils.gen_text_pos(
@@ -245,9 +245,15 @@ class CraftWindow( window.Window ):
 
     # Check for valid button click
 
-    if mouse_click and rect.collidepoint( mouse_x, mouse_y ) \
-      and self.selected and self.check_cost():
-      return True
+    self.button_group.sprites()[0].image.set_alpha( 255 )
+
+    if rect.collidepoint( mouse_x, mouse_y ):
+
+      self.button_group.sprites()[0].image.set_alpha( 200 )
+
+      if mouse_click and self.selected and self.check_cost():
+        return True
+
     else:
       return False
 

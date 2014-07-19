@@ -75,7 +75,7 @@ class EquipWindow( window.Window ):
     # Initialize labels for sub-windows
 
     self.info_label_surface, self.info_label_rect = utils.gen_text_pos(
-      'INFORMATION', 16, INFO_X_OFFSET, properties.TEXT_Y_OFFSET, utils.BLACK, True
+      'EQUIP DEFENDERS', 16, INFO_X_OFFSET, properties.TEXT_Y_OFFSET, utils.BLACK, True
     )
 
     self.old_label_surface, self.old_label_rect = utils.gen_text_pos(
@@ -224,8 +224,15 @@ class EquipWindow( window.Window ):
 
     # Check for valid button click
 
-    if mouse_click and rect.collidepoint( mouse_x, mouse_y ):
-      return True
+    self.button_group.sprites()[0].image.set_alpha( 255 )
+
+    if rect.collidepoint( mouse_x, mouse_y ):
+
+      self.button_group.sprites()[0].image.set_alpha( 200 )
+
+      if mouse_click:
+        return True
+
     else:
       return False
 

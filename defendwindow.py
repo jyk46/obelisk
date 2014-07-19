@@ -359,104 +359,39 @@ class DefendWindow( window.Window ):
 
     # Button click effect changes with phase
 
-    if mouse_click and rect.collidepoint( mouse_x, mouse_y ):
+    self.button_group.sprites()[0].image.set_alpha( 255 )
 
-      #...................................................................
-      # Start phase
-      #...................................................................
+    if rect.collidepoint( mouse_x, mouse_y ):
 
-      if self.phase == PHASE_START:
+      self.button_group.sprites()[0].image.set_alpha( 200 )
 
-        # If no enemy spawned, exit phase
+      if mouse_click:
 
-        if self._enemy == None:
-          return True
+        #...................................................................
+        # Start phase
+        #...................................................................
 
-        # If traps set, trigger them
+        if self.phase == PHASE_START:
 
-        if self.defense_dmg > 0.0:
+          # If no enemy spawned, exit phase
 
-          self.phase            = PHASE_DEFENSE
-          self.do_draw          = True
+          if self._enemy == None:
+            return True
 
-          self.target_dmg       = int( self.defense_dmg * self._enemy.max_stamina )
-          self.target_stamina   = max( self._enemy.stamina - self.target_dmg, 0 )
-          self.enemy_damaged    = True
-          self.animation_active = True
-          self.timer            = pygame.time.get_ticks()
+          # If traps set, trigger them
 
-        # First turn to enemy
+          if self.defense_dmg > 0.0:
 
-        elif self.turn_order[self.turn_idx] == self._enemy:
-
-          self.phase           = PHASE_ENEMY
-          self.do_draw         = True
-
-          attack_info              = self._enemy.attack( self.survivors )
-          self.target_survivor     = attack_info[0]
-          self.target_dmg          = max( attack_info[1] - self.defense_armor, 0 )
-          self.target_stamina      = max( self.target_survivor.stamina - self.target_dmg, 0 )
-          self.set_target_card()
-
-          # No animation for 0 damage
-
-          if self.target_dmg == 0:
-
-            self.animation_active = False
-            self.increment_turn()
-
-            self.msg_tbox.update( [[
-              self._enemy.name + ' did no damage!'
-            ]] )
-
-          # Enemy is stunned
-
-          elif self.defense_stun > 0:
-
-            self.target_stamina   = self.target_survivor.stamina
-            self.animation_active = False
-            self.increment_turn()
-
-          # Otherwise show damage animation
-
-          else:
-
-            self.target_card.damaged = True
-            self.animation_active    = True
-            self.timer               = pygame.time.get_ticks()
-
-        # First turn to survivor
-
-        else:
-
-          self.phase           = PHASE_PLAYER
-          self.do_draw         = True
-          self.target_survivor = self.turn_order[self.turn_idx]
-          self.set_target_card()
-          self.target_card.activate()
-          self.hit_active      = True
-          self.hit_bar_ratio   = 0.00
-          self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
-
-      #...................................................................
-      # Defense phase
-      #...................................................................
-
-      elif self.phase == PHASE_DEFENSE:
-
-        # Wait for animation to finish
-
-        if not self.animation_active:
-
-          # Check if enemy is dead
-
-          if self._enemy.stamina == 0:
-
-            self.phase            = PHASE_WIN
+            self.phase            = PHASE_DEFENSE
             self.do_draw          = True
-            self.animation_active = True
 
-          # Otherwise move onto the next unit's turn
+            self.target_dmg       = int( self.defense_dmg * self._enemy.max_stamina )
+            self.target_stamina   = max( self._enemy.stamina - self.target_dmg, 0 )
+            self.enemy_damaged    = True
+            self.animation_active = True
+            self.timer            = pygame.time.get_ticks()
+
+          # First turn to enemy
 
           elif self.turn_order[self.turn_idx] == self._enemy:
 
@@ -495,8 +430,8 @@ class DefendWindow( window.Window ):
               self.target_card.damaged = True
               self.animation_active    = True
               self.timer               = pygame.time.get_ticks()
-              self.hit_bar_ratio       = 0.00
-              self.scale_hit_bar()
+
+          # First turn to survivor
 
           else:
 
@@ -509,211 +444,282 @@ class DefendWindow( window.Window ):
             self.hit_bar_ratio   = 0.00
             self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
 
-      #...................................................................
-      # Enemy phase
-      #...................................................................
+        #...................................................................
+        # Defense phase
+        #...................................................................
 
-      elif self.phase == PHASE_ENEMY:
+        elif self.phase == PHASE_DEFENSE:
 
-        # Wait for animation to finish
+          # Wait for animation to finish
 
-        if not self.animation_active:
+          if not self.animation_active:
 
-          # All defenders are dead, end phase
+            # Check if enemy is dead
 
-          if self.check_dead():
+            if self._enemy.stamina == 0:
 
-            self.phase   = PHASE_LOSE
-            self.do_draw = True
+              self.phase            = PHASE_WIN
+              self.do_draw          = True
+              self.animation_active = True
 
-          # Otherwise move onto the next unit's turn
+            # Otherwise move onto the next unit's turn
 
-          else:
+            elif self.turn_order[self.turn_idx] == self._enemy:
 
-            self.phase           = PHASE_PLAYER
-            self.do_draw         = True
-            self.target_survivor = self.turn_order[self.turn_idx]
-            self.set_target_card()
-            self.target_card.activate()
-            self.hit_active      = True
-            self.hit_bar_ratio   = 0.00
-            self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
+              self.phase           = PHASE_ENEMY
+              self.do_draw         = True
 
-      #...................................................................
-      # Player phase
-      #...................................................................
+              attack_info              = self._enemy.attack( self.survivors )
+              self.target_survivor     = attack_info[0]
+              self.target_dmg          = max( attack_info[1] - self.defense_armor, 0 )
+              self.target_stamina      = max( self.target_survivor.stamina - self.target_dmg, 0 )
+              self.set_target_card()
 
-      elif self.phase == PHASE_PLAYER:
+              # No animation for 0 damage
 
-        # Handle hit bar detection
+              if self.target_dmg == 0:
 
-        if self.hit_active:
+                self.animation_active = False
+                self.increment_turn()
 
-          self.hit_active = False
-          self.do_draw    = True
+                self.msg_tbox.update( [[
+                  self._enemy.name + ' did no damage!'
+                ]] )
 
-          # If attacker is military, then halve the ammo cost
+              # Enemy is stunned
 
-          ammo_cost = self.target_survivor.weapon.ammo_cost
+              elif self.defense_stun > 0:
 
-          if self.target_survivor.job == attribute.SOLDIER:
-            ammo_cost = max( int( ammo_cost * 0.5 ), 1 )
+                self.target_stamina   = self.target_survivor.stamina
+                self.animation_active = False
+                self.increment_turn()
 
-          # Consume ammo if using a gun
+              # Otherwise show damage animation
 
-          self.no_ammo = False
+              else:
 
-          if self._expedition._inventory.ammo < ammo_cost:
-            self.no_ammo = True
+                self.target_card.damaged = True
+                self.animation_active    = True
+                self.timer               = pygame.time.get_ticks()
+                self.hit_bar_ratio       = 0.00
+                self.scale_hit_bar()
 
-          elif ammo_cost > 0:
-            self._expedition._inventory.ammo -= ammo_cost
+            else:
 
-          # If attacker is mystic, then halve the stamina cost
+              self.phase           = PHASE_PLAYER
+              self.do_draw         = True
+              self.target_survivor = self.turn_order[self.turn_idx]
+              self.set_target_card()
+              self.target_card.activate()
+              self.hit_active      = True
+              self.hit_bar_ratio   = 0.00
+              self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
 
-          stamina_cost = self.target_survivor.weapon.stam_cost
+        #...................................................................
+        # Enemy phase
+        #...................................................................
 
-          if self.target_survivor.job == attribute.MYSTIC:
-            stamina_cost = max( int( stamina_cost * 0.5 ), 1 )
+        elif self.phase == PHASE_ENEMY:
 
-          # Consume stamina if using cursed weapon
+          # Wait for animation to finish
 
-          self.no_stamina    = False
-          self.curse_stamina = self.target_survivor.stamina
+          if not self.animation_active:
 
-          if self.target_survivor.stamina <= stamina_cost:
-            self.no_stamina = True
+            # All defenders are dead, end phase
 
-          elif stamina_cost > 0:
-            self.curse_stamina -= stamina_cost
+            if self.check_dead():
 
-          # Direct hit to enemy
+              self.phase   = PHASE_LOSE
+              self.do_draw = True
 
-          if self.hit_bar_ratio >= self.hit_bar_limit:
+            # Otherwise move onto the next unit's turn
 
-            critical = False
-            if self.hit_bar_ratio == 1.00:
-              critical = True
+            else:
 
-            self.target_dmg     = self.target_survivor.attack( self._enemy, critical, self.no_ammo or self.no_stamina )
-            self.target_stamina = max( self._enemy.stamina - self.target_dmg, 0 )
+              self.phase           = PHASE_PLAYER
+              self.do_draw         = True
+              self.target_survivor = self.turn_order[self.turn_idx]
+              self.set_target_card()
+              self.target_card.activate()
+              self.hit_active      = True
+              self.hit_bar_ratio   = 0.00
+              self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
 
-            # No animation for 0 damage
+        #...................................................................
+        # Player phase
+        #...................................................................
 
-            if self.target_dmg == 0:
+        elif self.phase == PHASE_PLAYER:
 
+          # Handle hit bar detection
+
+          if self.hit_active:
+
+            self.hit_active = False
+            self.do_draw    = True
+
+            # If attacker is military, then halve the ammo cost
+
+            ammo_cost = self.target_survivor.weapon.ammo_cost
+
+            if self.target_survivor.job == attribute.SOLDIER:
+              ammo_cost = max( int( ammo_cost * 0.5 ), 1 )
+
+            # Consume ammo if using a gun
+
+            self.no_ammo = False
+
+            if self._expedition._inventory.ammo < ammo_cost:
+              self.no_ammo = True
+
+            elif ammo_cost > 0:
+              self._expedition._inventory.ammo -= ammo_cost
+
+            # If attacker is mystic, then halve the stamina cost
+
+            stamina_cost = self.target_survivor.weapon.stam_cost
+
+            if self.target_survivor.job == attribute.MYSTIC:
+              stamina_cost = max( int( stamina_cost * 0.5 ), 1 )
+
+            # Consume stamina if using cursed weapon
+
+            self.no_stamina    = False
+            self.curse_stamina = self.target_survivor.stamina
+
+            if self.target_survivor.stamina <= stamina_cost:
+              self.no_stamina = True
+
+            elif stamina_cost > 0:
+              self.curse_stamina -= stamina_cost
+
+            # Direct hit to enemy
+
+            if self.hit_bar_ratio >= self.hit_bar_limit:
+
+              critical = False
+              if self.hit_bar_ratio == 1.00:
+                critical = True
+
+              self.target_dmg     = self.target_survivor.attack( self._enemy, critical, self.no_ammo or self.no_stamina )
+              self.target_stamina = max( self._enemy.stamina - self.target_dmg, 0 )
+
+              # No animation for 0 damage
+
+              if self.target_dmg == 0:
+
+                self.curse_stamina    = self.target_survivor.stamina
+                self.animation_active = False
+                self.increment_turn()
+
+                text = self.target_survivor.name.split()[0] + ' did no damage!'
+
+                if self.no_ammo:
+                  text = 'No ammo! ' + text
+                elif self.no_stamina:
+                  text = 'Ugh... ' + text
+
+                self.msg_tbox.update( [[ text ]] )
+
+              # Otherwise show damage animation
+
+              else:
+
+                self.enemy_damaged    = True
+                self.animation_active = True
+                self.timer            = pygame.time.get_ticks()
+
+            # Missed the enemy
+
+            else:
+
+              self.target_stamina   = self._enemy.stamina
               self.curse_stamina    = self.target_survivor.stamina
               self.animation_active = False
               self.increment_turn()
 
-              text = self.target_survivor.name.split()[0] + ' did no damage!'
-
-              if self.no_ammo:
-                text = 'No ammo! ' + text
-              elif self.no_stamina:
-                text = 'Ugh... ' + text
-
-              self.msg_tbox.update( [[ text ]] )
-
-            # Otherwise show damage animation
-
-            else:
-
-              self.enemy_damaged    = True
-              self.animation_active = True
-              self.timer            = pygame.time.get_ticks()
-
-          # Missed the enemy
-
-          else:
-
-            self.target_stamina   = self._enemy.stamina
-            self.curse_stamina    = self.target_survivor.stamina
-            self.animation_active = False
-            self.increment_turn()
-
-            self.msg_tbox.update( [[
-              self.target_survivor.name.split()[0] + ' misses!'
-            ]] )
-
-        # Wait for animation to finish
-
-        elif not self.animation_active:
-
-          self.target_card.deactivate()
-
-          # Check if enemy is dead
-
-          if self._enemy.stamina == 0:
-
-            self.phase            = PHASE_WIN
-            self.do_draw          = True
-            self.animation_active = True
-
-          # Otherwise move onto the next unit's turn
-
-          elif self.turn_order[self.turn_idx] == self._enemy:
-
-            self.phase           = PHASE_ENEMY
-            self.do_draw         = True
-
-            attack_info              = self._enemy.attack( self.survivors )
-            self.target_survivor     = attack_info[0]
-            self.target_dmg          = max( attack_info[1] - self.defense_armor, 0 )
-            self.target_stamina      = max( self.target_survivor.stamina - self.target_dmg, 0 )
-            self.set_target_card()
-
-            # No animation for 0 damage
-
-            if self.target_dmg == 0:
-
-              self.animation_active = False
-              self.increment_turn()
-
               self.msg_tbox.update( [[
-                self._enemy.name + ' did no damage!'
+                self.target_survivor.name.split()[0] + ' misses!'
               ]] )
 
-            # Enemy is stunned
+          # Wait for animation to finish
 
-            elif self.defense_stun > 0:
+          elif not self.animation_active:
 
-              self.target_stamina   = self.target_survivor.stamina
-              self.animation_active = False
-              self.increment_turn()
+            self.target_card.deactivate()
 
-            # Otherwise show damage animation
+            # Check if enemy is dead
+
+            if self._enemy.stamina == 0:
+
+              self.phase            = PHASE_WIN
+              self.do_draw          = True
+              self.animation_active = True
+
+            # Otherwise move onto the next unit's turn
+
+            elif self.turn_order[self.turn_idx] == self._enemy:
+
+              self.phase           = PHASE_ENEMY
+              self.do_draw         = True
+
+              attack_info              = self._enemy.attack( self.survivors )
+              self.target_survivor     = attack_info[0]
+              self.target_dmg          = max( attack_info[1] - self.defense_armor, 0 )
+              self.target_stamina      = max( self.target_survivor.stamina - self.target_dmg, 0 )
+              self.set_target_card()
+
+              # No animation for 0 damage
+
+              if self.target_dmg == 0:
+
+                self.animation_active = False
+                self.increment_turn()
+
+                self.msg_tbox.update( [[
+                  self._enemy.name + ' did no damage!'
+                ]] )
+
+              # Enemy is stunned
+
+              elif self.defense_stun > 0:
+
+                self.target_stamina   = self.target_survivor.stamina
+                self.animation_active = False
+                self.increment_turn()
+
+              # Otherwise show damage animation
+
+              else:
+
+                self.target_card.damaged = True
+                self.animation_active    = True
+                self.timer               = pygame.time.get_ticks()
+                self.hit_bar_ratio       = 0.00
+                self.scale_hit_bar()
 
             else:
 
-              self.target_card.damaged = True
-              self.animation_active    = True
-              self.timer               = pygame.time.get_ticks()
-              self.hit_bar_ratio       = 0.00
-              self.scale_hit_bar()
+              self.phase           = PHASE_PLAYER
+              self.do_draw         = True
+              self.target_survivor = self.turn_order[self.turn_idx]
+              self.set_target_card()
+              self.target_card.activate()
+              self.hit_active      = True
+              self.hit_bar_ratio   = 0.00
+              self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
 
-          else:
+        #...................................................................
+        # Done phases
+        #...................................................................
 
-            self.phase           = PHASE_PLAYER
-            self.do_draw         = True
-            self.target_survivor = self.turn_order[self.turn_idx]
-            self.set_target_card()
-            self.target_card.activate()
-            self.hit_active      = True
-            self.hit_bar_ratio   = 0.00
-            self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
+        elif ( self.phase == PHASE_WIN ) or ( self.phase == PHASE_LOSE ):
 
-      #...................................................................
-      # Done phases
-      #...................................................................
+          # Complete defend phase when animation is done
 
-      elif ( self.phase == PHASE_WIN ) or ( self.phase == PHASE_LOSE ):
-
-        # Complete defend phase when animation is done
-
-        if not self.animation_active:
-          self.commit()
-          return True
+          if not self.animation_active:
+            self.commit()
+            return True
 
     return False
 

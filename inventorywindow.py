@@ -117,7 +117,11 @@ class InventoryWindow( window.Window ):
 
   # Reset expedition to clean state
 
-  def reset( self, type='All', limit=99 ):
+  def reset( self, label_text='INFORMATION', type='All', limit=99 ):
+
+    self.info_label_surface, self.info_label_rect = utils.gen_text_pos(
+      label_text, 16, INFO_X_OFFSET, properties.TEXT_Y_OFFSET, utils.BLACK, True
+    )
 
     self._expedition = None
     self._inventory  = inventory.Inventory( 0, 0, 0, 0, [] )
@@ -243,8 +247,15 @@ class InventoryWindow( window.Window ):
 
     # Check for valid button click
 
-    if mouse_click and rect.collidepoint( mouse_x, mouse_y ):
-      return True
+    self.button_group.sprites()[0].image.set_alpha( 255 )
+
+    if rect.collidepoint( mouse_x, mouse_y ):
+
+      self.button_group.sprites()[0].image.set_alpha( 200 )
+
+      if mouse_click:
+        return True
+
     else:
       return False
 

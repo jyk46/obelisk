@@ -34,7 +34,7 @@ terrain_table = {
 
     [
       # prob min max
-      [ 0.80,  1,  2 ], # food
+      [ 0.50,  1,  2 ], # food
       [ 0.20,  1,  2 ], # wood
       [ 0.00,  0,  0 ], # metal
       [ 0.00,  0,  0 ], # ammo
@@ -59,7 +59,7 @@ terrain_table = {
 
     [
       # prob min max
-      [ 0.90,  1,  2 ], # food
+      [ 0.80,  1,  2 ], # food
       [ 0.50,  1,  2 ], # wood
       [ 0.00,  0,  0 ], # metal
       [ 0.05,  1,  2 ], # ammo
@@ -185,7 +185,7 @@ terrain_table = {
       [ 0.10,  1,  2 ], # wood
       [ 0.10,  1,  2 ], # metal
       [ 0.10,  1,  2 ], # ammo
-      [ 0.25,  0,  0 ], # item
+      [ 0.20,  0,  0 ], # item
     ],
 
     [

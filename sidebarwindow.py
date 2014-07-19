@@ -108,8 +108,15 @@ class SidebarWindow( window.Window ):
 
     # Check for valid button click
 
-    if mouse_click and rect.collidepoint( mouse_x, mouse_y ) and ( self.get_free() == 0 ):
-      return True
+    self.button_group.sprites()[0].image.set_alpha( 255 )
+
+    if rect.collidepoint( mouse_x, mouse_y ):
+
+      self.button_group.sprites()[0].image.set_alpha( 200 )
+
+      if mouse_click and ( self.get_free() == 0 ):
+        return True
+
     else:
       return False
 
