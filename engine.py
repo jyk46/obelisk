@@ -77,6 +77,7 @@ class Engine:
     self.transition_alpha  = 255
     self.found_survivor    = False
     self.new_survivor      = None
+    self.rest_animation    = False
 
     # Initialize sprite groups
 
@@ -766,14 +767,14 @@ class Engine:
           for _survivor in _expedition.survivors:
             if _survivor.job == attribute.LEADER:
               has_leader   = True
-              leader_bonus = _survivor.get_attributes().explore_bonus
+              leader_bonus = 1.0 - _survivor.get_attributes().explore_bonus
               break
 
           # Subtract cost of movement
 
           for _survivor in _expedition.survivors:
 
-            bonus = _survivor.get_attributes().explore_bonus
+            bonus = 1.0 - _survivor.get_attributes().explore_bonus
 
             if has_leader:
               bonus = leader_bonus
@@ -989,7 +990,7 @@ class Engine:
   # Heal survivors in rest phase
   #.......................................................................
 
-  def heal_survivors( self, survivors ):
+  def set_target_stamina( self, survivors ):
 
     # Check for doctors, if so heal expedition completely
 
@@ -1006,10 +1007,17 @@ class Engine:
 
       heal_rate = _survivor.get_heal_rate()
 
+      # Heal and cure all survivors if doctor is available
+
+      if has_doctor:
+
+        heal_rate      = 1.0
+        _survivor.sick = False
+
       # Roll for curing sickness. If not cured, the healing rate is
       # decreased by the sickness healing multiplier.
 
-      if _survivor.sick:
+      elif _survivor.sick:
 
         roll = random.random()
 
@@ -1022,15 +1030,17 @@ class Engine:
       # Heal survivor based on age. Note that the healing rate goes back
       # to normal on the same turn the sickness is cured.
 
-      _survivor.stamina += int( _survivor.max_stamina * heal_rate )
+      _survivor.target_stamina = _survivor.stamina + int( _survivor.max_stamina * heal_rate )
 
-      if _survivor.stamina > _survivor.max_stamina:
-        _survivor.stamina = _survivor.max_stamina
+      if _survivor.target_stamina > _survivor.max_stamina:
+        _survivor.target_stamina = _survivor.max_stamina
 
-      # Heal all survivors to max if doctor is available
+  def heal_survivors( self, survivors ):
 
-      if has_doctor:
-        _survivor.stamina = _survivor.max_stamina
+    self.set_target_stamina( survivors )
+
+    for _survivor in survivors:
+      _survivor.stamina = _survivor.target_stamina
 
   #.......................................................................
   # PHASE_REST Handling
@@ -1041,13 +1051,32 @@ class Engine:
 
     # Process inputs
 
-    next_phase = self.survivor_window.process_inputs(
-      self.mouse_x, self.mouse_y, self.mouse_click
-    )
+    next_phase = False
+    all_rested = False
+
+    if not self.rest_animation:
+
+      next_phase = self.survivor_window.process_inputs(
+        self.mouse_x, self.mouse_y, self.mouse_click
+      )
+
+    # Increment health for resting survivors
+
+    else:
+
+      all_rested = True
+
+      for _survivor in self.survivor_window.survivors:
+        if _survivor.stamina < _survivor.target_stamina:
+          _survivor.stamina += 1
+          all_rested = False
+
+      if all_rested:
+        self.rest_animation = False
 
     # Go back to menu if ESC pressed
 
-    if self.key_esc:
+    if self.key_esc and not self.rest_animation:
 
       self.phase   = PHASE_LOOK
       self.menu_en = True
@@ -1056,7 +1085,7 @@ class Engine:
 
     # Reset phase if clicked outside of context
 
-    elif self.mouse_click \
+    elif self.mouse_click and not self.rest_animation \
       and not self.survivor_window.rect.collidepoint( self.mouse_x, self.mouse_y ) \
       and self.camera_window.rect.collidepoint( self.mouse_x, self.mouse_y ):
 
@@ -1065,18 +1094,21 @@ class Engine:
       self.cam_en  = True
       self.survivor_window.free()
 
-    # Move to next phase if next button is clicked and at least one
+    # Show rest animation if next button is clicked and at least one
     # survivor was chosen.
 
     elif next_phase:
 
+      self.rest_animation = True
+      self.set_target_stamina( self.survivor_window.survivors )
+
+    # Move to next phase if rest animation is done
+
+    elif all_rested:
+
       self.phase   = PHASE_LOOK
       self.menu_en = False
       self.cam_en  = True
-
-      # Heal resting survivors based on age
-
-      self.heal_survivors( self.survivor_window.survivors )
 
       self.survivor_window.commit()
 

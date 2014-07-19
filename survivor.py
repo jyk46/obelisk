@@ -134,6 +134,8 @@ class Survivor:
     self.weapon      = item.Item( 'Unarmed' )
     self.armor       = item.Item( 'Clothes' )
 
+    self.target_stamina = self.max_stamina
+
     # Text graphics
 
     self.text_surface, self.text_rect = utils.gen_text_pos( self.name, 14, 0, 0, utils.WHITE )
