@@ -219,7 +219,8 @@ terrain_table = {
 
     [
       # prob  item
-      [ 0.65, 'Pistol'        ],
+      [ 0.20, 'Binoculars'    ],
+      [ 0.45, 'Pistol'        ],
       [ 0.10, 'Rifle'         ],
       [ 0.05, 'Flame Thrower' ],
       [ 0.05, 'C. Fiber Vest' ],
@@ -422,6 +423,8 @@ class Tile( pygame.sprite.Sprite ):
         roll = random.random()
         prob = rsrc[0] + ( _survivor.get_mental_bonus() * properties.RSRC_BONUS_MULT )
 
+        prob *= ( 1.00 + _survivor.get_attributes().scavenge_bonus )
+
         if roll < prob:
 
           loot[i] += random.randint( rsrc[1], rsrc[2] )
@@ -444,13 +447,17 @@ class Tile( pygame.sprite.Sprite ):
 
   def roll_items( self, survivors ):
 
-    tot_bonus = 0
+    tot_bonus       = 0
+    attribute_bonus = 0.0
 
     for _survivor in survivors:
-      tot_bonus += _survivor.get_mental_bonus()
+      tot_bonus       += _survivor.get_mental_bonus()
+      attribute_bonus  = max( attribute_bonus, _survivor.get_attributes().scavenge_bonus )
 
     get_roll = random.random()
     get_prob = self.rsrc_rates[-1][0] + ( tot_bonus * properties.ITEM_BONUS_MULT )
+
+    get_prob *= ( 1.00 + attribute_bonus )
 
     if get_roll < get_prob:
 

@@ -8,6 +8,7 @@ from pygame.locals import *
 
 import properties
 import utils
+import attribute
 
 #-------------------------------------------------------------------------
 # Main Class
@@ -63,9 +64,16 @@ class DefendCard:
 
     if self._survivor.weapon.ammo_cost > 0:
 
-      weapon_text += ' (' + str( self._survivor.weapon.ammo_cost ) + ')'
+      # If attacker is military, then halve the ammo cost
 
-      if self._expedition._inventory.ammo < self._survivor.weapon.ammo_cost:
+      ammo_cost = self._survivor.weapon.ammo_cost
+
+      if self._survivor.job == attribute.SOLDIER:
+        ammo_cost = max( int( ammo_cost * 0.5 ), 1 )
+
+      weapon_text += ' (' + str( ammo_cost ) + ')'
+
+      if self._expedition._inventory.ammo < ammo_cost:
         weapon_text = '\R' + weapon_text
 
     text_col.append( weapon_text )

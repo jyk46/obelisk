@@ -128,7 +128,7 @@ class SurvivorWindow( window.Window ):
   # Process inputs. Return true if next button is clicked and at least
   # one survivor was selected.
 
-  def process_inputs( self, mouse_x, mouse_y, mouse_click, cost=0 ):
+  def process_inputs( self, mouse_x, mouse_y, mouse_click, cost=0, criteria=None ):
 
     self._survivor = None
 
@@ -145,7 +145,12 @@ class SurvivorWindow( window.Window ):
 
         # Move selected survivors to selected column
 
-        if mouse_click and ( _survivor.stamina > cost ) \
+        bonus = 0
+
+        if criteria == 'day_bonus':
+          bonus = _survivor.get_attributes().day_bonus
+
+        if mouse_click and ( _survivor.stamina > max( cost - bonus, 0 ) ) \
           and ( len( self.survivors ) < self.limit ):
           _survivor.free = False
           self.survivors.append( _survivor )

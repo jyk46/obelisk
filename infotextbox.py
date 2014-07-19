@@ -131,7 +131,7 @@ class InfoTextBox( textbox.TextBox ):
   # of the inforamtion text box and is intended to be used in conjunction
   # with the set_items() function above.
 
-  def set_craft( self, _item, survivors, inventory, mental ):
+  def set_craft( self, _item, survivors, inventory, mental, bonus=1.0 ):
 
     text_matrix = []
 
@@ -159,13 +159,13 @@ class InfoTextBox( textbox.TextBox ):
     current_wood  = str( inventory.wood )
     current_metal = str( inventory.metal )
 
-    if inventory.wood < _item.wood_cost:
+    if inventory.wood < max( int( _item.wood_cost * bonus ), 1 ):
       current_wood = '\R' + current_wood
-    if inventory.metal < _item.metal_cost:
+    if inventory.metal < max( int( _item.metal_cost * bonus ), 1 ):
       current_metal = '\R' + current_metal
 
-    info_col.append( 'WOOD: ' + current_wood + '/' + str( _item.wood_cost ) )
-    info_col.append( 'METAL: ' + current_metal + '/' + str( _item.metal_cost ) )
+    info_col.append( 'WOOD: ' + current_wood + '/' + str( max( int( _item.wood_cost * bonus ), 1 ) ) )
+    info_col.append( 'METAL: ' + current_metal + '/' + str( max( int( _item.metal_cost * bonus ), 1 ) ) )
 
     # Mental requirement
 

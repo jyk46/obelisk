@@ -91,10 +91,10 @@ ment_table = [
 heal_table = [
   0.90,
   0.80,
-  0.70,
   0.60,
   0.50,
   0.40,
+  0.30,
 ]
 
 cure_table = [
@@ -140,6 +140,8 @@ class Survivor:
 
     # Roll random attributes (up to three per survivor)
 
+    self.job = attribute.NONE
+
     for i in range( 3 ):
 
       # Special case age-based attributes
@@ -163,6 +165,9 @@ class Survivor:
 
         self.attributes.append( attr )
 
+        if attr.job != attribute.NONE:
+          self.job = attr.job
+
   # Overload hash operator to index dictionaries
 
   def __hash__( self ):
@@ -178,19 +183,33 @@ class Survivor:
 
   def get_physical_bonus( self ):
 
-    return ( self.physical - 10 ) / 2
+    base  = ( self.physical - 10 ) / 2
+    extra = int( self.physical * self.get_attributes().physical_bonus )
+    bonus = base + extra
+
+    return bonus
 
   # Return mental bonus
 
   def get_mental_bonus( self ):
 
-    return ( self.mental - 10 ) / 2
+    base  = ( self.mental - 10 ) / 2
+    extra = int( self.mental * self.get_attributes().mental_bonus )
+    bonus = base + extra
+
+    return bonus
 
   # Return speed based on both bonuses
 
   def get_speed( self ):
 
     return self.get_physical_bonus() + self.get_mental_bonus()
+
+  # Return heal rate with bonuses
+
+  def get_heal_rate( self ):
+
+    return self.heal_rate + self.get_attributes().heal_bonus
 
   # Determine damage done to enemy with currently equipped weapon
 

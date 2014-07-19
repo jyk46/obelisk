@@ -13,6 +13,7 @@ import textbox
 import healthtextbox
 import defendcard
 import button
+import attribute
 
 #-------------------------------------------------------------------------
 # Window Offsets
@@ -360,7 +361,9 @@ class DefendWindow( window.Window ):
 
     if mouse_click and rect.collidepoint( mouse_x, mouse_y ):
 
+      #...................................................................
       # Start phase
+      #...................................................................
 
       if self.phase == PHASE_START:
 
@@ -435,7 +438,9 @@ class DefendWindow( window.Window ):
           self.hit_bar_ratio   = 0.00
           self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
 
+      #...................................................................
       # Defense phase
+      #...................................................................
 
       elif self.phase == PHASE_DEFENSE:
 
@@ -504,7 +509,9 @@ class DefendWindow( window.Window ):
             self.hit_bar_ratio   = 0.00
             self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
 
+      #...................................................................
       # Enemy phase
+      #...................................................................
 
       elif self.phase == PHASE_ENEMY:
 
@@ -532,7 +539,9 @@ class DefendWindow( window.Window ):
             self.hit_bar_ratio   = 0.00
             self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
 
+      #...................................................................
       # Player phase
+      #...................................................................
 
       elif self.phase == PHASE_PLAYER:
 
@@ -543,26 +552,40 @@ class DefendWindow( window.Window ):
           self.hit_active = False
           self.do_draw    = True
 
+          # If attacker is military, then halve the ammo cost
+
+          ammo_cost = self.target_survivor.weapon.ammo_cost
+
+          if self.target_survivor.job == attribute.SOLDIER:
+            ammo_cost = max( int( ammo_cost * 0.5 ), 1 )
+
           # Consume ammo if using a gun
 
           self.no_ammo = False
 
-          if self._expedition._inventory.ammo < self.target_survivor.weapon.ammo_cost:
+          if self._expedition._inventory.ammo < ammo_cost:
             self.no_ammo = True
 
-          elif self.target_survivor.weapon.ammo_cost > 0:
-            self._expedition._inventory.ammo -= self.target_survivor.weapon.ammo_cost
+          elif ammo_cost > 0:
+            self._expedition._inventory.ammo -= ammo_cost
+
+          # If attacker is mystic, then halve the stamina cost
+
+          stamina_cost = self.target_survivor.weapon.stam_cost
+
+          if self.target_survivor.job == attribute.MYSTIC:
+            stamina_cost = max( int( stamina_cost * 0.5 ), 1 )
 
           # Consume stamina if using cursed weapon
 
           self.no_stamina    = False
           self.curse_stamina = self.target_survivor.stamina
 
-          if self.target_survivor.stamina <= self.target_survivor.weapon.stam_cost:
+          if self.target_survivor.stamina <= stamina_cost:
             self.no_stamina = True
 
-          elif self.target_survivor.weapon.stam_cost > 0:
-            self.curse_stamina -= self.target_survivor.weapon.stam_cost
+          elif stamina_cost > 0:
+            self.curse_stamina -= stamina_cost
 
           # Direct hit to enemy
 
@@ -680,7 +703,9 @@ class DefendWindow( window.Window ):
             self.hit_bar_ratio   = 0.00
             self.set_hit_bar_limit( self.target_survivor.weapon.difficulty )
 
+      #...................................................................
       # Done phases
+      #...................................................................
 
       elif ( self.phase == PHASE_WIN ) or ( self.phase == PHASE_LOSE ):
 

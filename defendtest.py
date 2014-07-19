@@ -11,6 +11,7 @@ import utils
 import defendwindow
 import tile
 import survivor
+import attribute
 import inventory
 import item
 import expedition
@@ -80,6 +81,12 @@ def main():
   survivors[0].weapon = item.Item( 'Knife' )
   survivors[1].weapon = item.Item( 'Rifle' )
   survivors[3].weapon = item.Item( 'Infernal Skull' )
+
+  survivors[1].attributes = [ attribute.Attribute( survivors[1].age, 'Soldier' ) ]
+  survivors[1].job        = attribute.SOLDIER
+
+  survivors[3].attributes = [ attribute.Attribute( survivors[3].age, 'Mystic' ) ]
+  survivors[3].job        = attribute.MYSTIC
 
   _tile       = tile.Tile( 'Ritual Site', 0, 0 )
   _inventory  = inventory.Inventory( 10, 10, 10, 3, [

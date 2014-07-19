@@ -86,7 +86,7 @@ class EventWindow( window.Window ):
 
     if not explored:
       for _survivor in self.survivors:
-        _survivor.stamina -= properties.SCAVENGE_COST
+        _survivor.stamina -= max( properties.SCAVENGE_COST - _survivor.get_attributes().day_bonus, 0 )
 
   # Commit dead survivor due to starvation
 

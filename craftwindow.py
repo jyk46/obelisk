@@ -16,6 +16,7 @@ import button
 import tile
 import expedition
 import survivor
+import attribute
 import inventory
 import item
 
@@ -108,14 +109,22 @@ class CraftWindow( window.Window ):
 
     assert( self._expedition != None )
 
+    # Halve the cost of materials if engineer is helping
+
+    bonus = 1.0
+
+    for _survivor in self.survivors:
+      if _survivor.job == attribute.ENGINEER:
+        bonus = 0.5
+
     self._expedition._inventory.items.append( item.Item( self._item.name ) )
 
-    self._expedition._inventory.wood  -= self._item.wood_cost
-    self._expedition._inventory.metal -= self._item.metal_cost
+    self._expedition._inventory.wood  -= max( int( self._item.wood_cost * bonus ), 1 )
+    self._expedition._inventory.metal -= max( int( self._item.metal_cost * bonus ), 1 )
 
     for _survivor in self.survivors:
       _survivor.free     = False
-      _survivor.stamina -= properties.CRAFT_COST
+      _survivor.stamina -= max( properties.CRAFT_COST - _survivor.get_attributes().day_bonus, 0 )
 
     self.survivors = []
 
@@ -161,8 +170,16 @@ class CraftWindow( window.Window ):
 
   def check_cost( self ):
 
-    wood_check   = self._expedition._inventory.wood >= self._item.wood_cost
-    metal_check  = self._expedition._inventory.metal >= self._item.metal_cost
+    # Halve the cost of materials if engineer is helping
+
+    bonus = 1.0
+
+    for _survivor in self.survivors:
+      if _survivor.job == attribute.ENGINEER:
+        bonus = 0.5
+
+    wood_check   = self._expedition._inventory.wood >= max( int( self._item.wood_cost * bonus ), 1 )
+    metal_check  = self._expedition._inventory.metal >= max( int( self._item.metal_cost * bonus ), 1 )
     mental_check = self.get_current_mental() >= self._item.mental_req
 
     return wood_check and metal_check and mental_check
@@ -214,7 +231,7 @@ class CraftWindow( window.Window ):
 
           if _survivor in self.survivors:
             self.survivors.remove( _survivor )
-          elif _survivor.stamina > cost:
+          elif _survivor.stamina > max( cost - _survivor.get_attributes().day_bonus, 0 ):
             self.survivors.append( _survivor )
 
     # Scroll text boxes if necessary
@@ -285,11 +302,19 @@ class CraftWindow( window.Window ):
 
   def update( self ):
 
+    # Halve the cost of materials if engineer is helping
+
+    bonus = 1.0
+
+    for _survivor in self.survivors:
+      if _survivor.job == attribute.ENGINEER:
+        bonus = 0.5
+
     # Populate information text box if necessary
 
     if self._item != None:
       self.info_tbox.set_craft(
-        self._item, self.survivors, self._expedition._inventory, self.get_current_mental()
+        self._item, self.survivors, self._expedition._inventory, self.get_current_mental(), bonus
       )
     else:
       self.info_tbox.update()

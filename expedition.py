@@ -21,6 +21,19 @@ import tile
 
 class Expedition( pygame.sprite.Sprite ):
 
+  # Return modified view range
+
+  def get_view_range( self ):
+
+    bonus = 0
+
+    for _item in self._inventory.items:
+      if _item.name == 'Binoculars':
+        bonus = 2
+        break
+
+    return self.view_range + bonus
+
   # Clear map fog around expedition tile
 
   def unfog( self ):
@@ -32,7 +45,7 @@ class Expedition( pygame.sprite.Sprite ):
 
     # Iterate over frontiers until maximum cost is reached
 
-    for i in range( self.view_range ):
+    for i in range( self.get_view_range() ):
 
       next_frontier = []
 
@@ -346,19 +359,6 @@ class Expedition( pygame.sprite.Sprite ):
     for _tile in self.path_dic:
       _tile.moveable = False
       _tile.selected = False
-
-  # Modify stamina of all survivors in expedition
-
-  def modify_stamina( self, amount ):
-
-    for _survivor in self.survivors:
-
-      _survivor.stamina += amount
-
-      if _survivor.stamina > _survivor.max_stamina:
-        _survivor.stamina = _survivor.max_stamina
-      elif _survivor.stamina < 0:
-        _survivor.stamina = 0
 
   # Split expedition
 

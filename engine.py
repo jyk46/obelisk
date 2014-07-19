@@ -204,6 +204,15 @@ class Engine:
     for i in range( properties.NUM_START_SURVIVORS ):
       survivors.append( survivor.Survivor() )
 
+    survivors[0].attributes = [ attribute.Attribute( survivors[0].age, 'Doctor' ) ]
+    survivors[0].job        = attribute.DOCTOR
+
+    survivors[1].attributes = [ attribute.Attribute( survivors[0].age, 'Engineer' ) ]
+    survivors[1].job        = attribute.ENGINEER
+
+    survivors[2].attributes = [ attribute.Attribute( survivors[0].age, 'Leader' ) ]
+    survivors[2].job        = attribute.LEADER
+
     # Initialize starting inventory
 
     _inventory = inventory.Inventory(
@@ -746,14 +755,36 @@ class Engine:
             img_idx
           )
 
-          # Configure movement route, subtract cost
+          # Configure movement route
 
           move_route, cost = self.active_expedition.calc_path( _tile )
 
           _expedition.move_route = move_route
-          _expedition.modify_stamina( -cost )
           _expedition.set_direction()
           _expedition.draw_animation()
+
+          # If leader is present, apply explore bonus to all survivors
+
+          has_leader = False
+
+          for _survivor in _expedition.survivors:
+            if _survivor.job == attribute.LEADER:
+              has_leader   = True
+              leader_bonus = _survivor.get_attributes().explore_bonus
+              break
+
+          # Subtract cost of movement
+
+          for _survivor in _expedition.survivors:
+
+            bonus = _survivor.get_attributes().explore_bonus
+
+            if has_leader:
+              bonus = leader_bonus
+
+            _survivor.stamina -= int( cost * bonus )
+
+            assert( _survivor.stamina > 0 )
 
           # Finalize changes and delete old expedition if all transferred
 
@@ -876,7 +907,7 @@ class Engine:
     # Process inputs
 
     next_phase = self.survivor_window.process_inputs(
-      self.mouse_x, self.mouse_y, self.mouse_click, properties.SCAVENGE_COST
+      self.mouse_x, self.mouse_y, self.mouse_click, properties.SCAVENGE_COST, 'day_bonus'
     )
 
     # Go back to menu if ESC pressed
@@ -910,11 +941,11 @@ class Engine:
       self.event_window.survivors   = self.survivor_window.survivors
       self.event_window._tile       = self.active_expedition.pos_tile
 
-      self.survivor_window.commit()
-
       # Roll for scavenging
 
       self.event_window.scavenge()
+
+      self.survivor_window.commit()
 
   #.......................................................................
   # PHASE_SCAVENGE1 Handling
@@ -951,9 +982,20 @@ class Engine:
 
   def heal_survivors( self, survivors ):
 
+    # Check for doctors, if so heal expedition completely
+
+    has_doctor = False
+
+    for _survivor in survivors:
+      if _survivor.job == attribute.DOCTOR:
+        has_doctor = True
+        break
+
+    # Heal survivors' stamina
+
     for _survivor in survivors:
 
-      heal_rate = _survivor.heal_rate
+      heal_rate = _survivor.get_heal_rate()
 
       # Roll for curing sickness. If not cured, the healing rate is
       # decreased by the sickness healing multiplier.
@@ -974,6 +1016,11 @@ class Engine:
       _survivor.stamina += int( _survivor.max_stamina * heal_rate )
 
       if _survivor.stamina > _survivor.max_stamina:
+        _survivor.stamina = _survivor.max_stamina
+
+      # Heal all survivors to max if doctor is available
+
+      if has_doctor:
         _survivor.stamina = _survivor.max_stamina
 
   #.......................................................................
@@ -1018,11 +1065,11 @@ class Engine:
       self.menu_en = False
       self.cam_en  = True
 
-      self.survivor_window.commit()
-
       # Heal resting survivors based on age
 
       self.heal_survivors( self.survivor_window.survivors )
+
+      self.survivor_window.commit()
 
   #.......................................................................
   # PHASE_CRAFT Handling
