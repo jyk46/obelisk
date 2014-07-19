@@ -100,7 +100,7 @@ class EquipWindow( window.Window ):
   def free( self ):
 
     for _item in self._expedition._inventory.items:
-      if ( _item == 'Weapon' ) or ( _item == 'Armor' ):
+      if ( _item.type == 'Weapon' ) or ( _item.type == 'Armor' ):
         _item.free = True
 
     for _survivor in self.survivors:
